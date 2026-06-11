@@ -19,6 +19,7 @@ import kotlinx.coroutines.launch
 fun PvPScreen(language: com.pokechain.data.models.AppLanguage = com.pokechain.data.models.AppLanguage.ES) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val translator = remember { NameTranslator(context) }
     var filters by remember { mutableStateOf(PvPFilterParams()) }
     var results by remember { mutableStateOf<List<PvPResult>>(emptyList()) }
     var searchString by remember { mutableStateOf("") }
@@ -66,7 +67,6 @@ fun PvPScreen(language: com.pokechain.data.models.AppLanguage = com.pokechain.da
                     try {
                         progress = 0.1f
                         progressMessage = "Descargando datos de PvPoke..."
-                        val translator = NameTranslator(context)
                         val api = com.pokechain.data.pvpoke.PvPokeApi
                         val gameMaster = api.fetchGameMaster()
 
@@ -88,12 +88,21 @@ fun PvPScreen(language: com.pokechain.data.models.AppLanguage = com.pokechain.da
                         progress = 0.9f
                         progressMessage = "Generando cadena de búsqueda..."
                         val names = baseDexes.distinct().map { translator.getName(it, language) }
-                        val prefix = when (filters.league) {
-                            PvPLeague.GREAT -> "PC-1500&3-4puntos de salud&3-4defensa&0-1ataque&"
-                            PvPLeague.ULTRA -> "PC-2500&3-4puntos de salud&3-4defensa&0-1ataque&"
-                            PvPLeague.MASTER -> "4*;3*&"
+                        val prefix = if (filters.league == PvPLeague.MASTER) {
+                            "4*;3*&"
+                        } else {
+                            val cp = filters.league.cp
+                            when (language) {
+                                AppLanguage.EN -> "cp-$cp&-1attack&3-defense&3-hp&"
+                                AppLanguage.ES -> "PC-$cp&3-4puntos de salud&3-4defensa&0-1ataque&"
+                            }
                         }
-                        val shadowTag = if (filters.includeShadow && filters.league != PvPLeague.MASTER) "oscuro&" else ""
+                        val shadowTag = if (filters.includeShadow && filters.league != PvPLeague.MASTER) {
+                            when (language) {
+                                AppLanguage.EN -> "shadow&"
+                                AppLanguage.ES -> "oscuro&"
+                            }
+                        } else ""
                         val pokemonPart = names.joinToString(";") { "+$it" }
                         searchString = "$prefix$shadowTag$pokemonPart&!#"
 
@@ -151,7 +160,7 @@ fun PvPScreen(language: com.pokechain.data.models.AppLanguage = com.pokechain.da
                     rank = index + 1,
                     name = result.speciesName,
                     score = result.score.toString(),
-                    subtitle = result.moveset.joinToString(", "),
+                    subtitle = result.moveset.joinToString(", ") { translator.getMoveName(it, language) },
                     tags = listOfNotNull(
                         if (result.isShadow) "Shadow" else null,
                         if (result.needsXL) "XL" else null,

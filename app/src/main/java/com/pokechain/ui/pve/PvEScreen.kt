@@ -20,6 +20,7 @@ import kotlinx.coroutines.launch
 fun PvEScreen(language: com.pokechain.data.models.AppLanguage = com.pokechain.data.models.AppLanguage.ES) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val translator = remember { NameTranslator(context) }
     var filters by remember { mutableStateOf(PvEFilterParams()) }
     var results by remember { mutableStateOf<List<PvERankingEntry>>(emptyList()) }
     var searchString by remember { mutableStateOf("") }
@@ -80,7 +81,6 @@ fun PvEScreen(language: com.pokechain.data.models.AppLanguage = com.pokechain.da
 
                         progress = 0.9f
                         progressMessage = "Generando cadena de búsqueda..."
-                        val translator = NameTranslator(context)
                         val names = baseDexes.distinct().map { translator.getName(it, language) }
                         searchString = names.joinToString(";") { "+$it" }
 
@@ -138,8 +138,14 @@ fun PvEScreen(language: com.pokechain.data.models.AppLanguage = com.pokechain.da
                     rank = index + 1,
                     name = cleanPvEName(entry.name, entry.form),
                     score = "%.2f".format(entry.rat),
-                    subtitle = entry.tier?.let { "Tier $it — ${entry.fm ?: "-"}/${entry.cm ?: "-"}" }
-                        ?: "${entry.fm ?: "-"}/${entry.cm ?: "-"}",
+                    subtitle = entry.tier?.let {
+                            "Tier $it — ${entry.fm?.let { fm -> translator.getMoveName(fm, language) } ?: "-"}/${
+                                entry.cm?.let { cm -> translator.getMoveName(cm, language) } ?: "-"
+                            }"
+                        }
+                        ?: "${entry.fm?.let { fm -> translator.getMoveName(fm, language) } ?: "-"}/${
+                            entry.cm?.let { cm -> translator.getMoveName(cm, language) } ?: "-"
+                        }",
                     tags = listOfNotNull(
                         if (entry.shadow) "Shadow" else null,
                         if (entry.form.startsWith("Mega")) "Mega" else null
