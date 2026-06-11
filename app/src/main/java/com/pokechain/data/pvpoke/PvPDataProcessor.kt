@@ -58,6 +58,16 @@ class PvPDataProcessor(
         return speciesId
     }
 
+    fun traceBaseDex(entry: PvPResult): Int? {
+        val baseSpeciesId = traceBaseForm(entry)
+        return pokemonMap[baseSpeciesId]?.dex
+    }
+
+    fun traceBaseDexForDex(dex: Int): Int? {
+        val baseSpeciesId = traceBaseFormForDex(dex)
+        return pokemonMap[baseSpeciesId]?.dex
+    }
+
     fun traceBaseFormById(speciesId: String): String? {
         var current = speciesId.removeSuffix("_shadow")
         val seen = mutableSetOf<String>()
@@ -76,15 +86,8 @@ class PvPDataProcessor(
 
     private fun matchesFilter(result: PvPResult, filters: PvPFilterParams): Boolean {
         if (!filters.xlCandy && result.needsXL) return false
-        when (filters.shadowFilter) {
-            ShadowFilter.EXCLUDE -> if (result.isShadow) return false
-            ShadowFilter.ONLY -> if (!result.isShadow) return false
-            ShadowFilter.INCLUDE -> {}
-        }
-        when (filters.eliteFilter) {
-            EliteFilter.IMPORTANT -> if (!result.hasEliteMove) return false
-            EliteFilter.NOT_IMPORTANT -> {}
-        }
+        if (!filters.includeShadow && result.isShadow) return false
+        if (filters.includeElite && !result.hasEliteMove) return false
         return true
     }
 

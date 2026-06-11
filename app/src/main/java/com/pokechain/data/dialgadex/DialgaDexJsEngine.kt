@@ -8,11 +8,11 @@ import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import com.pokechain.data.models.PvEFilterParams
 import com.pokechain.data.models.PvERankingEntry
-import com.pokechain.data.models.ShadowFilter
 import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -68,9 +68,16 @@ class DialgaDexJsEngine(private val context: Context) {
             }
         }
 
+        @JavascriptInterface
+        fun onError(message: String) {
+            webView.destroy()
+            if (cont.isActive) {
+                cont.resumeWithException(Exception("JS Error: $message"))
+            }
+        }
+
         private fun matchesFilters(raw: RawPvEResult, filters: PvEFilterParams): Boolean {
-            if (raw.shadow && filters.shadowFilter == ShadowFilter.EXCLUDE) return false
-            if (!raw.shadow && filters.shadowFilter == ShadowFilter.ONLY) return false
+            if (!filters.includeShadow && raw.shadow) return false
             return true
         }
 
@@ -124,42 +131,52 @@ class DialgaDexJsEngine(private val context: Context) {
                 """
                 var params = {
                     type:'Any',
-                    shadow:${filters.shadowFilter != ShadowFilter.EXCLUDE},
+                    shadow:${filters.includeShadow},
                     legendary:${filters.legendary},
                     mega:${filters.mega},
                     unreleased:${filters.unreleased},
                     elite:true, mixed:false, offtype:false,
                     versus:false, real_damage:false, suboptimal:false
                 };
+                window.onerror = function(msg, url, line) {
+                    AndroidBridge.onError(msg + ' at ' + url + ':' + line);
+                    return true;
+                };
                 (async function() {
-                    var results = await GetStrongestOfOneType(params);
-                    var slice = results.slice(0, ${filters.count});
-                    AndroidBridge.onComplete(JSON.stringify(slice));
+                    try {
+                        var results = await GetStrongestOfOneType(params);
+                        var slice = results.slice(0, ${filters.count});
+                        AndroidBridge.onComplete(JSON.stringify(slice));
+                    } catch(e) {
+                        AndroidBridge.onError(e.message + '\\n' + e.stack);
+                    }
                 })();
                 """.trimIndent()
             )
         }
 
-        return suspendCancellableCoroutine { cont ->
-            Handler(Looper.getMainLooper()).post {
-                try {
-                    val webView = WebView(context)
-                    webView.settings.javaScriptEnabled = true
-                    webView.settings.allowFileAccess = false
-                    webView.settings.allowContentAccess = false
+        return withTimeout(60_000L) {
+            suspendCancellableCoroutine { cont ->
+                Handler(Looper.getMainLooper()).post {
+                    try {
+                        val webView = WebView(context)
+                        webView.settings.javaScriptEnabled = true
+                        webView.settings.allowFileAccess = false
+                        webView.settings.allowContentAccess = false
 
-                    val callback = JsResultCallback(webView, json, filters, cont)
-                    webView.addJavascriptInterface(callback, "AndroidBridge")
+                        val callback = JsResultCallback(webView, json, filters, cont)
+                        webView.addJavascriptInterface(callback, "AndroidBridge")
 
-                    cont.invokeOnCancellation {
-                        Handler(Looper.getMainLooper()).post {
-                            webView.destroy()
+                        cont.invokeOnCancellation {
+                            Handler(Looper.getMainLooper()).post {
+                                webView.destroy()
+                            }
                         }
-                    }
 
-                    webView.evaluateJavascript(js, null)
-                } catch (e: Exception) {
-                    if (cont.isActive) cont.resumeWithException(e)
+                        webView.evaluateJavascript(js, null)
+                    } catch (e: Exception) {
+                        if (cont.isActive) cont.resumeWithException(e)
+                    }
                 }
             }
         }

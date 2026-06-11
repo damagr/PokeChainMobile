@@ -9,15 +9,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.pokechain.data.dialgadex.DialgaDexJsEngine
+import com.pokechain.data.dialgadex.NameTranslator
 import com.pokechain.data.models.*
+import com.pokechain.data.pvpoke.PvPDataProcessor
 import com.pokechain.data.pvpoke.PvPokeApi
-import com.pokechain.domain.PvEFilterUseCase
-import com.pokechain.domain.SearchStringUseCase
 import com.pokechain.ui.components.*
 import kotlinx.coroutines.launch
 
 @Composable
-fun PvEScreen() {
+fun PvEScreen(language: com.pokechain.data.models.AppLanguage = com.pokechain.data.models.AppLanguage.EN) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     var filters by remember { mutableStateOf(PvEFilterParams()) }
@@ -54,19 +54,18 @@ fun PvEScreen() {
                     loading = true
                     error = null
                     try {
+                        val translator = NameTranslator(context)
                         val engine = DialgaDexJsEngine(context)
                         val rawResults = engine.fetchPvERankings(filters)
                         results = rawResults
 
                         val gm = PvPokeApi.fetchGameMaster()
-                        val processor = com.pokechain.data.pvpoke.PvPDataProcessor(gm)
-                        val resolver: (Int, String) -> String? = { dex, _ ->
-                            processor.traceBaseFormForDex(dex)
-                        }
-                        val pveUseCase = PvEFilterUseCase(resolver)
-                        val baseForms = pveUseCase.dedupAndResolve(rawResults)
-                        val searchUseCase = SearchStringUseCase()
-                        searchString = searchUseCase.generate(baseForms).formatted
+                        val processor = PvPDataProcessor(gm)
+                        val baseDexes = rawResults.map { it.id }
+                            .distinct()
+                            .mapNotNull { processor.traceBaseDexForDex(it) }
+                        val names = baseDexes.distinct().map { translator.getName(it, language) }
+                        searchString = names.joinToString(";") { "+$it" }
                     } catch (e: Exception) {
                         error = e.message ?: "Unknown error"
                     } finally {

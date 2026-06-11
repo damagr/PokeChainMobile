@@ -6,16 +6,17 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.pokechain.data.dialgadex.NameTranslator
 import com.pokechain.data.models.*
 import com.pokechain.data.pvpoke.*
 import com.pokechain.domain.PvPFilterUseCase
-import com.pokechain.domain.SearchStringUseCase
 import com.pokechain.ui.components.*
 import kotlinx.coroutines.launch
 
 @Composable
-fun PvPScreen() {
+fun PvPScreen(language: com.pokechain.data.models.AppLanguage = com.pokechain.data.models.AppLanguage.EN) {
     val scope = rememberCoroutineScope()
     var filters by remember { mutableStateOf(PvPFilterParams()) }
     var results by remember { mutableStateOf<List<PvPResult>>(emptyList()) }
@@ -58,6 +59,8 @@ fun PvPScreen() {
                     loading = true
                     error = null
                     try {
+                        val ctx = LocalContext.current
+                        val translator = NameTranslator(ctx)
                         val api = com.pokechain.data.pvpoke.PvPokeApi
                         val gameMaster = api.fetchGameMaster()
                         val rankings = api.fetchRankings(filters.league.cp)
@@ -65,9 +68,9 @@ fun PvPScreen() {
                         val useCase = PvPFilterUseCase(processor)
                         val filtered = useCase.execute(rankings, filters)
                         results = filtered
-                        val baseForms = filtered.map { useCase.resolveBaseForm(it) }
-                        val searchUseCase = SearchStringUseCase()
-                        searchString = searchUseCase.generate(baseForms).formatted
+                        val baseDexes = filtered.mapNotNull { processor.traceBaseDex(it) }
+                        val names = baseDexes.distinct().map { translator.getName(it, language) }
+                        searchString = names.joinToString(";") { "+$it" }
                     } catch (e: Exception) {
                         error = e.message ?: "Unknown error"
                     } finally {
