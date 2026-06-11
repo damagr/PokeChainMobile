@@ -4,6 +4,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import com.pokechain.ui.pve.PvEScreen
 import com.pokechain.ui.pvp.PvPScreen
 
@@ -16,11 +19,28 @@ fun MainScreen() {
     var selectedTab by remember { mutableStateOf(0) }
     var language by remember { mutableStateOf(AppLanguage.ES) }
     val tabs = listOf("PvP", "PvE")
+    val context = LocalContext.current
+    val versionName = remember {
+        try {
+            context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "?"
+        } catch (e: Exception) {
+            "?"
+        }
+    }
 
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("PokeChain") },
+                title = {
+                    Column(horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
+                        Text("PokeChain")
+                        Text(
+                            text = "v$versionName",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                },
                 actions = {
                     LanguageSelector(
                         selected = language,
