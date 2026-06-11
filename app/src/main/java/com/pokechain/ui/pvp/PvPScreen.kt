@@ -16,7 +16,7 @@ import com.pokechain.ui.components.*
 import kotlinx.coroutines.launch
 
 @Composable
-fun PvPScreen(language: com.pokechain.data.models.AppLanguage = com.pokechain.data.models.AppLanguage.ES) {
+fun PvPScreen(language: AppLanguage = AppLanguage.ES) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val translator = remember { NameTranslator(context) }
@@ -35,6 +35,7 @@ fun PvPScreen(language: com.pokechain.data.models.AppLanguage = com.pokechain.da
     ) {
         LeagueSelector(
             selected = filters.league,
+            language = language,
             onSelect = { filters = filters.copy(league = it) }
         )
 
@@ -44,7 +45,7 @@ fun PvPScreen(language: com.pokechain.data.models.AppLanguage = com.pokechain.da
             onClick = { showFilters = true },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Filtros")
+            Text(Strings.filters(language))
         }
 
         Spacer(Modifier.height(8.dp))
@@ -52,7 +53,7 @@ fun PvPScreen(language: com.pokechain.data.models.AppLanguage = com.pokechain.da
         OutlinedTextField(
             value = filters.count.toString(),
             onValueChange = { filters = filters.copy(count = it.toIntOrNull() ?: 20) },
-            label = { Text("Cantidad") },
+            label = { Text(Strings.count(language)) },
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -64,29 +65,34 @@ fun PvPScreen(language: com.pokechain.data.models.AppLanguage = com.pokechain.da
                     loading = true
                     error = null
                     showErrorDialog = false
+                    val progressStages = Strings.pvpProgress
+                    var stageIdx = 0
+                    fun advanceStage() {
+                        if (stageIdx < progressStages.size) {
+                            val stage = progressStages[stageIdx]
+                            progress = stage.first
+                            progressMessage = stage.second(language)
+                            stageIdx++
+                        }
+                    }
                     try {
-                        progress = 0.1f
-                        progressMessage = "Descargando datos de PvPoke..."
+                        advanceStage()
                         val api = com.pokechain.data.pvpoke.PvPokeApi
                         val gameMaster = api.fetchGameMaster()
 
-                        progress = 0.3f
-                        progressMessage = "Descargando rankings..."
+                        advanceStage()
                         val rankings = api.fetchRankings(filters.league.cp)
 
-                        progress = 0.5f
-                        progressMessage = "Procesando rankings..."
+                        advanceStage()
                         val processor = PvPDataProcessor(gameMaster)
                         val useCase = PvPFilterUseCase(processor)
                         val filtered = useCase.execute(rankings, filters)
                         results = filtered
 
-                        progress = 0.7f
-                        progressMessage = "Resolviendo formas base..."
+                        advanceStage()
                         val baseDexes = filtered.mapNotNull { processor.traceBaseDex(it) }
 
-                        progress = 0.9f
-                        progressMessage = "Generando cadena de búsqueda..."
+                        advanceStage()
                         val names = baseDexes.distinct().map { translator.getName(it, language) }
                         val prefix = if (filters.league == PvPLeague.MASTER) {
                             "4*;3*&"
@@ -106,8 +112,7 @@ fun PvPScreen(language: com.pokechain.data.models.AppLanguage = com.pokechain.da
                         val pokemonPart = names.joinToString(";") { "+$it" }
                         searchString = "$prefix$shadowTag$pokemonPart&!#"
 
-                        progress = 1f
-                        progressMessage = "Completado"
+                        advanceStage()
                     } catch (e: Exception) {
                         error = "${e::class.simpleName}: ${e.message}\n\n${e.stackTraceToString()}"
                         showErrorDialog = true
@@ -118,7 +123,7 @@ fun PvPScreen(language: com.pokechain.data.models.AppLanguage = com.pokechain.da
             },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Generar")
+            Text(Strings.generate(language))
         }
 
         Spacer(Modifier.height(8.dp))
@@ -150,7 +155,7 @@ fun PvPScreen(language: com.pokechain.data.models.AppLanguage = com.pokechain.da
         }
 
         if (searchString.isNotBlank()) {
-            SearchStringCard(searchString = searchString)
+            SearchStringCard(searchString = searchString, language = language)
             Spacer(Modifier.height(8.dp))
         }
 
@@ -162,9 +167,9 @@ fun PvPScreen(language: com.pokechain.data.models.AppLanguage = com.pokechain.da
                     score = result.score.toString(),
                     subtitle = result.moveset.joinToString(", ") { translator.getMoveName(it, language) },
                     tags = listOfNotNull(
-                        if (result.isShadow) "Shadow" else null,
-                        if (result.needsXL) "XL" else null,
-                        if (result.hasEliteMove) "Elite" else null
+                        if (result.isShadow) Strings.tagShadow(language) else null,
+                        if (result.needsXL) Strings.tagXL(language) else null,
+                        if (result.hasEliteMove) Strings.tagElite(language) else null
                     )
                 )
             }
@@ -174,6 +179,7 @@ fun PvPScreen(language: com.pokechain.data.models.AppLanguage = com.pokechain.da
     if (showFilters) {
         FilterBottomSheet(
             filters = filters,
+            language = language,
             onDismiss = { showFilters = false },
             onApply = { newFilters ->
                 filters = newFilters
@@ -184,8 +190,9 @@ fun PvPScreen(language: com.pokechain.data.models.AppLanguage = com.pokechain.da
 
     if (showErrorDialog && error != null) {
         ErrorDialog(
-            title = "Error PvP",
+            title = Strings.errorTitle("PvP", language),
             message = error!!,
+            language = language,
             onDismiss = { showErrorDialog = false }
         )
     }

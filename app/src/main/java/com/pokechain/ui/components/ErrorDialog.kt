@@ -9,11 +9,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
+import com.pokechain.data.models.AppLanguage
+import com.pokechain.data.models.Strings
 
 @Composable
 fun ErrorDialog(
     title: String,
     message: String,
+    language: AppLanguage,
     onDismiss: () -> Unit
 ) {
     val clipboard = LocalClipboardManager.current
@@ -41,13 +44,13 @@ fun ErrorDialog(
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(if (copied) "Copiado" else "Copiar error")
+                    Text(if (copied) Strings.copied(language) else Strings.copyError(language))
                 }
             }
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cerrar")
+                Text(Strings.close(language))
             }
         }
     )

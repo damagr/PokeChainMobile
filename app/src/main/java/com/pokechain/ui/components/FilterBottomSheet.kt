@@ -12,6 +12,7 @@ import com.pokechain.data.models.*
 @Composable
 fun FilterBottomSheet(
     filters: PvPFilterParams,
+    language: AppLanguage,
     onDismiss: () -> Unit,
     onApply: (PvPFilterParams) -> Unit
 ) {
@@ -21,11 +22,11 @@ fun FilterBottomSheet(
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(modifier = Modifier.padding(16.dp)) {
-            ToggleRow(label = "XL Candy", checked = xl, onCheckedChange = { xl = it })
+            ToggleRow(label = Strings.xlCandy(language), checked = xl, onCheckedChange = { xl = it })
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-            ToggleRow(label = "Oscuro", checked = includeShadow, onCheckedChange = { includeShadow = it })
+            ToggleRow(label = Strings.shadowLabel(language), checked = includeShadow, onCheckedChange = { includeShadow = it })
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-            ToggleRow(label = "Mov. Élite", checked = includeElite, onCheckedChange = { includeElite = it })
+            ToggleRow(label = Strings.eliteMove(language), checked = includeElite, onCheckedChange = { includeElite = it })
 
             Spacer(Modifier.height(16.dp))
             Button(
@@ -38,7 +39,7 @@ fun FilterBottomSheet(
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Aplicar")
+                Text(Strings.apply(language))
             }
             Spacer(Modifier.height(16.dp))
         }
@@ -49,6 +50,7 @@ fun FilterBottomSheet(
 @Composable
 fun PvEFilterBottomSheet(
     filters: PvEFilterParams,
+    language: AppLanguage,
     onDismiss: () -> Unit,
     onApply: (PvEFilterParams) -> Unit
 ) {
@@ -56,19 +58,16 @@ fun PvEFilterBottomSheet(
     var includeShadow by remember { mutableStateOf(filters.includeShadow) }
     var legendary by remember { mutableStateOf(filters.legendary) }
     var mega by remember { mutableStateOf(filters.mega) }
-    var includeElite by remember { mutableStateOf(filters.includeElite) }
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(modifier = Modifier.padding(16.dp)) {
-            ToggleRow(label = "Sin liberar", checked = unreleased, onCheckedChange = { unreleased = it })
+            ToggleRow(label = Strings.unreleased(language), checked = unreleased, onCheckedChange = { unreleased = it })
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-            ToggleRow(label = "Oscuro", checked = includeShadow, onCheckedChange = { includeShadow = it })
+            ToggleRow(label = Strings.shadowLabel(language), checked = includeShadow, onCheckedChange = { includeShadow = it })
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-            ToggleRow(label = "Legendario", checked = legendary, onCheckedChange = { legendary = it })
+            ToggleRow(label = Strings.legendary(language), checked = legendary, onCheckedChange = { legendary = it })
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-            ToggleRow(label = "Mega/Primal", checked = mega, onCheckedChange = { mega = it })
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-            ToggleRow(label = "Mov. Élite", checked = includeElite, onCheckedChange = { includeElite = it })
+            ToggleRow(label = Strings.megaPrimal(language), checked = mega, onCheckedChange = { mega = it })
 
             Spacer(Modifier.height(16.dp))
             Button(
@@ -77,13 +76,12 @@ fun PvEFilterBottomSheet(
                         unreleased = unreleased,
                         includeShadow = includeShadow,
                         legendary = legendary,
-                        mega = mega,
-                        includeElite = includeElite
+                        mega = mega
                     ))
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Aplicar")
+                Text(Strings.apply(language))
             }
             Spacer(Modifier.height(16.dp))
         }
@@ -131,6 +129,7 @@ fun LanguageSelector(
 @Composable
 fun LeagueSelector(
     selected: PvPLeague,
+    language: AppLanguage,
     onSelect: (PvPLeague) -> Unit
 ) {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -138,15 +137,7 @@ fun LeagueSelector(
             FilterChip(
                 selected = selected == league,
                 onClick = { onSelect(league) },
-                label = {
-                    Text(
-                        when (league) {
-                            PvPLeague.GREAT -> "Great"
-                            PvPLeague.ULTRA -> "Ultra"
-                            PvPLeague.MASTER -> "Master"
-                        }
-                    )
-                }
+                label = { Text(Strings.leagueName(league, language)) }
             )
         }
     }

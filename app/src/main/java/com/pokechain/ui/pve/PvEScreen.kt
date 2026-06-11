@@ -17,7 +17,7 @@ import com.pokechain.ui.components.*
 import kotlinx.coroutines.launch
 
 @Composable
-fun PvEScreen(language: com.pokechain.data.models.AppLanguage = com.pokechain.data.models.AppLanguage.ES) {
+fun PvEScreen(language: AppLanguage = AppLanguage.ES) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val translator = remember { NameTranslator(context) }
@@ -38,7 +38,7 @@ fun PvEScreen(language: com.pokechain.data.models.AppLanguage = com.pokechain.da
             onClick = { showFilters = true },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Filtros")
+            Text(Strings.filters(language))
         }
 
         Spacer(Modifier.height(8.dp))
@@ -46,7 +46,7 @@ fun PvEScreen(language: com.pokechain.data.models.AppLanguage = com.pokechain.da
         OutlinedTextField(
             value = filters.count.toString(),
             onValueChange = { filters = filters.copy(count = it.toIntOrNull() ?: 20) },
-            label = { Text("Cantidad") },
+            label = { Text(Strings.count(language)) },
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -58,34 +58,38 @@ fun PvEScreen(language: com.pokechain.data.models.AppLanguage = com.pokechain.da
                     loading = true
                     error = null
                     showErrorDialog = false
+                    val progressStages = Strings.pveProgress
+                    var stageIdx = 0
+                    fun advanceStage() {
+                        if (stageIdx < progressStages.size) {
+                            val stage = progressStages[stageIdx]
+                            progress = stage.first
+                            progressMessage = stage.second(language)
+                            stageIdx++
+                        }
+                    }
                     try {
-                        progress = 0.1f
-                        progressMessage = "Descargando datos del juego..."
+                        advanceStage()
                         val engine = DialgaDexJsEngine(context)
 
-                        progress = 0.3f
-                        progressMessage = "Inicializando calculadora PvE..."
+                        advanceStage()
                         val rawResults = engine.fetchPvERankings(filters)
                         results = rawResults
 
-                        progress = 0.5f
-                        progressMessage = "Descargando game master..."
+                        advanceStage()
                         val gm = PvPokeApi.fetchGameMaster()
 
-                        progress = 0.7f
-                        progressMessage = "Resolviendo formas base..."
+                        advanceStage()
                         val processor = PvPDataProcessor(gm)
                         val baseDexes = rawResults.map { it.id }
                             .distinct()
                             .mapNotNull { processor.traceBaseDexForDex(it) }
 
-                        progress = 0.9f
-                        progressMessage = "Generando cadena de búsqueda..."
+                        advanceStage()
                         val names = baseDexes.distinct().map { translator.getName(it, language) }
                         searchString = names.joinToString(";") { "+$it" }
 
-                        progress = 1f
-                        progressMessage = "Completado"
+                        advanceStage()
                     } catch (e: Exception) {
                         error = "${e::class.simpleName}: ${e.message}\n\n${e.stackTraceToString()}"
                         showErrorDialog = true
@@ -96,7 +100,7 @@ fun PvEScreen(language: com.pokechain.data.models.AppLanguage = com.pokechain.da
             },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Generar")
+            Text(Strings.generate(language))
         }
 
         Spacer(Modifier.height(8.dp))
@@ -128,7 +132,7 @@ fun PvEScreen(language: com.pokechain.data.models.AppLanguage = com.pokechain.da
         }
 
         if (searchString.isNotBlank()) {
-            SearchStringCard(searchString = searchString)
+            SearchStringCard(searchString = searchString, language = language)
             Spacer(Modifier.height(8.dp))
         }
 
@@ -147,8 +151,8 @@ fun PvEScreen(language: com.pokechain.data.models.AppLanguage = com.pokechain.da
                             entry.cm?.let { cm -> translator.getMoveName(cm, language) } ?: "-"
                         }",
                     tags = listOfNotNull(
-                        if (entry.shadow) "Shadow" else null,
-                        if (entry.form.startsWith("Mega")) "Mega" else null
+                        if (entry.shadow) Strings.tagShadow(language) else null,
+                        if (entry.form.startsWith("Mega")) Strings.tagMega(language) else null
                     )
                 )
             }
@@ -158,6 +162,7 @@ fun PvEScreen(language: com.pokechain.data.models.AppLanguage = com.pokechain.da
     if (showFilters) {
         PvEFilterBottomSheet(
             filters = filters,
+            language = language,
             onDismiss = { showFilters = false },
             onApply = { newFilters ->
                 filters = newFilters
@@ -168,8 +173,9 @@ fun PvEScreen(language: com.pokechain.data.models.AppLanguage = com.pokechain.da
 
     if (showErrorDialog && error != null) {
         ErrorDialog(
-            title = "Error PvE",
+            title = Strings.errorTitle("PvE", language),
             message = error!!,
+            language = language,
             onDismiss = { showErrorDialog = false }
         )
     }

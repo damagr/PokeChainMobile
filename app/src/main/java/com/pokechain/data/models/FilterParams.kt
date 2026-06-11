@@ -19,7 +19,6 @@ data class PvEFilterParams(
     val includeShadow: Boolean = false,
     val legendary: Boolean = true,
     val mega: Boolean = true,
-    val includeElite: Boolean = true,
     val count: Int = 20
 )
 

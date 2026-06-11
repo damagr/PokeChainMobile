@@ -7,9 +7,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
+import com.pokechain.data.models.AppLanguage
+import com.pokechain.data.models.Strings
 
 @Composable
-fun SearchStringCard(searchString: String) {
+fun SearchStringCard(searchString: String, language: AppLanguage) {
     val clipboard = LocalClipboardManager.current
     var copied by remember { mutableStateOf(false) }
 
@@ -21,7 +23,7 @@ fun SearchStringCard(searchString: String) {
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Text(
-                text = "Search String",
+                text = Strings.searchString(language),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onPrimaryContainer
             )
@@ -38,7 +40,7 @@ fun SearchStringCard(searchString: String) {
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(if (copied) "Copied!" else "Copy")
+                Text(if (copied) Strings.copied(language) else Strings.copy(language))
             }
         }
     }
