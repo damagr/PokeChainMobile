@@ -88,6 +88,11 @@ fun PvEScreen(language: AppLanguage = AppLanguage.ES) {
 
         Button(
             onClick = {
+                if (topCountText.isBlank()) {
+                    error = Strings.enterCount(language)
+                    showErrorDialog = true
+                    return@Button
+                }
                 scope.launch {
                     loading = true
                     error = null
