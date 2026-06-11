@@ -54,14 +54,14 @@ class PvEScrapingEngine(private val appContext: Context) {
             loadUrl("https://dialgadex.com/?strongest&t=Any")
         }
         webView = wv
-        deferred.await()
+        withTimeout(30_000) { deferred.await() }
     }
 
     private fun pollReady(view: WebView, deferred: CompletableDeferred<Boolean>) {
         view.evaluateJavascript("""
             (function() {
                 if (typeof GetStrongestOfOneType === 'function' &&
-                    typeof pkm_data !== 'undefined' && pkm_data.length > 0) {
+                    typeof jb_pkm !== 'undefined' && jb_pkm.length > 0) {
                     Android.onResult('READY');
                 }
             })();
