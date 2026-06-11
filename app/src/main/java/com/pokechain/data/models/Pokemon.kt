@@ -1,6 +1,7 @@
 package com.pokechain.data.models
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonElement
 
 @Serializable
 data class Pokemon(
@@ -16,7 +17,7 @@ data class Pokemon(
     val eliteMoves: List<String>? = null,
     val level25CP: Double? = null,
     val buddyDistance: Int = 3,
-    val thirdMoveCost: Int = 10000,
+    val thirdMoveCost: JsonElement? = null,
     val released: Boolean = true,
     val defaultIVs: Map<String, List<Double>>? = null,
 )
