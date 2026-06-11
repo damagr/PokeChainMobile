@@ -129,6 +129,7 @@ class DialgaDexJsEngine(private val context: Context) {
             appendLine("settings_metric_exp = 0.5;")
             append(
                 """
+                tryYieldToMain = async function(threshold) {};
                 var params = {
                     type:'Any',
                     shadow:${filters.includeShadow},
