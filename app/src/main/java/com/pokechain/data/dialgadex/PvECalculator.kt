@@ -351,20 +351,15 @@ class PvECalculator {
         return MovesetRating(bestRat, bestDps, bestTdo, bestFm, bestCm)
     }
 
-    private fun passesFormFilter(form: String): Boolean {
-        return when {
-            form == "Normal" || form == "Alola" || form == "Galarian" || form == "Hisuian" -> true
-            form.startsWith("Mega") || form == "MegaY" || form == "MegaZ" -> true
-            form == "Origin" || form == "Altered" || form == "Attack" || form == "Defense" || form == "Speed" -> true
-            form == "S" || form == "A" -> true
-            form == "Complete" || form == "Complete_fifty_percent" || form == "Complete_ten_percent" -> true
-            form == "Fifty_percent" || form == "Ten_percent" -> true
-            form == "Sunny" || form == "Rainy" || form == "Snowy" -> true
-            form == "Land" || form == "Sky" -> true
-            form == "Standard" || form == "Zen" || form == "Galarian_standard" || form == "Galarian_zen" -> true
-            form.startsWith("Paldea") -> true
-            else -> false
-        }
+    private fun isCostumeForm(form: String): Boolean {
+        val costumeIndicators = listOf(
+            "_2019", "_2020", "_2021", "_2022", "_2023", "_2024", "_2025", "_2026",
+            "Copy_", "Fall_", "Costume_", "Adventure_hat", "Flying_", "Summer_",
+            "Winter_", "Spring_", "Gofest_", "Gotour_", "Tshirt_", "Holiday_", "Swim_",
+        )
+        if (costumeIndicators.any { form.contains(it) }) return true
+        if (form.all { it.isDigit() }) return true
+        return false
     }
 
     suspend fun compute(filters: PvEFilterParams): List<PvERankingEntry> = withContext(Dispatchers.IO) {
@@ -387,16 +382,17 @@ class PvECalculator {
 
         for (pkm in pkmList) {
             if (!pkm.released && !filters.unreleased) continue
+            if (isCostumeForm(pkm.form)) continue
             if (pkm.pkmClass != null && !filters.legendary) continue
-            if (!passesFormFilter(pkm.form)) continue
             if ((pkm.form.startsWith("Mega") || pkm.form == "MegaY" || pkm.form == "MegaZ") && !filters.mega) continue
 
+            val mega = pkm.form == "Mega" || pkm.form == "MegaY" || pkm.form == "MegaZ"
+
             fun processEntry(shadow: Boolean) {
-                val key = "${pkm.id}-${shadow}"
+                val key = "${pkm.id}-${pkm.form}-${shadow}"
                 if (key in seenKeys) return
                 val rating = findBestMoveset(pkm, shadow, fmMap, cmMap, enemyEffectiveness, enemyYs) ?: return
                 seenKeys.add(key)
-                val mega = pkm.form == "Mega" || pkm.form == "MegaY" || pkm.form == "MegaZ"
                 results.add(PvERankingEntry(
                     rat = rating.rat, dps = rating.dps, tdo = rating.tdo,
                     id = pkm.id, name = pkm.name, form = pkm.form,
@@ -407,8 +403,8 @@ class PvECalculator {
                 ))
             }
 
-            if (filters.includeShadow && pkm.shadow) processEntry(true)
             processEntry(false)
+            if (filters.includeShadow && pkm.shadow) processEntry(true)
         }
 
         results.sortByDescending { it.rat }
