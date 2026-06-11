@@ -1,6 +1,8 @@
 package com.pokechain.ui.components
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -28,10 +30,12 @@ fun SearchStringCard(searchString: String, language: AppLanguage) {
                 color = MaterialTheme.colorScheme.onPrimaryContainer
             )
             Spacer(Modifier.height(4.dp))
-            Text(
-                text = searchString,
-                style = MaterialTheme.typography.bodyMedium
-            )
+            Box(modifier = Modifier.heightIn(max = 150.dp).verticalScroll(rememberScrollState())) {
+                Text(
+                    text = searchString,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
             Spacer(Modifier.height(8.dp))
             Button(
                 onClick = {

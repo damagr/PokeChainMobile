@@ -13,6 +13,7 @@ import com.pokechain.data.models.*
 import com.pokechain.data.pvpoke.*
 import com.pokechain.domain.PvPFilterUseCase
 import com.pokechain.ui.components.*
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
@@ -105,25 +106,25 @@ fun PvPScreen(language: AppLanguage = AppLanguage.ES) {
                         }
                     }
                     try {
-                        advanceStage()
+                        advanceStage(); delay(50)
                         val api = com.pokechain.data.pvpoke.PvPokeApi
                         val gameMaster = api.fetchGameMaster()
 
-                        advanceStage()
+                        advanceStage(); delay(50)
                         val rankings = api.fetchRankings(filters.league.cp)
 
-                        advanceStage()
+                        advanceStage(); delay(50)
                         val processor = PvPDataProcessor(gameMaster)
                         val useCase = PvPFilterUseCase(processor)
                         val filtered = useCase.execute(rankings, filters)
                         results = filtered
 
-                        advanceStage()
+                        advanceStage(); delay(50)
                         cachedBaseDexes = filtered.mapNotNull { processor.traceBaseDex(it) }
                         cachedLeague = filters.league
                         cachedIncludeShadow = filters.includeShadow
 
-                        advanceStage()
+                        advanceStage(); delay(50)
                         val names = cachedBaseDexes.distinct().map { translator.getName(it, language) }
                         val prefix = if (cachedLeague == PvPLeague.MASTER) {
                             "4*;3*&"
@@ -143,7 +144,7 @@ fun PvPScreen(language: AppLanguage = AppLanguage.ES) {
                         val pokemonPart = names.joinToString(";") { "+$it" }
                         searchString = "$prefix$shadowTag$pokemonPart&!#"
 
-                        advanceStage()
+                        advanceStage(); delay(500)
                     } catch (e: Exception) {
                         error = "${e::class.simpleName}: ${e.message}\n\n${e.stackTraceToString()}"
                         showErrorDialog = true
@@ -201,11 +202,14 @@ fun PvPScreen(language: AppLanguage = AppLanguage.ES) {
                     rank = index + 1,
                     name = result.speciesName,
                     score = result.score.toString(),
-                    subtitle = result.moveset.joinToString(", ") { translator.getMoveName(it, language) },
+                    subtitle = result.moveset.joinToString(", ") {
+                        val name = translator.getMoveName(it, language)
+                        if (it in result.eliteMoves) "$name*" else name
+                    },
                     tags = listOfNotNull(
                         if (result.isShadow) Strings.tagShadow(language) else null,
                         if (result.needsXL) Strings.tagXL(language) else null,
-                        if (result.hasEliteMove) Strings.tagElite(language) else null
+                        if (result.eliteMoves.isNotEmpty()) Strings.tagElite(language) else null
                     )
                 )
             }

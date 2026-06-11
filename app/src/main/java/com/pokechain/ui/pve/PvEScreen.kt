@@ -9,7 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.pokechain.data.dialgadex.NameTranslator
-import com.pokechain.data.dialgadex.PvECalculator
+import com.pokechain.data.dialgadex.PvEJSEngine
 import com.pokechain.data.models.*
 import com.pokechain.data.pvpoke.PvPDataProcessor
 import com.pokechain.data.pvpoke.PvPokeApi
@@ -36,10 +36,23 @@ fun PvEScreen(language: AppLanguage = AppLanguage.ES) {
     var resultMessage by remember { mutableStateOf("") }
     var showResultMessage by remember { mutableStateOf(false) }
 
+    fun buildSearchString(names: List<String>, language: AppLanguage, shadow: Boolean): String {
+        val shadowSuffix = when (language) {
+            AppLanguage.ES -> "oscuro"
+            AppLanguage.EN -> "shadow"
+        }
+        val prefix = when (language) {
+            AppLanguage.ES -> "4*;3*&3-ataque&"
+            AppLanguage.EN -> "4*;3*&3-attack&"
+        } + if (shadow) "${shadowSuffix}&" else ""
+        val namesPart = names.joinToString(";") { "+$it" }
+        return "$prefix$namesPart&!#"
+    }
+
     LaunchedEffect(language) {
         if (cachedBaseDexes.isEmpty()) return@LaunchedEffect
         val names = cachedBaseDexes.distinct().map { translator.getName(it, language) }
-        searchString = names.joinToString(";") { "+$it" }
+        searchString = buildSearchString(names, language, filters.includeShadow)
     }
 
     Column(
@@ -83,27 +96,27 @@ fun PvEScreen(language: AppLanguage = AppLanguage.ES) {
                         }
                     }
                     try {
-                        advanceStage()
-                        val calculator = PvECalculator()
+                        advanceStage(); delay(50)
+                        val engine = PvEJSEngine(context)
 
-                        advanceStage()
-                        val rawResults = calculator.compute(filters)
+                        advanceStage(); delay(50)
+                        val rawResults = engine.compute(filters)
                         results = rawResults
 
-                        advanceStage()
+                        advanceStage(); delay(50)
                         val gm = PvPokeApi.fetchGameMaster()
 
-                        advanceStage()
+                        advanceStage(); delay(50)
                         val processor = PvPDataProcessor(gm)
                         cachedBaseDexes = rawResults.map { it.id }
                             .distinct()
                             .mapNotNull { processor.traceBaseDexForDex(it) }
 
-                        advanceStage()
+                        advanceStage(); delay(50)
                         val names = cachedBaseDexes.distinct().map { translator.getName(it, language) }
-                        searchString = names.joinToString(";") { "+$it" }
+                        searchString = buildSearchString(names, language, filters.includeShadow)
 
-                        advanceStage()
+                        advanceStage(); delay(50)
                         resultMessage = "Resultados: ${results.size} Pokémon, cadena de ${searchString.length} caracteres"
                         showResultMessage = true
                     } catch (e: Exception) {
@@ -177,13 +190,11 @@ fun PvEScreen(language: AppLanguage = AppLanguage.ES) {
                     name = cleanPvEName(entry.name, entry.form),
                     score = "%.2f".format(entry.rat),
                     subtitle = entry.tier?.let {
-                            "Tier $it — ${entry.fm?.let { fm -> translator.getMoveName(fm, language) } ?: "-"}/${
-                                entry.cm?.let { cm -> translator.getMoveName(cm, language) } ?: "-"
-                            }"
-                        }
-                        ?: "${entry.fm?.let { fm -> translator.getMoveName(fm, language) } ?: "-"}/${
-                            entry.cm?.let { cm -> translator.getMoveName(cm, language) } ?: "-"
-                        }",
+                        "Tier $it — ${entry.fm?.let { fm -> translator.getMoveName(fm, language) } ?: "-"}${if (entry.fmIsElite) "*" else ""}/${
+                            entry.cm?.let { cm -> translator.getMoveName(cm, language) } ?: "-" }${if (entry.cmIsElite) "*" else ""}"
+                    }
+                        ?: "${entry.fm?.let { fm -> translator.getMoveName(fm, language) } ?: "-"}${if (entry.fmIsElite) "*" else ""}/${
+                            entry.cm?.let { cm -> translator.getMoveName(cm, language) } ?: "-" }${if (entry.cmIsElite) "*" else ""}",
                     tags = listOfNotNull(
                         if (entry.shadow) Strings.tagShadow(language) else null,
                         if (entry.form.startsWith("Mega")) Strings.tagMega(language) else null
@@ -216,9 +227,10 @@ fun PvEScreen(language: AppLanguage = AppLanguage.ES) {
 }
 
 private fun cleanPvEName(name: String, form: String): String {
-    return if (form.startsWith("Mega") || form == "MegaY" || form == "MegaZ") {
-        "Mega $name"
-    } else if (form != "Normal") {
-        "$name ($form)"
-    } else name
+    return when {
+        form == "Normal" -> name
+        name.startsWith("Mega ") || name.startsWith("Primal ") -> name
+        form.startsWith("Mega") -> "Mega $name"
+        else -> "$name ($form)"
+    }
 }

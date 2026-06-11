@@ -19,7 +19,7 @@ class PvPDataProcessor(
                 moveset = entry.moveset,
                 isShadow = entry.speciesId.endsWith("_shadow"),
                 needsXL = poke?.let { needsXLCandy(it) } ?: false,
-                hasEliteMove = hasEliteMove(poke, entry.moveset),
+                eliteMoves = poke?.eliteMoves?.filter { it in entry.moveset }?.toSet() ?: emptySet(),
                 dex = poke?.dex ?: 0,
                 family = poke?.family,
             )
@@ -87,7 +87,7 @@ class PvPDataProcessor(
     private fun matchesFilter(result: PvPResult, filters: PvPFilterParams): Boolean {
         if (!filters.xlCandy && result.needsXL) return false
         if (!filters.includeShadow && result.isShadow) return false
-        if (!filters.includeElite && result.hasEliteMove) return false
+        if (!filters.includeElite && result.eliteMoves.isNotEmpty()) return false
         return true
     }
 
@@ -109,7 +109,7 @@ data class PvPResult(
     val moveset: List<String>,
     val isShadow: Boolean,
     val needsXL: Boolean,
-    val hasEliteMove: Boolean,
+    val eliteMoves: Set<String>,
     val dex: Int,
     val family: Family?,
 )
