@@ -129,29 +129,80 @@ class DialgaDexJsEngine(private val context: Context) {
             appendLine("settings_metric_exp = 0.5;")
             append(
                 """
-                tryYieldToMain = async function(threshold) {};
-                var params = {
-                    type:'Any',
-                    shadow:${filters.includeShadow},
-                    legendary:${filters.legendary},
-                    mega:${filters.mega},
-                    unreleased:${filters.unreleased},
-                    elite:true, mixed:false, offtype:false,
-                    versus:false, real_damage:false, suboptimal:false
-                };
+                var fmMap = {};
+                for (var _i = 0; _i < jb_fm.length; _i++) fmMap[jb_fm[_i].name] = jb_fm[_i];
+                var cmMap = {};
+                for (var _i = 0; _i < jb_cm.length; _i++) cmMap[jb_cm[_i].name] = jb_cm[_i];
+
+                function computeTopAttacker(count) {
+                    var results = [];
+                    var cpm40 = 0.7317;
+
+                    for (var i = 0; i < jb_pkm.length; i++) {
+                        var pkm = jb_pkm[i];
+                        if (!pkm.released && !${filters.unreleased}) continue;
+                        if (pkm.class && !${filters.legendary}) continue;
+                        if ((pkm.form == 'Mega' || pkm.form == 'MegaY' || pkm.form == 'MegaZ') && !${filters.mega}) continue;
+                        if (pkm.form != 'Normal' && !pkm.class && pkm.form != 'Alola' && pkm.form != 'Galarian' && pkm.form != 'Hisuian') continue;
+
+                        var isShadow = pkm.shadow === true;
+                        if (isShadow && !${filters.includeShadow}) continue;
+
+                        var atk = (pkm.stats.baseAttack + 15) * cpm40;
+                        if (isShadow) atk *= 1.2;
+
+                        if (!pkm.fm || !pkm.cm || pkm.fm.length == 0 || pkm.cm.length == 0) continue;
+
+                        var bestScore = 0;
+                        var bestFm = null, bestCm = null;
+
+                        for (var fi = 0; fi < pkm.fm.length; fi++) {
+                            var fm = fmMap[pkm.fm[fi]];
+                            if (!fm) continue;
+                            var fmDps = (Math.max(1, fm.power || 1)) / (Math.max(0.5, (fm.duration || 500) / 1000));
+                            if (pkm.types.includes(fm.type)) fmDps *= 1.2;
+
+                            for (var ci = 0; ci < pkm.cm.length; ci++) {
+                                var cm = cmMap[pkm.cm[ci]];
+                                if (!cm) continue;
+                                var cmDps = (Math.max(1, cm.power || 1)) / (Math.max(0.5, (cm.duration || 500) / 1000));
+                                if (pkm.types.includes(cm.type)) cmDps *= 1.2;
+
+                                var score = atk * Math.sqrt(fmDps * cmDps);
+                                if (score > bestScore) {
+                                    bestScore = score;
+                                    bestFm = pkm.fm[fi];
+                                    bestCm = pkm.cm[ci];
+                                }
+                            }
+                        }
+
+                        if (bestFm) {
+                            results.push({
+                                rat: bestScore, dps: bestScore / atk, tdo: bestScore * 50,
+                                id: pkm.id, name: pkm.name, form: pkm.form,
+                                shadow: isShadow, level: 40,
+                                fm: bestFm, fm_is_elite: false, fm_type: (fmMap[bestFm] || {}).type || '',
+                                cm: bestCm, cm_is_elite: false, cm_type: (cmMap[bestCm] || {}).type || '',
+                                tier: null, pct: null,
+                            });
+                        }
+                    }
+
+                    results.sort(function(a, b) { return b.rat - a.rat; });
+                    return results.slice(0, count);
+                }
+
                 window.onerror = function(msg, url, line) {
                     AndroidBridge.onError(msg + ' at ' + url + ':' + line);
                     return true;
                 };
-                (async function() {
-                    try {
-                        var results = await GetStrongestOfOneType(params);
-                        var slice = results.slice(0, ${filters.count});
-                        AndroidBridge.onComplete(JSON.stringify(slice));
-                    } catch(e) {
-                        AndroidBridge.onError(e.message + '\\n' + e.stack);
-                    }
-                })();
+                try {
+                    var resultArray = computeTopAttacker(${filters.count});
+                    AndroidBridge.onComplete(JSON.stringify(resultArray));
+                } catch(e) {
+                    AndroidBridge.onError(e.message + '\\n' + e.stack);
+                }
                 """.trimIndent()
             )
         }

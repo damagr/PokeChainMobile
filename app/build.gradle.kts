@@ -13,8 +13,8 @@ android {
         applicationId = "com.pokechain"
         minSdk = 26
         targetSdk = 35
-        versionCode = 11
-        versionName = "1.0.9-alpha"
+        versionCode = 12
+        versionName = "1.1.0-alpha"
     }
 
     buildTypes {
