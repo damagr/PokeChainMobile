@@ -13,8 +13,8 @@ android {
         applicationId = "com.pokechain"
         minSdk = 26
         targetSdk = 35
-        versionCode = 19
-        versionName = "1.0.0-beta"
+        versionCode = 21
+        versionName = "1.0.2-beta"
     }
 
     buildTypes {
@@ -72,6 +72,7 @@ dependencies {
 
     // Networking
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.google.code.gson:gson:2.11.0")
 
     // WebView is part of the Android framework — no extra dependency needed
 }

@@ -37,6 +37,7 @@ fun PvEScreen(language: AppLanguage = AppLanguage.ES) {
     var cachedBaseDexes by remember { mutableStateOf<List<Int>>(emptyList()) }
     var resultMessage by remember { mutableStateOf("") }
     var showResultMessage by remember { mutableStateOf(false) }
+    var showCountWarning by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         engine.init()
@@ -88,9 +89,13 @@ fun PvEScreen(language: AppLanguage = AppLanguage.ES) {
 
         Button(
             onClick = {
-                if (topCountText.isBlank()) {
-                    error = Strings.enterCount(language)
-                    showErrorDialog = true
+                val n = topCountText.toIntOrNull()
+                if (topCountText.isBlank() || n == null || n <= 0) {
+                    showCountWarning = true
+                    return@Button
+                }
+                if (n > 300) {
+                    showCountWarning = true
                     return@Button
                 }
                 scope.launch {
@@ -237,6 +242,24 @@ fun PvEScreen(language: AppLanguage = AppLanguage.ES) {
             message = error!!,
             language = language,
             onDismiss = { showErrorDialog = false }
+        )
+    }
+
+    if (showCountWarning) {
+        AlertDialog(
+            onDismissRequest = { showCountWarning = false },
+            title = { Text(Strings.topCount(language)) },
+            text = { Text(Strings.enterPositiveCount(language)) },
+            confirmButton = {
+                TextButton(onClick = { showCountWarning = false }) {
+                    Text(Strings.close(language))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCountWarning = false }) {
+                    Text(Strings.cancel(language))
+                }
+            }
         )
     }
 }

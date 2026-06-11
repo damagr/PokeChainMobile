@@ -16,6 +16,7 @@ object Strings {
     fun copy(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Copy"; AppLanguage.ES -> "Copiar" }
     fun copied(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Copied!"; AppLanguage.ES -> "Copiado" }
     fun close(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Close"; AppLanguage.ES -> "Cerrar" }
+    fun cancel(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Cancel"; AppLanguage.ES -> "Cancelar" }
     fun copyError(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Copy error"; AppLanguage.ES -> "Copiar error" }
     fun apply(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Apply"; AppLanguage.ES -> "Aplicar" }
     fun xlCandy(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "XL Candy"; AppLanguage.ES -> "Caramelos XL" }
@@ -30,6 +31,20 @@ object Strings {
     fun tagMega(lang: AppLanguage) = "Mega"
     fun maxCount(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Max 300"; AppLanguage.ES -> "Máx. 300" }
     fun enterCount(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Enter a number"; AppLanguage.ES -> "Introduce un número" }
+    fun enterPositiveCount(lang: AppLanguage) = when (lang) {
+        AppLanguage.EN -> "Enter a positive number of Pokémon to display"
+        AppLanguage.ES -> "Introduce una cantidad positiva de Pokémon a mostrar"
+    }
+    fun newVersionAvailable(lang: AppLanguage, latest: String) = when (lang) {
+        AppLanguage.EN -> "New version $latest available!"
+        AppLanguage.ES -> "¡Nueva versión $latest disponible!"
+    }
+    fun download(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Download"; AppLanguage.ES -> "Descargar" }
+    fun later(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Later"; AppLanguage.ES -> "Más tarde" }
+    fun updateLink(lang: AppLanguage) = when (lang) {
+        AppLanguage.EN -> "Open releases page to download the new version."
+        AppLanguage.ES -> "Abre la página de versiones para descargar la nueva versión."
+    }
 
     fun leagueName(league: PvPLeague, lang: AppLanguage) = when (lang) {
         AppLanguage.EN -> when (league) { PvPLeague.GREAT -> "Great"; PvPLeague.ULTRA -> "Ultra"; PvPLeague.MASTER -> "Master" }

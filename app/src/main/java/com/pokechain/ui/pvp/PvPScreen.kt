@@ -34,6 +34,7 @@ fun PvPScreen(language: AppLanguage = AppLanguage.ES) {
     var cachedBaseDexes by remember { mutableStateOf<List<Int>>(emptyList()) }
     var cachedLeague by remember { mutableStateOf(PvPLeague.GREAT) }
     var cachedIncludeShadow by remember { mutableStateOf(false) }
+    var showCountWarning by remember { mutableStateOf(false) }
 
     LaunchedEffect(language) {
         if (cachedBaseDexes.isEmpty()) return@LaunchedEffect
@@ -92,9 +93,13 @@ fun PvPScreen(language: AppLanguage = AppLanguage.ES) {
 
         Button(
             onClick = {
-                if (topCountText.isBlank()) {
-                    error = Strings.enterCount(language)
-                    showErrorDialog = true
+                val n = topCountText.toIntOrNull()
+                if (topCountText.isBlank() || n == null || n <= 0) {
+                    showCountWarning = true
+                    return@Button
+                }
+                if (n > 300) {
+                    showCountWarning = true
                     return@Button
                 }
                 scope.launch {
@@ -240,6 +245,24 @@ fun PvPScreen(language: AppLanguage = AppLanguage.ES) {
             message = error!!,
             language = language,
             onDismiss = { showErrorDialog = false }
+        )
+    }
+
+    if (showCountWarning) {
+        AlertDialog(
+            onDismissRequest = { showCountWarning = false },
+            title = { Text(Strings.topCount(language)) },
+            text = { Text(Strings.enterPositiveCount(language)) },
+            confirmButton = {
+                TextButton(onClick = { showCountWarning = false }) {
+                    Text(Strings.close(language))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCountWarning = false }) {
+                    Text(Strings.cancel(language))
+                }
+            }
         )
     }
 }
