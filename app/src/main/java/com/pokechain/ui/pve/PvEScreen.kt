@@ -9,7 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.pokechain.data.dialgadex.NameTranslator
-import com.pokechain.data.dialgadex.PvEJSEngine
+import com.pokechain.data.dialgadex.PvEScrapingEngine
 import com.pokechain.data.models.*
 import com.pokechain.data.pvpoke.PvPDataProcessor
 import com.pokechain.data.pvpoke.PvPokeApi
@@ -97,7 +97,7 @@ fun PvEScreen(language: AppLanguage = AppLanguage.ES) {
                     }
                     try {
                         advanceStage(); delay(50)
-                        val engine = PvEJSEngine(context)
+                        val engine = PvEScrapingEngine(context)
 
                         advanceStage(); delay(50)
                         val rawResults = engine.compute(filters)

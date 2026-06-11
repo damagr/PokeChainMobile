@@ -13,8 +13,8 @@ android {
         applicationId = "com.pokechain"
         minSdk = 26
         targetSdk = 35
-        versionCode = 17
-        versionName = "1.0.15-alpha"
+        versionCode = 18
+        versionName = "1.1.0"
     }
 
     buildTypes {
@@ -72,9 +72,6 @@ dependencies {
 
     // Networking
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
-
-    // Rhino JS engine for running DialgaDex calculation scripts
-    implementation("org.mozilla:rhino:1.7.15")
 
     // WebView is part of the Android framework — no extra dependency needed
 }
