@@ -2,8 +2,16 @@ package com.pokechain.data.models
 
 object Strings {
     fun filters(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Filters"; AppLanguage.ES -> "Filtros" }
-    fun count(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Count"; AppLanguage.ES -> "Cantidad" }
+    fun topCount(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Top N"; AppLanguage.ES -> "Top N" }
     fun generate(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Generate"; AppLanguage.ES -> "Generar" }
+    fun topPvP(lang: AppLanguage, count: Int, league: String) = when (lang) {
+        AppLanguage.EN -> "Top $count $league League — PvP"
+        AppLanguage.ES -> "Top $count Liga $league — PvP"
+    }
+    fun topPvE(lang: AppLanguage, count: Int) = when (lang) {
+        AppLanguage.EN -> "Top $count PvE Attackers"
+        AppLanguage.ES -> "Top $count Atacantes PvE"
+    }
     fun searchString(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Search String"; AppLanguage.ES -> "Cadena de búsqueda" }
     fun copy(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Copy"; AppLanguage.ES -> "Copiar" }
     fun copied(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Copied!"; AppLanguage.ES -> "Copiado" }
@@ -37,8 +45,8 @@ object Strings {
     }
 
     val pvpProgress: List<Pair<Float, AppLanguage.() -> String>> = listOf(
-        0.1f to { "Descargando datos de PvPoke..." },
-        0.3f to { when (this) { AppLanguage.EN -> "Downloading PvPoke..."; AppLanguage.ES -> "Descargando PvPoke..." } },
+        0.1f to { when (this) { AppLanguage.EN -> "Downloading PvPoke..."; AppLanguage.ES -> "Descargando datos de PvPoke..." } },
+        0.3f to { when (this) { AppLanguage.EN -> "Downloading rankings..."; AppLanguage.ES -> "Descargando rankings..." } },
         0.5f to { when (this) { AppLanguage.EN -> "Processing rankings..."; AppLanguage.ES -> "Procesando rankings..." } },
         0.7f to { when (this) { AppLanguage.EN -> "Resolving base forms..."; AppLanguage.ES -> "Resolviendo formas base..." } },
         0.9f to { when (this) { AppLanguage.EN -> "Generating search string..."; AppLanguage.ES -> "Generando cadena de búsqueda..." } },

@@ -29,6 +29,7 @@ fun PvPScreen(language: AppLanguage = AppLanguage.ES) {
     var error by remember { mutableStateOf<String?>(null) }
     var showErrorDialog by remember { mutableStateOf(false) }
     var showFilters by remember { mutableStateOf(false) }
+    var topCountText by remember { mutableStateOf(filters.count.toString()) }
 
     Column(
         modifier = Modifier.fillMaxSize().padding(16.dp)
@@ -51,9 +52,12 @@ fun PvPScreen(language: AppLanguage = AppLanguage.ES) {
         Spacer(Modifier.height(8.dp))
 
         OutlinedTextField(
-            value = filters.count.toString(),
-            onValueChange = { filters = filters.copy(count = it.toIntOrNull() ?: 20) },
-            label = { Text(Strings.count(language)) },
+            value = topCountText,
+            onValueChange = {
+                topCountText = it
+                it.toIntOrNull()?.let { n -> filters = filters.copy(count = n) }
+            },
+            label = { Text(Strings.topCount(language)) },
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -155,6 +159,11 @@ fun PvPScreen(language: AppLanguage = AppLanguage.ES) {
         }
 
         if (searchString.isNotBlank()) {
+            Text(
+                text = Strings.topPvP(language, results.size, Strings.leagueName(filters.league, language)),
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.padding(bottom = 4.dp)
+            )
             SearchStringCard(searchString = searchString, language = language)
             Spacer(Modifier.height(8.dp))
         }
