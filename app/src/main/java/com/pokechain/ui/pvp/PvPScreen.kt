@@ -17,6 +17,7 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun PvPScreen(language: com.pokechain.data.models.AppLanguage = com.pokechain.data.models.AppLanguage.EN) {
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var filters by remember { mutableStateOf(PvPFilterParams()) }
     var results by remember { mutableStateOf<List<PvPResult>>(emptyList()) }
@@ -59,8 +60,7 @@ fun PvPScreen(language: com.pokechain.data.models.AppLanguage = com.pokechain.da
                     loading = true
                     error = null
                     try {
-                        val ctx = LocalContext.current
-                        val translator = NameTranslator(ctx)
+                        val translator = NameTranslator(context)
                         val api = com.pokechain.data.pvpoke.PvPokeApi
                         val gameMaster = api.fetchGameMaster()
                         val rankings = api.fetchRankings(filters.league.cp)
