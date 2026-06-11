@@ -18,7 +18,7 @@ class PvPDataProcessor(
                 score = entry.score,
                 moveset = entry.moveset,
                 isShadow = entry.speciesId.endsWith("_shadow"),
-                needsXL = poke?.let { needsXLCandy(it) } ?: false,
+                needsXL = poke?.let { needsXLCandy(it, filters.league) } ?: false,
                 eliteMoves = poke?.eliteMoves?.filter { it in entry.moveset }?.toSet() ?: emptySet(),
                 dex = poke?.dex ?: 0,
                 family = poke?.family,
@@ -91,8 +91,13 @@ class PvPDataProcessor(
         return true
     }
 
-    private fun needsXLCandy(poke: Pokemon): Boolean {
-        val maxCp = poke.defaultIVs?.get("cp2500")?.getOrNull(0) ?: 50.0
+    private fun needsXLCandy(poke: Pokemon, league: PvPLeague): Boolean {
+        val cpKey = when (league) {
+            PvPLeague.GREAT -> "cp1500"
+            PvPLeague.ULTRA -> "cp2500"
+            PvPLeague.MASTER -> "cp10000"
+        }
+        val maxCp = poke.defaultIVs?.get(cpKey)?.getOrNull(0) ?: return true
         return maxCp > 40.0
     }
 

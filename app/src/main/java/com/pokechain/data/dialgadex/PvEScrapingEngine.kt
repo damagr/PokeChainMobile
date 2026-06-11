@@ -17,85 +17,124 @@ import kotlinx.serialization.json.Json
 
 class PvEScrapingEngine(private val appContext: Context) {
 
+    private var webView: WebView? = null
+    private var bridge: EngineBridge? = null
     private val json = Json { ignoreUnknownKeys = true }
 
-    suspend fun compute(filters: PvEFilterParams): List<PvERankingEntry> = withContext(Dispatchers.Main) {
-        val deferred = CompletableDeferred<String>()
-        val webView = WebView(appContext)
+    private var lastFilterHash: Int? = null
+    private var lastResults: List<PvERankingEntry> = emptyList()
 
-        try {
-            webView.apply {
-                layoutParams = ViewGroup.LayoutParams(1, 1)
-                settings.javaScriptEnabled = true
-                settings.domStorageEnabled = true
-                settings.cacheMode = android.webkit.WebSettings.LOAD_DEFAULT
+    private class EngineBridge {
+        @Volatile var pendingDeferred: CompletableDeferred<String>? = null
 
-                addJavascriptInterface(JsBridge(deferred), "Android")
-
-                webViewClient = object : WebViewClient() {
-                    override fun onPageFinished(view: WebView, url: String) {
-                        val count = filters.count.coerceAtMost(500)
-
-                        view.evaluateJavascript("""
-                            (function() {
-                                var checkReady = setInterval(function() {
-                                    if (typeof GetStrongestOfOneType === 'function' && 
-                                        typeof pkm_data !== 'undefined' && pkm_data.length > 0) {
-                                        clearInterval(checkReady);
-                                        try {
-                                            settings_type_affinity = true;
-                                            settings_team_size_normal = 6;
-                                            settings_team_size_mega = 6;
-                                            settings_relobbytime = 10;
-                                            settings_metric = "eDPS";
-                                            settings_pve_turns = true;
-                                            settings_newdps = true;
-
-                                            var params = {
-                                                type: "Any",
-                                                elite: true,
-                                                mixed: true,
-                                                offtype: true,
-                                                suboptimal: false,
-                                                level: 40,
-                                                real_damage: false,
-                                                shadow: ${filters.includeShadow},
-                                                mega: ${filters.mega},
-                                                legendary: ${filters.legendary},
-                                                unreleased: ${filters.unreleased}
-                                            };
-                                            var results = GetStrongestOfOneType(params);
-                                            var sliced = results.slice(0, $count);
-                                            Android.onResult('SUCCESS:' + JSON.stringify(sliced));
-                                        } catch(e) {
-                                            Android.onResult('ERROR:' + e.message);
-                                        }
-                                    }
-                                }, 200);
-                                setTimeout(function() {
-                                    clearInterval(checkReady);
-                                    Android.onResult('TIMEOUT');
-                                }, 120000);
-                            })();
-                        """.trimIndent(), null)
-                    }
-                }
-
-                loadUrl("https://dialgadex.com/?strongest&t=Any")
-            }
-
-            val raw = withTimeout(120_000) { deferred.await() }
-
-            when {
-                raw == "TIMEOUT" || raw.startsWith("ERROR:") -> emptyList()
-                raw.startsWith("SUCCESS:") -> parseResults(raw.removePrefix("SUCCESS:"))
-                else -> parseResults(raw)
-            }
-        } catch (e: Exception) {
-            throw e
-        } finally {
-            webView.destroy()
+        @JavascriptInterface
+        fun onResult(result: String) {
+            pendingDeferred?.complete(result)
         }
+    }
+
+    suspend fun init() = withContext(Dispatchers.Main) {
+        if (webView != null) return@withContext
+        val b = EngineBridge()
+        val deferred = CompletableDeferred<Boolean>()
+        bridge = b
+
+        val wv = WebView(appContext).apply {
+            layoutParams = ViewGroup.LayoutParams(1, 1)
+            settings.javaScriptEnabled = true
+            settings.domStorageEnabled = true
+            settings.cacheMode = android.webkit.WebSettings.LOAD_CACHE_ELSE_NETWORK
+            addJavascriptInterface(b, "Android")
+            webViewClient = object : WebViewClient() {
+                override fun onPageFinished(view: WebView, url: String) {
+                    if (deferred.isCompleted) return
+                    pollReady(view, deferred)
+                }
+            }
+            loadUrl("https://dialgadex.com/?strongest&t=Any")
+        }
+        webView = wv
+        deferred.await()
+    }
+
+    private fun pollReady(view: WebView, deferred: CompletableDeferred<Boolean>) {
+        view.evaluateJavascript("""
+            (function() {
+                if (typeof GetStrongestOfOneType === 'function' &&
+                    typeof pkm_data !== 'undefined' && pkm_data.length > 0) {
+                    Android.onResult('READY');
+                }
+            })();
+        """.trimIndent()) { result ->
+            if (result?.contains("READY") == true) {
+                deferred.complete(true)
+            } else {
+                view.postDelayed({ pollReady(view, deferred) }, 300)
+            }
+        }
+    }
+
+    fun getCachedResults(filters: PvEFilterParams): List<PvERankingEntry> {
+        return if (filters.hashCode() == lastFilterHash) lastResults else emptyList()
+    }
+
+    suspend fun compute(filters: PvEFilterParams): List<PvERankingEntry> = withContext(Dispatchers.Main) {
+        if (filters.hashCode() == lastFilterHash && lastResults.isNotEmpty()) {
+            return@withContext lastResults
+        }
+        init()
+        val view = webView ?: return@withContext emptyList()
+        val b = bridge ?: return@withContext emptyList()
+
+        val deferred = CompletableDeferred<String>()
+        b.pendingDeferred = deferred
+
+        val count = filters.count.coerceAtMost(300)
+
+        view.evaluateJavascript("""
+            (async function() {
+                try {
+                    settings_type_affinity = true;
+                    settings_team_size_normal = 6;
+                    settings_team_size_mega = 6;
+                    settings_relobbytime = 10;
+                    settings_metric = "eDPS";
+                    settings_pve_turns = true;
+                    settings_newdps = true;
+
+                    var params = {
+                        type: "Any", elite: true, mixed: true, offtype: true,
+                        suboptimal: false, level: 40, real_damage: false,
+                        shadow: ${filters.includeShadow},
+                        mega: ${filters.mega},
+                        legendary: ${filters.legendary},
+                        unreleased: ${filters.unreleased}
+                    };
+                    var results = await GetStrongestOfOneType(params);
+                    var sliced = results.slice(0, $count);
+                    Android.onResult('SUCCESS:' + JSON.stringify(sliced));
+                } catch(e) {
+                    Android.onResult('ERROR:' + (e.message || e));
+                }
+            })();
+        """.trimIndent(), null)
+
+        val raw = withTimeout(120_000) { deferred.await() }
+
+        val parsed = when {
+            raw == "TIMEOUT" || raw.startsWith("ERROR:") -> emptyList()
+            raw.startsWith("SUCCESS:") -> parseResults(raw.removePrefix("SUCCESS:"))
+            else -> parseResults(raw)
+        }
+
+        lastFilterHash = filters.hashCode()
+        lastResults = parsed
+        parsed
+    }
+
+    fun destroy() {
+        webView?.destroy()
+        webView = null
     }
 
     private fun parseResults(jsonStr: String): List<PvERankingEntry> {
@@ -104,33 +143,18 @@ class PvEScrapingEngine(private val appContext: Context) {
         return list.map { it.toEntry() }
     }
 
-    private class JsBridge(private val deferred: CompletableDeferred<String>) {
-        @JavascriptInterface
-        fun onResult(result: String) {
-            if (!deferred.isCompleted) {
-                deferred.complete(result)
-            }
-        }
-    }
-
     @Serializable
     private data class PvERankingEntryJson(
-        val rat: Double,
-        val dps: Double,
-        val tdo: Double,
-        val id: Int,
-        val name: String,
-        val form: String,
-        val shadow: Boolean = false,
-        val level: Int = 40,
+        val rat: Double, val dps: Double, val tdo: Double,
+        val id: Int, val name: String, val form: String,
+        val shadow: Boolean = false, val level: Int = 40,
         val fm: String? = null,
         @SerialName("fm_is_elite") val fmIsElite: Boolean = false,
         @SerialName("fm_type") val fmType: String? = null,
         val cm: String? = null,
         @SerialName("cm_is_elite") val cmIsElite: Boolean = false,
         @SerialName("cm_type") val cmType: String? = null,
-        val tier: String? = null,
-        val pct: Double? = null,
+        val tier: String? = null, val pct: Double? = null,
     ) {
         fun toEntry() = PvERankingEntry(
             rat = rat, dps = dps, tdo = tdo,

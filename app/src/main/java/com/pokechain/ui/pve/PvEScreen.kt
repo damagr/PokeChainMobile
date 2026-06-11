@@ -21,7 +21,9 @@ import kotlinx.coroutines.launch
 fun PvEScreen(language: AppLanguage = AppLanguage.ES) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    val translator = remember { NameTranslator(context) }
+    val appContext = remember { context.applicationContext }
+    val translator = remember { NameTranslator(appContext) }
+    val engine = remember { PvEScrapingEngine(appContext) }
     var filters by remember { mutableStateOf(PvEFilterParams()) }
     var results by remember { mutableStateOf<List<PvERankingEntry>>(emptyList()) }
     var searchString by remember { mutableStateOf("") }
@@ -35,6 +37,10 @@ fun PvEScreen(language: AppLanguage = AppLanguage.ES) {
     var cachedBaseDexes by remember { mutableStateOf<List<Int>>(emptyList()) }
     var resultMessage by remember { mutableStateOf("") }
     var showResultMessage by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        engine.init()
+    }
 
     fun buildSearchString(names: List<String>, language: AppLanguage, shadow: Boolean): String {
         val shadowSuffix = when (language) {
@@ -97,10 +103,13 @@ fun PvEScreen(language: AppLanguage = AppLanguage.ES) {
                     }
                     try {
                         advanceStage(); delay(50)
-                        val engine = PvEScrapingEngine(context)
 
-                        advanceStage(); delay(50)
-                        val rawResults = engine.compute(filters)
+                        val cached = engine.getCachedResults(filters)
+                        val rawResults = if (cached.isNotEmpty()) {
+                            cached.also { progress = 0.5f }
+                        } else {
+                            engine.compute(filters)
+                        }
                         results = rawResults
 
                         advanceStage(); delay(50)
@@ -125,7 +134,7 @@ fun PvEScreen(language: AppLanguage = AppLanguage.ES) {
                         resultMessage = "Error: ${e::class.simpleName}: ${e.message}"
                         showResultMessage = true
                     } finally {
-                        kotlinx.coroutines.delay(500)
+                        delay(500)
                         loading = false
                     }
                 }
