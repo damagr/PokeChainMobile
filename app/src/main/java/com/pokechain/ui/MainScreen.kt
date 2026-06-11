@@ -14,7 +14,7 @@ import com.pokechain.data.models.AppLanguage
 @Composable
 fun MainScreen() {
     var selectedTab by remember { mutableStateOf(0) }
-    var language by remember { mutableStateOf(AppLanguage.EN) }
+    var language by remember { mutableStateOf(AppLanguage.ES) }
     val tabs = listOf("PvP", "PvE")
 
     Scaffold(
