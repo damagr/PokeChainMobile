@@ -30,7 +30,7 @@ fun PvPScreen(language: AppLanguage = AppLanguage.ES) {
     var error by remember { mutableStateOf<String?>(null) }
     var showErrorDialog by remember { mutableStateOf(false) }
     var showFilters by remember { mutableStateOf(false) }
-    var topCountText by remember { mutableStateOf(filters.count.toString()) }
+    var topCountText by remember { mutableStateOf("") }
     var cachedBaseDexes by remember { mutableStateOf<List<Int>>(emptyList()) }
     var cachedLeague by remember { mutableStateOf(PvPLeague.GREAT) }
     var cachedIncludeShadow by remember { mutableStateOf(false) }
@@ -84,6 +84,7 @@ fun PvPScreen(language: AppLanguage = AppLanguage.ES) {
                 it.toIntOrNull()?.let { n -> filters = filters.copy(count = n) }
             },
             label = { Text(Strings.topCount(language)) },
+            supportingText = { Text(Strings.maxCount(language)) },
             modifier = Modifier.fillMaxWidth()
         )
 

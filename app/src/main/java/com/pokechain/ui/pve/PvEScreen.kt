@@ -33,7 +33,7 @@ fun PvEScreen(language: AppLanguage = AppLanguage.ES) {
     var error by remember { mutableStateOf<String?>(null) }
     var showErrorDialog by remember { mutableStateOf(false) }
     var showFilters by remember { mutableStateOf(false) }
-    var topCountText by remember { mutableStateOf(filters.count.toString()) }
+    var topCountText by remember { mutableStateOf("") }
     var cachedBaseDexes by remember { mutableStateOf<List<Int>>(emptyList()) }
     var resultMessage by remember { mutableStateOf("") }
     var showResultMessage by remember { mutableStateOf(false) }
