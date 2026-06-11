@@ -87,7 +87,7 @@ class PvPDataProcessor(
     private fun matchesFilter(result: PvPResult, filters: PvPFilterParams): Boolean {
         if (!filters.xlCandy && result.needsXL) return false
         if (!filters.includeShadow && result.isShadow) return false
-        if (filters.includeElite && !result.hasEliteMove) return false
+        if (!filters.includeElite && result.hasEliteMove) return false
         return true
     }
 

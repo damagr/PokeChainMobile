@@ -78,6 +78,7 @@ class DialgaDexJsEngine(private val context: Context) {
 
         private fun matchesFilters(raw: RawPvEResult, filters: PvEFilterParams): Boolean {
             if (!filters.includeShadow && raw.shadow) return false
+            if (!filters.includeElite && (raw.fmIsElite || raw.cmIsElite)) return false
             return true
         }
 

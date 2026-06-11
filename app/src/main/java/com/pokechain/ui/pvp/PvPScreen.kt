@@ -88,7 +88,14 @@ fun PvPScreen(language: com.pokechain.data.models.AppLanguage = com.pokechain.da
                         progress = 0.9f
                         progressMessage = "Generando cadena de búsqueda..."
                         val names = baseDexes.distinct().map { translator.getName(it, language) }
-                        searchString = names.joinToString(";") { "+$it" }
+                        val prefix = when (filters.league) {
+                            PvPLeague.GREAT -> "PC-1500&3-4puntos de salud&3-4defensa&0-1ataque&"
+                            PvPLeague.ULTRA -> "PC-2500&3-4puntos de salud&3-4defensa&0-1ataque&"
+                            PvPLeague.MASTER -> "4*;3*&"
+                        }
+                        val shadowTag = if (filters.includeShadow && filters.league != PvPLeague.MASTER) "oscuro&" else ""
+                        val pokemonPart = names.joinToString(";") { "+$it" }
+                        searchString = "$prefix$shadowTag$pokemonPart&!#"
 
                         progress = 1f
                         progressMessage = "Completado"
@@ -114,11 +121,22 @@ fun PvPScreen(language: com.pokechain.data.models.AppLanguage = com.pokechain.da
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(Modifier.height(4.dp))
-                Text(
-                    text = progressMessage,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = progressMessage,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        text = "${(progress * 100).toInt()}%",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
 

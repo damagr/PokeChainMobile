@@ -23,9 +23,9 @@ fun FilterBottomSheet(
         Column(modifier = Modifier.padding(16.dp)) {
             ToggleRow(label = "XL Candy", checked = xl, onCheckedChange = { xl = it })
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-            ToggleRow(label = "Shadow", checked = includeShadow, onCheckedChange = { includeShadow = it })
+            ToggleRow(label = "Oscuro", checked = includeShadow, onCheckedChange = { includeShadow = it })
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-            ToggleRow(label = "Elite Move", checked = includeElite, onCheckedChange = { includeElite = it })
+            ToggleRow(label = "Mov. Élite", checked = includeElite, onCheckedChange = { includeElite = it })
 
             Spacer(Modifier.height(16.dp))
             Button(
@@ -38,7 +38,7 @@ fun FilterBottomSheet(
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Apply")
+                Text("Aplicar")
             }
             Spacer(Modifier.height(16.dp))
         }
@@ -56,16 +56,19 @@ fun PvEFilterBottomSheet(
     var includeShadow by remember { mutableStateOf(filters.includeShadow) }
     var legendary by remember { mutableStateOf(filters.legendary) }
     var mega by remember { mutableStateOf(filters.mega) }
+    var includeElite by remember { mutableStateOf(filters.includeElite) }
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(modifier = Modifier.padding(16.dp)) {
-            ToggleRow(label = "Unreleased", checked = unreleased, onCheckedChange = { unreleased = it })
+            ToggleRow(label = "Sin liberar", checked = unreleased, onCheckedChange = { unreleased = it })
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-            ToggleRow(label = "Shadow", checked = includeShadow, onCheckedChange = { includeShadow = it })
+            ToggleRow(label = "Oscuro", checked = includeShadow, onCheckedChange = { includeShadow = it })
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-            ToggleRow(label = "Legendary", checked = legendary, onCheckedChange = { legendary = it })
+            ToggleRow(label = "Legendario", checked = legendary, onCheckedChange = { legendary = it })
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
             ToggleRow(label = "Mega/Primal", checked = mega, onCheckedChange = { mega = it })
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            ToggleRow(label = "Mov. Élite", checked = includeElite, onCheckedChange = { includeElite = it })
 
             Spacer(Modifier.height(16.dp))
             Button(
@@ -74,12 +77,13 @@ fun PvEFilterBottomSheet(
                         unreleased = unreleased,
                         includeShadow = includeShadow,
                         legendary = legendary,
-                        mega = mega
+                        mega = mega,
+                        includeElite = includeElite
                     ))
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Apply")
+                Text("Aplicar")
             }
             Spacer(Modifier.height(16.dp))
         }
