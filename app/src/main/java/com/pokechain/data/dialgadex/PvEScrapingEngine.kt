@@ -60,13 +60,11 @@ class PvEScrapingEngine(private val appContext: Context) {
     private fun pollReady(view: WebView, deferred: CompletableDeferred<Boolean>) {
         view.evaluateJavascript("""
             (function() {
-                if (typeof GetStrongestOfOneType === 'function' &&
-                    typeof jb_pkm !== 'undefined' && jb_pkm.length > 0) {
-                    Android.onResult('READY');
-                }
+                return typeof GetStrongestOfOneType === 'function' &&
+                    typeof jb_pkm !== 'undefined' && jb_pkm.length > 0;
             })();
         """.trimIndent()) { result ->
-            if (result?.contains("READY") == true) {
+            if (result == "true") {
                 deferred.complete(true)
             } else {
                 view.postDelayed({ pollReady(view, deferred) }, 300)
