@@ -80,7 +80,6 @@ fun PvEScreen(language: AppLanguage = AppLanguage.ES) {
                 it.toIntOrNull()?.let { n -> filters = filters.copy(count = n.coerceAtMost(300)) }
             },
             label = { Text(Strings.topCount(language)) },
-            placeholder = { Text("20") },
             supportingText = { Text(Strings.maxCount(language)) },
             modifier = Modifier.fillMaxWidth()
         )

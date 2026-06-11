@@ -2,7 +2,7 @@ package com.pokechain.data.models
 
 object Strings {
     fun filters(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Filters"; AppLanguage.ES -> "Filtros" }
-    fun topCount(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Top N"; AppLanguage.ES -> "Top N" }
+    fun topCount(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Results"; AppLanguage.ES -> "Mostrar" }
     fun generate(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Generate"; AppLanguage.ES -> "Generar" }
     fun topPvP(lang: AppLanguage, count: Int, league: String) = when (lang) {
         AppLanguage.EN -> "Top $count $league League — PvP"
