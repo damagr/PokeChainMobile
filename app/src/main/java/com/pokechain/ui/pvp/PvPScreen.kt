@@ -30,6 +30,31 @@ fun PvPScreen(language: AppLanguage = AppLanguage.ES) {
     var showErrorDialog by remember { mutableStateOf(false) }
     var showFilters by remember { mutableStateOf(false) }
     var topCountText by remember { mutableStateOf(filters.count.toString()) }
+    var cachedBaseDexes by remember { mutableStateOf<List<Int>>(emptyList()) }
+    var cachedLeague by remember { mutableStateOf(PvPLeague.GREAT) }
+    var cachedIncludeShadow by remember { mutableStateOf(false) }
+
+    LaunchedEffect(language) {
+        if (cachedBaseDexes.isEmpty()) return@LaunchedEffect
+        val names = cachedBaseDexes.distinct().map { translator.getName(it, language) }
+        val prefix = if (cachedLeague == PvPLeague.MASTER) {
+            "4*;3*&"
+        } else {
+            val cp = cachedLeague.cp
+            when (language) {
+                AppLanguage.EN -> "cp-$cp&-1attack&3-defense&3-hp&"
+                AppLanguage.ES -> "PC-$cp&3-4puntos de salud&3-4defensa&0-1ataque&"
+            }
+        }
+        val shadowTag = if (cachedIncludeShadow && cachedLeague != PvPLeague.MASTER) {
+            when (language) {
+                AppLanguage.EN -> "shadow&"
+                AppLanguage.ES -> "oscuro&"
+            }
+        } else ""
+        val pokemonPart = names.joinToString(";") { "+$it" }
+        searchString = "$prefix$shadowTag$pokemonPart&!#"
+    }
 
     Column(
         modifier = Modifier.fillMaxSize().padding(16.dp)
@@ -94,20 +119,22 @@ fun PvPScreen(language: AppLanguage = AppLanguage.ES) {
                         results = filtered
 
                         advanceStage()
-                        val baseDexes = filtered.mapNotNull { processor.traceBaseDex(it) }
+                        cachedBaseDexes = filtered.mapNotNull { processor.traceBaseDex(it) }
+                        cachedLeague = filters.league
+                        cachedIncludeShadow = filters.includeShadow
 
                         advanceStage()
-                        val names = baseDexes.distinct().map { translator.getName(it, language) }
-                        val prefix = if (filters.league == PvPLeague.MASTER) {
+                        val names = cachedBaseDexes.distinct().map { translator.getName(it, language) }
+                        val prefix = if (cachedLeague == PvPLeague.MASTER) {
                             "4*;3*&"
                         } else {
-                            val cp = filters.league.cp
+                            val cp = cachedLeague.cp
                             when (language) {
                                 AppLanguage.EN -> "cp-$cp&-1attack&3-defense&3-hp&"
                                 AppLanguage.ES -> "PC-$cp&3-4puntos de salud&3-4defensa&0-1ataque&"
                             }
                         }
-                        val shadowTag = if (filters.includeShadow && filters.league != PvPLeague.MASTER) {
+                        val shadowTag = if (cachedIncludeShadow && cachedLeague != PvPLeague.MASTER) {
                             when (language) {
                                 AppLanguage.EN -> "shadow&"
                                 AppLanguage.ES -> "oscuro&"

@@ -31,6 +31,13 @@ fun PvEScreen(language: AppLanguage = AppLanguage.ES) {
     var showErrorDialog by remember { mutableStateOf(false) }
     var showFilters by remember { mutableStateOf(false) }
     var topCountText by remember { mutableStateOf(filters.count.toString()) }
+    var cachedBaseDexes by remember { mutableStateOf<List<Int>>(emptyList()) }
+
+    LaunchedEffect(language) {
+        if (cachedBaseDexes.isEmpty()) return@LaunchedEffect
+        val names = cachedBaseDexes.distinct().map { translator.getName(it, language) }
+        searchString = names.joinToString(";") { "+$it" }
+    }
 
     Column(
         modifier = Modifier.fillMaxSize().padding(16.dp)
@@ -85,12 +92,12 @@ fun PvEScreen(language: AppLanguage = AppLanguage.ES) {
 
                         advanceStage()
                         val processor = PvPDataProcessor(gm)
-                        val baseDexes = rawResults.map { it.id }
+                        cachedBaseDexes = rawResults.map { it.id }
                             .distinct()
                             .mapNotNull { processor.traceBaseDexForDex(it) }
 
                         advanceStage()
-                        val names = baseDexes.distinct().map { translator.getName(it, language) }
+                        val names = cachedBaseDexes.distinct().map { translator.getName(it, language) }
                         searchString = names.joinToString(";") { "+$it" }
 
                         advanceStage()
