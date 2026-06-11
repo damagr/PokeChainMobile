@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">PokeChain</string>
+    <string name="tab_pvp">PvP</string>
+    <string name="tab_pve">PvE</string>
+    <string name="great_league">Great League</string>
+    <string name="ultra_league">Ultra League</string>
+    <string name="master_league">Master League</string>
+    <string name="filter_xl">XL Candy</string>
+    <string name="filter_shadow">Shadow</string>
+    <string name="filter_elite">Elite Move</string>
+    <string name="filter_unreleased">Unreleased</string>
+    <string name="filter_legendary">Legendary</string>
+    <string name="filter_mega">Mega/Primal</string>
+    <string name="include">Include</string>
+    <string name="exclude">Exclude</string>
+    <string name="only">Only</string>
+    <string name="important">Important</string>
+    <string name="not_important">Not Important</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
+    <string name="count">Pokémon to list</string>
+    <string name="generate">Generate</string>
+    <string name="search_string">Search String</string>
+    <string name="copy">Copy</string>
+    <string name="copied">Copied!</string>
+    <string name="type_all">All Types</string>
+    <string name="score">Score</string>
+    <string name="edps">eDPS</string>
+    <string name="loading">Loading…</string>
+    <string name="error_network">Network error. Check your connection.</string>
+    <string name="filter_title">Filters</string>
+</resources>
