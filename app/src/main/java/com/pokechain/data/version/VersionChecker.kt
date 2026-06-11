@@ -55,8 +55,8 @@ class VersionChecker(private val okHttpClient: OkHttpClient = OkHttpClient.Build
     }
 
     private fun compareVersions(v1: String, v2: String): Int {
-        val parts1 = v1.split(".").map { it.toIntOrNull() ?: 0 }
-        val parts2 = v2.split(".").map { it.toIntOrNull() ?: 0 }
+        val parts1 = v1.split("-")[0].split(".").map { it.toIntOrNull() ?: 0 }
+        val parts2 = v2.split("-")[0].split(".").map { it.toIntOrNull() ?: 0 }
         val maxLength = maxOf(parts1.size, parts2.size)
         for (i in 0 until maxLength) {
             val p1 = if (i < parts1.size) parts1[i] else 0
