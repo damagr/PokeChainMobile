@@ -1,6 +1,7 @@
 package com.pokechain.domain
 
 import com.pokechain.data.pvpoke.PvPDataProcessor
+import com.pokechain.data.pvpoke.PvPRawEntry
 import com.pokechain.data.pvpoke.PvPResult
 import com.pokechain.data.models.*
 
