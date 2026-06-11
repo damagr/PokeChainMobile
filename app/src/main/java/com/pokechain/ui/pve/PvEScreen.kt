@@ -14,6 +14,7 @@ import com.pokechain.data.models.*
 import com.pokechain.data.pvpoke.PvPDataProcessor
 import com.pokechain.data.pvpoke.PvPokeApi
 import com.pokechain.ui.components.*
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
@@ -32,6 +33,8 @@ fun PvEScreen(language: AppLanguage = AppLanguage.ES) {
     var showFilters by remember { mutableStateOf(false) }
     var topCountText by remember { mutableStateOf(filters.count.toString()) }
     var cachedBaseDexes by remember { mutableStateOf<List<Int>>(emptyList()) }
+    var resultMessage by remember { mutableStateOf("") }
+    var showResultMessage by remember { mutableStateOf(false) }
 
     LaunchedEffect(language) {
         if (cachedBaseDexes.isEmpty()) return@LaunchedEffect
@@ -101,10 +104,15 @@ fun PvEScreen(language: AppLanguage = AppLanguage.ES) {
                         searchString = names.joinToString(";") { "+$it" }
 
                         advanceStage()
+                        resultMessage = "Resultados: ${results.size} Pokémon, cadena de ${searchString.length} caracteres"
+                        showResultMessage = true
                     } catch (e: Exception) {
                         error = "${e::class.simpleName}: ${e.message}\n\n${e.stackTraceToString()}"
                         showErrorDialog = true
+                        resultMessage = "Error: ${e::class.simpleName}: ${e.message}"
+                        showResultMessage = true
                     } finally {
+                        kotlinx.coroutines.delay(500)
                         loading = false
                     }
                 }
@@ -140,6 +148,16 @@ fun PvEScreen(language: AppLanguage = AppLanguage.ES) {
                     )
                 }
             }
+        }
+
+        if (showResultMessage) {
+            Text(
+                text = resultMessage,
+                style = MaterialTheme.typography.bodySmall,
+                color = if (error != null) MaterialTheme.colorScheme.error
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 4.dp)
+            )
         }
 
         if (searchString.isNotBlank()) {
