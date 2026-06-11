@@ -8,8 +8,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.pokechain.data.dialgadex.DialgaDexJsEngine
 import com.pokechain.data.dialgadex.NameTranslator
+import com.pokechain.data.dialgadex.PvECalculator
 import com.pokechain.data.models.*
 import com.pokechain.data.pvpoke.PvPDataProcessor
 import com.pokechain.data.pvpoke.PvPokeApi
@@ -81,10 +81,10 @@ fun PvEScreen(language: AppLanguage = AppLanguage.ES) {
                     }
                     try {
                         advanceStage()
-                        val engine = DialgaDexJsEngine(context)
+                        val calculator = PvECalculator()
 
                         advanceStage()
-                        val rawResults = engine.fetchPvERankings(filters)
+                        val rawResults = calculator.compute(filters)
                         results = rawResults
 
                         advanceStage()
