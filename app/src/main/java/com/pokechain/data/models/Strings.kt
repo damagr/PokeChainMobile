@@ -45,6 +45,9 @@ object Strings {
         AppLanguage.EN -> "Open releases page to download the new version."
         AppLanguage.ES -> "Abre la página de versiones para descargar la nueva versión."
     }
+    fun downloading(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Downloading..."; AppLanguage.ES -> "Descargando..." }
+    fun installing(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Installing..."; AppLanguage.ES -> "Instalando..." }
+    fun updateFailed(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Download failed"; AppLanguage.ES -> "Fallo al descargar" }
 
     fun leagueName(league: PvPLeague, lang: AppLanguage) = when (lang) {
         AppLanguage.EN -> when (league) { PvPLeague.GREAT -> "Great"; PvPLeague.ULTRA -> "Ultra"; PvPLeague.MASTER -> "Master" }

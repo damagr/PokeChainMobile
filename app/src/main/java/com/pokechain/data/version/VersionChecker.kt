@@ -13,7 +13,13 @@ data class GitHubRelease(
     @SerializedName("name") val name: String,
     @SerializedName("html_url") val htmlUrl: String,
     @SerializedName("body") val body: String?,
-    @SerializedName("prerelease") val prerelease: Boolean
+    @SerializedName("prerelease") val prerelease: Boolean,
+    @SerializedName("assets") val assets: List<GitHubReleaseAsset>? = null
+)
+
+data class GitHubReleaseAsset(
+    @SerializedName("name") val name: String,
+    @SerializedName("browser_download_url") val browserDownloadUrl: String
 )
 
 class VersionChecker(private val okHttpClient: OkHttpClient = OkHttpClient.Builder()
@@ -44,7 +50,10 @@ class VersionChecker(private val okHttpClient: OkHttpClient = OkHttpClient.Build
                 val current = currentVersion.removePrefix("v")
 
                 if (compareVersions(latestVersion, current) > 0) {
-                    VersionCheckResult.UpdateAvailable(latestVersion, release.htmlUrl, release.name, release.body)
+                    val apkUrl = release.assets
+                        ?.find { it.name.endsWith(".apk") }
+                        ?.browserDownloadUrl
+                    VersionCheckResult.UpdateAvailable(latestVersion, release.htmlUrl, release.name, release.body, apkUrl)
                 } else {
                     VersionCheckResult.UpToDate
                 }
@@ -72,7 +81,8 @@ sealed interface VersionCheckResult {
         val latestVersion: String,
         val releaseUrl: String,
         val releaseName: String,
-        val releaseNotes: String?
+        val releaseNotes: String?,
+        val apkDownloadUrl: String? = null
     ) : VersionCheckResult
     object UpToDate : VersionCheckResult
     data class Error(val message: String) : VersionCheckResult
