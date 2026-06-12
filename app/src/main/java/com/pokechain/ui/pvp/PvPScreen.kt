@@ -3,10 +3,12 @@ package com.pokechain.ui.pvp
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.pokechain.data.dialgadex.NameTranslator
 import com.pokechain.data.models.*
@@ -80,12 +82,20 @@ fun PvPScreen(language: AppLanguage = AppLanguage.ES) {
 
         OutlinedTextField(
             value = topCountText,
-            onValueChange = {
-                topCountText = it
-                it.toIntOrNull()?.let { n -> filters = filters.copy(count = n) }
+            onValueChange = { text ->
+                val filtered = text.filter { it.isDigit() }
+                val n = filtered.toIntOrNull()
+                if (n == null || n == 0) {
+                    topCountText = filtered
+                } else {
+                    val clamped = n.coerceIn(1, 300)
+                    topCountText = clamped.toString()
+                    filters = filters.copy(count = clamped)
+                }
             },
             label = { Text(Strings.topCount(language)) },
             supportingText = { Text(Strings.maxCount(language)) },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier.fillMaxWidth()
         )
 
