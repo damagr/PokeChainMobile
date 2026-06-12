@@ -1,13 +1,19 @@
 package com.pokechain.ui
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import com.pokechain.ui.pve.PvEScreen
@@ -18,6 +24,7 @@ import com.pokechain.data.models.Strings
 import com.pokechain.data.version.VersionCheckResult
 import com.pokechain.data.version.VersionChecker
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -45,6 +52,17 @@ fun MainScreen() {
     var downloadProgress by remember { mutableStateOf(0f) }
     var downloadError by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    var advancedMode by remember { mutableStateOf(false) }
+    var tapCount by remember { mutableStateOf(0) }
+
+    LaunchedEffect(tapCount) {
+        if (tapCount > 0) {
+            delay(1500)
+            tapCount = 0
+        }
+    }
 
     LaunchedEffect(Unit) {
         scope.launch {
@@ -61,11 +79,39 @@ fun MainScreen() {
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
-                    Column(horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
-                        Text("PokeChain")
+                    Column(
+                        horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
+                        modifier = Modifier.clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ) {
+                            tapCount++
+                            if (tapCount >= 5) {
+                                tapCount = 0
+                                advancedMode = !advancedMode
+                                scope.launch {
+                                    snackbarHostState.showSnackbar(
+                                        if (advancedMode) Strings.advancedModeOn(language)
+                                        else Strings.advancedModeOff(language)
+                                    )
+                                }
+                            }
+                        }
+                    ) {
+                        if (advancedMode) {
+                            Text(
+                                buildAnnotatedString {
+                                    withStyle(SpanStyle(color = Color(0xFFFFD600))) { append("Poke") }
+                                    withStyle(SpanStyle(color = Color(0xFFFF1744))) { append("Chain") }
+                                }
+                            )
+                        } else {
+                            Text("PokeChain")
+                        }
                         Text(
                             text = "v$versionName",
                             style = MaterialTheme.typography.labelSmall,
@@ -93,8 +139,8 @@ fun MainScreen() {
                 }
             }
             when (selectedTab) {
-                0 -> PvPScreen(language = language)
-                1 -> PvEScreen(language = language)
+                0 -> PvPScreen(language = language, advancedMode = advancedMode)
+                1 -> PvEScreen(language = language, advancedMode = advancedMode)
             }
         }
     }

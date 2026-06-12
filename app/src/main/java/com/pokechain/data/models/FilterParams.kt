@@ -5,7 +5,8 @@ data class PvPFilterParams(
     val xlCandy: Boolean = true,
     val includeShadow: Boolean = false,
     val includeElite: Boolean = true,
-    val count: Int = 20
+    val count: Int = 20,
+    val fromRank: Int = 1
 )
 
 enum class PvPLeague(val cp: Int) {
@@ -19,7 +20,8 @@ data class PvEFilterParams(
     val includeShadow: Boolean = false,
     val legendary: Boolean = true,
     val mega: Boolean = true,
-    val count: Int = 20
+    val count: Int = 20,
+    val fromRank: Int = 1
 )
 
 enum class AppLanguage(val code: String) {

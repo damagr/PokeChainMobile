@@ -20,7 +20,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
-fun PvEScreen(language: AppLanguage = AppLanguage.ES) {
+fun PvEScreen(language: AppLanguage = AppLanguage.ES, advancedMode: Boolean = false) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val appContext = remember { context.applicationContext }
@@ -36,10 +36,12 @@ fun PvEScreen(language: AppLanguage = AppLanguage.ES) {
     var showErrorDialog by remember { mutableStateOf(false) }
     var showFilters by remember { mutableStateOf(false) }
     var topCountText by remember { mutableStateOf("") }
+    var fromText by remember { mutableStateOf("") }
     var cachedBaseDexes by remember { mutableStateOf<List<Int>>(emptyList()) }
     var resultMessage by remember { mutableStateOf("") }
     var showResultMessage by remember { mutableStateOf(false) }
     var showCountWarning by remember { mutableStateOf(false) }
+    var cachedFromRank by remember { mutableStateOf(1) }
 
     LaunchedEffect(Unit) {
         engine.init()
@@ -76,37 +78,94 @@ fun PvEScreen(language: AppLanguage = AppLanguage.ES) {
 
         Spacer(Modifier.height(8.dp))
 
-        OutlinedTextField(
-            value = topCountText,
-            onValueChange = { text ->
-                val filtered = text.filter { it.isDigit() }
-                val n = filtered.toIntOrNull()
-                if (n == null || n == 0) {
-                    topCountText = filtered
-                } else {
-                    val clamped = n.coerceIn(1, 300)
-                    topCountText = clamped.toString()
-                    filters = filters.copy(count = clamped)
-                }
-            },
-            label = { Text(Strings.topCount(language)) },
-            supportingText = { Text(Strings.maxCount(language)) },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.fillMaxWidth()
-        )
+        if (advancedMode) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = fromText,
+                    onValueChange = { text ->
+                        val filtered = text.filter { it.isDigit() }
+                        val n = filtered.toIntOrNull()
+                        if (n == null || n == 0) {
+                            fromText = filtered
+                        } else {
+                            val clamped = n.coerceIn(1, 299)
+                            fromText = clamped.toString()
+                            filters = filters.copy(fromRank = clamped)
+                        }
+                    },
+                    label = { Text(Strings.fromRank(language)) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.weight(1f),
+                    singleLine = true
+                )
+                OutlinedTextField(
+                    value = topCountText,
+                    onValueChange = { text ->
+                        val filtered = text.filter { it.isDigit() }
+                        val n = filtered.toIntOrNull()
+                        if (n == null || n == 0) {
+                            topCountText = filtered
+                        } else {
+                            val clamped = n.coerceIn(2, 300)
+                            topCountText = clamped.toString()
+                            filters = filters.copy(count = clamped)
+                        }
+                    },
+                    label = { Text(Strings.toRank(language)) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.weight(1f),
+                    singleLine = true
+                )
+            }
+        } else {
+            OutlinedTextField(
+                value = topCountText,
+                onValueChange = { text ->
+                    val filtered = text.filter { it.isDigit() }
+                    val n = filtered.toIntOrNull()
+                    if (n == null || n == 0) {
+                        topCountText = filtered
+                    } else {
+                        val clamped = n.coerceIn(1, 300)
+                        topCountText = clamped.toString()
+                        filters = filters.copy(count = clamped)
+                    }
+                },
+                label = { Text(Strings.topCount(language)) },
+                supportingText = { Text(Strings.maxCount(language)) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
 
         Spacer(Modifier.height(8.dp))
 
         Button(
             onClick = {
-                val n = topCountText.toIntOrNull()
-                if (topCountText.isBlank() || n == null || n <= 0) {
-                    showCountWarning = true
-                    return@Button
-                }
-                if (n > 300) {
-                    showCountWarning = true
-                    return@Button
+                if (advancedMode) {
+                    val from = fromText.toIntOrNull()
+                    val to = topCountText.toIntOrNull()
+                    if (fromText.isBlank() || topCountText.isBlank() || from == null || to == null) {
+                        showCountWarning = true
+                        return@Button
+                    }
+                    if (from <= 0 || to <= 0 || from >= to || from > 300 || to > 300) {
+                        showCountWarning = true
+                        return@Button
+                    }
+                } else {
+                    val n = topCountText.toIntOrNull()
+                    if (topCountText.isBlank() || n == null || n <= 0) {
+                        showCountWarning = true
+                        return@Button
+                    }
+                    if (n > 300) {
+                        showCountWarning = true
+                        return@Button
+                    }
                 }
                 scope.launch {
                     loading = true
@@ -139,17 +198,19 @@ fun PvEScreen(language: AppLanguage = AppLanguage.ES) {
                         val filtered = rawResults.filter { entry ->
                             matchesPvEFilter(entry, filters, pokemonByDex[entry.id])
                         }
-                        results = filtered
-                        cachedBaseDexes = filtered.map { it.id }
+                        val sliced = if (filters.fromRank > 1) filtered.drop(filters.fromRank - 1) else filtered
+                        results = sliced
+                        cachedBaseDexes = sliced.map { it.id }
                             .distinct()
                             .mapNotNull { processor.traceBaseDexForDex(it) }
+                        cachedFromRank = filters.fromRank
 
                         advanceStage(); delay(50)
                         val names = cachedBaseDexes.distinct().map { translator.getName(it, language) }
                         searchString = buildSearchString(names, language, filters.includeShadow)
 
                         advanceStage(); delay(50)
-                        resultMessage = "Resultados: ${results.size} Pokémon, cadena de ${searchString.length} caracteres"
+                        resultMessage = "Resultados: ${sliced.size} Pokémon, cadena de ${searchString.length} caracteres"
                         showResultMessage = true
                     } catch (e: Exception) {
                         error = "${e::class.simpleName}: ${e.message}\n\n${e.stackTraceToString()}"
@@ -206,8 +267,13 @@ fun PvEScreen(language: AppLanguage = AppLanguage.ES) {
         }
 
         if (searchString.isNotBlank()) {
+            val title = if (cachedFromRank > 1) {
+                Strings.topPvERange(language, cachedFromRank, filters.count)
+            } else {
+                Strings.topPvE(language, results.size)
+            }
             Text(
-                text = Strings.topPvE(language, results.size),
+                text = title,
                 style = MaterialTheme.typography.titleSmall,
                 modifier = Modifier.padding(bottom = 4.dp)
             )
@@ -218,7 +284,7 @@ fun PvEScreen(language: AppLanguage = AppLanguage.ES) {
         LazyColumn(modifier = Modifier.fillMaxSize()) {
             itemsIndexed(results) { index, entry ->
                 PokemonRow(
-                    rank = index + 1,
+                    rank = cachedFromRank + index,
                     name = cleanPvEName(entry.name, entry.form),
                     score = "%.2f".format(entry.rat),
                     subtitle = entry.tier?.let {
@@ -261,7 +327,12 @@ fun PvEScreen(language: AppLanguage = AppLanguage.ES) {
         AlertDialog(
             onDismissRequest = { showCountWarning = false },
             title = { Text(Strings.topCount(language)) },
-            text = { Text(Strings.enterPositiveCount(language)) },
+            text = {
+                Text(
+                    if (advancedMode) Strings.enterPositiveRange(language)
+                    else Strings.enterPositiveCount(language)
+                )
+            },
             confirmButton = {
                 TextButton(onClick = { showCountWarning = false }) {
                     Text(Strings.close(language))

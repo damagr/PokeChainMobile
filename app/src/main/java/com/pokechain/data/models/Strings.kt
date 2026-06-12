@@ -3,14 +3,24 @@ package com.pokechain.data.models
 object Strings {
     fun filters(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Filters"; AppLanguage.ES -> "Filtros" }
     fun topCount(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Results"; AppLanguage.ES -> "Mostrar" }
+    fun fromRank(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "From"; AppLanguage.ES -> "Desde" }
+    fun toRank(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "To"; AppLanguage.ES -> "Hasta" }
     fun generate(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Generate"; AppLanguage.ES -> "Generar" }
     fun topPvP(lang: AppLanguage, count: Int, league: String) = when (lang) {
         AppLanguage.EN -> "Top $count $league League — PvP"
         AppLanguage.ES -> "Top $count Liga $league — PvP"
     }
+    fun topPvPRange(lang: AppLanguage, from: Int, to: Int, league: String) = when (lang) {
+        AppLanguage.EN -> "Top $from–$to $league League — PvP"
+        AppLanguage.ES -> "Top $from–$to Liga $league — PvP"
+    }
     fun topPvE(lang: AppLanguage, count: Int) = when (lang) {
         AppLanguage.EN -> "Top $count PvE Attackers"
         AppLanguage.ES -> "Top $count Atacantes PvE"
+    }
+    fun topPvERange(lang: AppLanguage, from: Int, to: Int) = when (lang) {
+        AppLanguage.EN -> "Top $from–$to PvE Attackers"
+        AppLanguage.ES -> "Top $from–$to Atacantes PvE"
     }
     fun searchString(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Search String"; AppLanguage.ES -> "Cadena de búsqueda" }
     fun copy(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Copy"; AppLanguage.ES -> "Copiar" }
@@ -34,6 +44,18 @@ object Strings {
     fun enterPositiveCount(lang: AppLanguage) = when (lang) {
         AppLanguage.EN -> "Enter a positive number of Pokémon to display"
         AppLanguage.ES -> "Introduce una cantidad positiva de Pokémon a mostrar"
+    }
+    fun enterPositiveRange(lang: AppLanguage) = when (lang) {
+        AppLanguage.EN -> "Enter a valid range (From < To, max 300)"
+        AppLanguage.ES -> "Introduce un rango válido (Desde < Hasta, máx 300)"
+    }
+    fun advancedModeOn(lang: AppLanguage) = when (lang) {
+        AppLanguage.EN -> "Advanced mode ON"
+        AppLanguage.ES -> "Modo avanzado activado"
+    }
+    fun advancedModeOff(lang: AppLanguage) = when (lang) {
+        AppLanguage.EN -> "Advanced mode OFF"
+        AppLanguage.ES -> "Modo avanzado desactivado"
     }
     fun newVersionAvailable(lang: AppLanguage, latest: String) = when (lang) {
         AppLanguage.EN -> "New version $latest available!"

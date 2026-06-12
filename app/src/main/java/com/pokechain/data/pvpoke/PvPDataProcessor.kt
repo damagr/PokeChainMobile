@@ -9,9 +9,12 @@ class PvPDataProcessor(
     private val shadowPokemon = gameMaster.shadowPokemon?.toSet() ?: emptySet()
 
     fun processRankings(raw: List<PvPRawEntry>, filters: PvPFilterParams): List<PvPResult> {
-        val results = raw
-            .take(filters.count)
-            .map { entry ->
+        val sliced = if (filters.fromRank > 1) {
+            raw.take(filters.count).drop(filters.fromRank - 1)
+        } else {
+            raw.take(filters.count)
+        }
+        val results = sliced.map { entry ->
                 val poke = pokemonMap[entry.speciesId] ?: pokemonMap[entry.speciesId.removeSuffix("_shadow")]
 
                 PvPResult(
