@@ -63,11 +63,14 @@ fun PvEFilterBottomSheet(
         Column(modifier = Modifier.padding(16.dp)) {
             ToggleRow(label = Strings.unreleased(language), checked = unreleased, onCheckedChange = { unreleased = it })
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-            ToggleRow(label = Strings.shadowLabel(language), checked = includeShadow, onCheckedChange = { includeShadow = it })
+            ToggleRow(label = Strings.shadowLabel(language), checked = includeShadow, onCheckedChange = {
+                includeShadow = it
+                if (it) mega = false
+            })
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
             ToggleRow(label = Strings.legendary(language), checked = legendary, onCheckedChange = { legendary = it })
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-            ToggleRow(label = Strings.megaPrimal(language), checked = mega, onCheckedChange = { mega = it })
+            ToggleRow(label = Strings.megaPrimal(language), checked = mega, enabled = !includeShadow, onCheckedChange = { mega = it })
 
             Spacer(Modifier.height(16.dp))
             Button(
@@ -92,6 +95,7 @@ fun PvEFilterBottomSheet(
 fun ToggleRow(
     label: String,
     checked: Boolean,
+    enabled: Boolean = true,
     onCheckedChange: (Boolean) -> Unit
 ) {
     Row(
@@ -99,7 +103,7 @@ fun ToggleRow(
         modifier = Modifier.fillMaxWidth()
     ) {
         Text(text = label, modifier = Modifier.weight(1f))
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
+        Switch(checked = checked, enabled = enabled, onCheckedChange = onCheckedChange)
     }
 }
 

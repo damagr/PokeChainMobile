@@ -115,20 +115,22 @@ fun PvEScreen(language: AppLanguage = AppLanguage.ES) {
                     try {
                         advanceStage(); delay(50)
 
-                        val cached = engine.getCachedResults(filters)
-                        val rawResults = if (cached.isNotEmpty()) {
-                            cached.also { progress = 0.5f }
-                        } else {
-                            engine.compute(filters)
+                        val rawResults = engine.getCachedResults(filters.count).let { cached ->
+                            if (cached.isNotEmpty()) cached.also { progress = 0.5f }
+                            else engine.compute(filters.count)
                         }
-                        results = rawResults
 
                         advanceStage(); delay(50)
                         val gm = PvPokeApi.fetchGameMaster()
 
                         advanceStage(); delay(50)
                         val processor = PvPDataProcessor(gm)
-                        cachedBaseDexes = rawResults.map { it.id }
+                        val pokemonByDex = gm.pokemon.groupBy { it.dex }.mapValues { (_, list) -> list.first() }
+                        val filtered = rawResults.filter { entry ->
+                            matchesPvEFilter(entry, filters, pokemonByDex[entry.id])
+                        }
+                        results = filtered
+                        cachedBaseDexes = filtered.map { it.id }
                             .distinct()
                             .mapNotNull { processor.traceBaseDexForDex(it) }
 
@@ -271,4 +273,27 @@ private fun cleanPvEName(name: String, form: String): String {
         form.startsWith("Mega") -> "Mega $name"
         else -> "$name ($form)"
     }
+}
+
+private val legendaryTags = setOf("legendary", "mythical", "ultrabeast")
+
+private fun matchesPvEFilter(entry: PvERankingEntry, filters: PvEFilterParams, pokemon: Pokemon?): Boolean {
+    if (filters.includeShadow && !entry.shadow) return false
+    if (!filters.includeShadow && entry.shadow) return false
+
+    if (!filters.mega) {
+        val form = entry.form.lowercase()
+        if (form.startsWith("mega") || form == "primal") return false
+    }
+
+    if (!filters.legendary) {
+        val isLegendary = pokemon?.tags?.any { it.lowercase() in legendaryTags } ?: false
+        if (isLegendary) return false
+    }
+
+    if (!filters.unreleased) {
+        if (pokemon?.released == false) return false
+    }
+
+    return true
 }

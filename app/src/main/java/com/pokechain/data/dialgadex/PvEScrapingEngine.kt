@@ -5,7 +5,6 @@ import android.view.ViewGroup
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import com.pokechain.data.models.PvEFilterParams
 import com.pokechain.data.models.PvERankingEntry
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -21,7 +20,7 @@ class PvEScrapingEngine(private val appContext: Context) {
     private var bridge: EngineBridge? = null
     private val json = Json { ignoreUnknownKeys = true }
 
-    private var lastFilterHash: Int? = null
+    private var lastCount: Int? = null
     private var lastResults: List<PvERankingEntry> = emptyList()
 
     private class EngineBridge {
@@ -72,12 +71,12 @@ class PvEScrapingEngine(private val appContext: Context) {
         }
     }
 
-    fun getCachedResults(filters: PvEFilterParams): List<PvERankingEntry> {
-        return if (filters.hashCode() == lastFilterHash) lastResults else emptyList()
+    fun getCachedResults(count: Int): List<PvERankingEntry> {
+        return if (count == lastCount) lastResults else emptyList()
     }
 
-    suspend fun compute(filters: PvEFilterParams): List<PvERankingEntry> = withContext(Dispatchers.Main) {
-        if (filters.hashCode() == lastFilterHash && lastResults.isNotEmpty()) {
+    suspend fun compute(count: Int): List<PvERankingEntry> = withContext(Dispatchers.Main) {
+        if (count == lastCount && lastResults.isNotEmpty()) {
             return@withContext lastResults
         }
         init()
@@ -87,7 +86,7 @@ class PvEScrapingEngine(private val appContext: Context) {
         val deferred = CompletableDeferred<String>()
         b.pendingDeferred = deferred
 
-        val count = filters.count.coerceAtMost(300)
+        val n = count.coerceAtMost(300)
 
         view.evaluateJavascript("""
             (async function() {
@@ -103,13 +102,13 @@ class PvEScrapingEngine(private val appContext: Context) {
                     var params = {
                         type: "Any", elite: true, mixed: true, offtype: true,
                         suboptimal: false, level: 40, real_damage: false,
-                        shadow: ${filters.includeShadow},
-                        mega: ${filters.mega},
-                        legendary: ${filters.legendary},
-                        unreleased: ${filters.unreleased}
+                        shadow: false,
+                        mega: true,
+                        legendary: true,
+                        unreleased: true
                     };
                     var results = await GetStrongestOfOneType(params);
-                    var sliced = results.slice(0, $count);
+                    var sliced = results.slice(0, $n);
                     Android.onResult('SUCCESS:' + JSON.stringify(sliced));
                 } catch(e) {
                     Android.onResult('ERROR:' + (e.message || e));
@@ -125,7 +124,7 @@ class PvEScrapingEngine(private val appContext: Context) {
             else -> parseResults(raw)
         }
 
-        lastFilterHash = filters.hashCode()
+        lastCount = count
         lastResults = parsed
         parsed
     }

@@ -9,26 +9,27 @@ class PvPDataProcessor(
     private val shadowPokemon = gameMaster.shadowPokemon?.toSet() ?: emptySet()
 
     fun processRankings(raw: List<PvPRawEntry>, filters: PvPFilterParams): List<PvPResult> {
-        val results = raw.map { entry ->
-            val poke = pokemonMap[entry.speciesId] ?: pokemonMap[entry.speciesId.removeSuffix("_shadow")]
+        val results = raw
+            .take(filters.count)
+            .map { entry ->
+                val poke = pokemonMap[entry.speciesId] ?: pokemonMap[entry.speciesId.removeSuffix("_shadow")]
 
-            PvPResult(
-                speciesId = entry.speciesId,
-                speciesName = cleanName(entry.speciesName),
-                score = entry.score,
-                moveset = entry.moveset,
-                isShadow = entry.speciesId.endsWith("_shadow"),
-                needsXL = poke?.let { needsXLCandy(it, filters.league) } ?: false,
-                eliteMoves = poke?.eliteMoves?.filter { it in entry.moveset }?.toSet() ?: emptySet(),
-                dex = poke?.dex ?: 0,
-                family = poke?.family,
-            )
-        }
+                PvPResult(
+                    speciesId = entry.speciesId,
+                    speciesName = cleanName(entry.speciesName),
+                    score = entry.score,
+                    moveset = entry.moveset,
+                    isShadow = entry.speciesId.endsWith("_shadow"),
+                    needsXL = poke?.let { needsXLCandy(it, filters.league) } ?: false,
+                    eliteMoves = poke?.eliteMoves?.filter { it in entry.moveset }?.toSet() ?: emptySet(),
+                    dex = poke?.dex ?: 0,
+                    family = poke?.family,
+                )
+            }
 
         return results
             .filter { matchesFilter(it, filters) }
             .distinctBy { it.speciesId.removeSuffix("_shadow") }
-            .take(filters.count)
     }
 
     fun traceBaseForm(entry: PvPResult): String? {
@@ -86,6 +87,7 @@ class PvPDataProcessor(
 
     private fun matchesFilter(result: PvPResult, filters: PvPFilterParams): Boolean {
         if (!filters.xlCandy && result.needsXL) return false
+        if (filters.includeShadow && !result.isShadow) return false
         if (!filters.includeShadow && result.isShadow) return false
         if (!filters.includeElite && result.eliteMoves.isNotEmpty()) return false
         return true
