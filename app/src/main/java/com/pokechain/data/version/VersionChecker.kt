@@ -32,7 +32,7 @@ class VersionChecker(private val okHttpClient: OkHttpClient = OkHttpClient.Build
     suspend fun checkForUpdate(currentVersion: String, repoOwner: String = "damagr", repoName: String = "PokeChainMobile"): VersionCheckResult {
         return withContext(Dispatchers.IO) {
             try {
-                val url = "https://api.github.com/repos/$repoOwner/$repoName/releases/latest"
+                val url = "https://api.github.com/repos/$repoOwner/$repoName/releases"
                 val request = Request.Builder()
                     .url(url)
                     .addHeader("Accept", "application/vnd.github.v3+json")
@@ -44,16 +44,26 @@ class VersionChecker(private val okHttpClient: OkHttpClient = OkHttpClient.Build
                 }
 
                 val body = response.body?.string() ?: return@withContext VersionCheckResult.Error("Empty response")
-                val release = gson.fromJson(body, GitHubRelease::class.java)
+                val releases: Array<GitHubRelease> = gson.fromJson(body, Array<GitHubRelease>::class.java)
+                    ?: return@withContext VersionCheckResult.Error("Empty releases")
 
-                val latestVersion = release.tagName.removePrefix("v")
                 val current = currentVersion.removePrefix("v")
 
+                val latestRelease = releases
+                    .filter { !it.prerelease && !it.tagName.isNullOrBlank() }
+                    .maxByOrNull { compareVersions(it.tagName.removePrefix("v"), "0") }
+
+                if (latestRelease == null) {
+                    return@withContext VersionCheckResult.UpToDate
+                }
+
+                val latestVersion = latestRelease.tagName.removePrefix("v")
+
                 if (compareVersions(latestVersion, current) > 0) {
-                    val apkUrl = release.assets
+                    val apkUrl = latestRelease.assets
                         ?.find { it.name.endsWith(".apk") }
                         ?.browserDownloadUrl
-                    VersionCheckResult.UpdateAvailable(latestVersion, release.htmlUrl, release.name, release.body, apkUrl)
+                    VersionCheckResult.UpdateAvailable(latestVersion, latestRelease.htmlUrl, latestRelease.name, latestRelease.body, apkUrl)
                 } else {
                     VersionCheckResult.UpToDate
                 }
