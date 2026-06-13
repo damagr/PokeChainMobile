@@ -3,18 +3,18 @@
 
 # PokeChain
 
-Aplicación complementaria para Pokémon GO que genera strings de búsqueda para filtrar rápidamente tu almacenamiento Pokémon por relevancia PvP o PvE.
+Aplicación complementaria para Pokémon GO que genera cadenas de búsqueda para filtrar rápidamente tu almacenamiento Pokémon por relevancia PvP o PvE.
 
 ---
 
 ## Características
 
-- **PvP** — Obtiene rankings de [pvpoke.com](https://pvpoke.com) para las ligas Great, Ultra y Master. Aplica filtros (Caramelos XL, Sombra, Movimientos Élite, Legendario, Mega/Primal, No liberados) y genera un string de búsqueda listo para pegar en Pokémon GO.
-- **PvE** — Extrae rankings de atacantes de incursión de [dialgadex.com](https://dialgadex.com) por tipo y genera el mismo tipo de strings.
-- **Clean** — Pestaña de utilidad para gestionar strings guardados.
+- **PvP** — Obtiene rankings de [pvpoke.com](https://pvpoke.com) para las ligas Superball, Ultraball y Master. Aplica filtros (Caramelos XL, Oscuro, Mov. Élite) y genera una cadena de búsqueda lista para pegar en Pokémon GO.
+- **PvE** — Extrae rankings de atacantes de incursión de [dialgadex.com](https://dialgadex.com) por tipo y genera cadenas de búsqueda. Filtros disponibles: Inéditos, Oscuro, Oscuro (jugador casual), Legendarios, Mega/Primal.
+- **Limpiar** — Pestaña de utilidad para generar cadenas de filtro por atributos (4★, 3★, variocolor, suerte, favoritos, disfraz, fondo lugar, legendario, singular, ultraente, gigamax).
 - **Auto-actualizador** — Revisa GitHub Releases en busca de nuevos APKs y los instala con un solo toque.
 - **Bilingüe** — Traducción completa al español e inglés.
-- **Modo avanzado oculto** — Toca el título de la app 5 veces para desbloquear controles extra.
+- **Modo avanzado oculto** — Toca el icono de Fuecoco 5 veces en menos de 1.5 segundos para desbloquear controles extra (rango desde/hasta para PvP y PvE).
 
 ## Stack tecnológico
 
@@ -53,12 +53,12 @@ Companion app for Pokémon GO that generates search strings so you can quickly f
 
 ## Features
 
-- **PvP** — Pulls rankings from [pvpoke.com](https://pvpoke.com) for Great, Ultra, and Master League. Apply filters (XL Candy, Shadow, Elite Moves, Legendary, Mega/Primal, Unreleased) and get a comma-separated search string ready to paste into Pokémon GO.
-- **PvE** — Scrapes raid attacker rankings from [dialgadex.com](https://dialgadex.com) by type and outputs the same kind of search strings.
-- **Clean** — Utility tab for managing saved strings.
+- **PvP** — Pulls rankings from [pvpoke.com](https://pvpoke.com) for Great, Ultra, and Master League. Apply filters (XL Candy, Shadow, Elite Move) and get a comma-separated search string ready to paste into Pokémon GO.
+- **PvE** — Scrapes raid attacker rankings from [dialgadex.com](https://dialgadex.com) by type and outputs search strings. Available filters: Unreleased, Shadow, Shadow (casual player), Legendary, Mega/Primal.
+- **Clean** — Utility tab to generate filter strings by attributes (4★, 3★, Shiny, Lucky, Favorite, Costume, Location background, Legendary, Mythical, Ultra Beast, Gigantamax).
 - **Auto-updater** — Checks GitHub Releases for new APKs and installs them with one tap.
 - **Bilingual** — Full English and Spanish translations.
-- **Hidden advanced mode** — Tap the app title 5 times to unlock extra controls.
+- **Hidden advanced mode** — Tap the Fuecoco icon 5 times within 1.5 seconds to unlock extra controls (from/to rank range for PvP and PvE).
 
 ## Tech Stack
 
