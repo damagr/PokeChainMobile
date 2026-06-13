@@ -62,6 +62,12 @@ fun PvPScreen(language: AppLanguage = AppLanguage.ES, advancedMode: Boolean = fa
         searchString = "$prefix$shadowTag$pokemonPart&!#"
     }
 
+    LaunchedEffect(advancedMode) {
+        fromText = ""
+        topCountText = ""
+        filters = filters.copy(fromRank = 1)
+    }
+
     Column(
         modifier = Modifier.fillMaxSize().padding(16.dp)
     ) {

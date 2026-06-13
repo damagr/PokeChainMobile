@@ -85,7 +85,7 @@ fun PvEFilterBottomSheet(
                             snackbarHostState.showSnackbar(
                                 when (language) {
                                     AppLanguage.EN -> "Unreleased requires Legendary and Mega/Primal enabled"
-                                    AppLanguage.ES -> "Sin liberar requiere Legendario y Mega/Primal activos"
+                                    AppLanguage.ES -> "Inédito requiere Legendario y Mega/Primal activos"
                                 }
                             )
                         }

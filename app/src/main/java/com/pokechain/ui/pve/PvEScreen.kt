@@ -66,6 +66,12 @@ fun PvEScreen(language: AppLanguage = AppLanguage.ES, advancedMode: Boolean = fa
         searchString = buildSearchString(names, language, filters.includeShadow)
     }
 
+    LaunchedEffect(advancedMode) {
+        fromText = ""
+        topCountText = ""
+        filters = filters.copy(fromRank = 1)
+    }
+
     Column(
         modifier = Modifier.fillMaxSize().padding(16.dp)
     ) {
@@ -373,11 +379,5 @@ private fun matchesPvEFilter(entry: PvERankingEntry, filters: PvEFilterParams, p
     if (!filters.includeShadow && entry.shadow) return false
     if (!filters.unreleased && pokemon?.released == false) return false
 
-    val anyChecked = filters.unreleased || filters.includeShadow || filters.mega || filters.legendary
-    if (!anyChecked) return true
-
-    return (filters.mega && isMegaForm) ||
-            (filters.legendary && isLegendaryTag) ||
-            (filters.includeShadow && entry.shadow) ||
-            (filters.unreleased && pokemon?.released == false)
+    return true
 }
