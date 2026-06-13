@@ -383,6 +383,7 @@ private fun matchesPvEFilter(
 
     if (!filters.mega && isMegaForm) return false
     if (!filters.legendary && isLegendaryTag) return false
+    if (filters.includeShadow && !entry.shadow) return false
     if (!filters.includeShadow && entry.shadow) return false
     if (!filters.unreleased && (entry.unreleased || pokemon?.released == false || notInGameMaster)) return false
 

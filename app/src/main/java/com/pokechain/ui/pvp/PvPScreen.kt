@@ -344,11 +344,6 @@ fun PvPScreen(language: AppLanguage = AppLanguage.ES, advancedMode: Boolean = fa
                 TextButton(onClick = { showCountWarning = false }) {
                     Text(Strings.close(language))
                 }
-            },
-            dismissButton = {
-                TextButton(onClick = { showCountWarning = false }) {
-                    Text(Strings.cancel(language))
-                }
             }
         )
     }
