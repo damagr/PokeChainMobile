@@ -3,6 +3,52 @@
 
 # PokeChain
 
+Aplicación complementaria para Pokémon GO que genera strings de búsqueda para filtrar rápidamente tu almacenamiento Pokémon por relevancia PvP o PvE.
+
+---
+
+## Características
+
+- **PvP** — Obtiene rankings de [pvpoke.com](https://pvpoke.com) para las ligas Great, Ultra y Master. Aplica filtros (Caramelos XL, Sombra, Movimientos Élite, Legendario, Mega/Primal, No liberados) y genera un string de búsqueda listo para pegar en Pokémon GO.
+- **PvE** — Extrae rankings de atacantes de incursión de [dialgadex.com](https://dialgadex.com) por tipo y genera el mismo tipo de strings.
+- **Clean** — Pestaña de utilidad para gestionar strings guardados.
+- **Auto-actualizador** — Revisa GitHub Releases en busca de nuevos APKs y los instala con un solo toque.
+- **Bilingüe** — Traducción completa al español e inglés.
+- **Modo avanzado oculto** — Toca el título de la app 5 veces para desbloquear controles extra.
+
+## Stack tecnológico
+
+| Categoría  | Tecnología |
+|------------|------------|
+| Lenguaje   | Kotlin |
+| UI         | Jetpack Compose + Material 3 |
+| Red        | OkHttp 4 + Gson + Kotlinx Serialization |
+| Concurrencia | Kotlinx Coroutines |
+| Min SDK    | 26 (Android 8.0) |
+| Target SDK | 35 (Android 15) |
+
+## Compilar
+
+1. Clona el repositorio:
+   ```bash
+   git clone https://github.com/Damagr/PokeChainMobile.git
+   ```
+2. Abre en Android Studio **o** compila desde terminal:
+   ```bash
+   ./gradlew assembleDebug
+   ```
+3. El APK estará en `app/build/outputs/apk/debug/`.
+
+> Requiere JDK 17 y Android SDK 35.
+
+## Licencia
+
+[MIT](LICENSE)
+
+---
+
+# English
+
 Companion app for Pokémon GO that generates search strings so you can quickly filter your Pokémon storage by PvP or PvE relevance.
 
 ## Features
