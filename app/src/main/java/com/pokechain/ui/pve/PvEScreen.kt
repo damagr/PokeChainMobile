@@ -109,7 +109,7 @@ fun PvEScreen(language: AppLanguage = AppLanguage.ES, advancedMode: Boolean = fa
                         if (n == null || n == 0) {
                             topCountText = filtered
                         } else {
-                            val clamped = n.coerceIn(2, 300)
+                            val clamped = n.coerceIn(1, 300)
                             topCountText = clamped.toString()
                             filters = filters.copy(count = clamped)
                         }
@@ -364,22 +364,13 @@ private fun cleanPvEName(name: String, form: String): String {
 private val legendaryTags = setOf("legendary", "mythical", "ultrabeast")
 
 private fun matchesPvEFilter(entry: PvERankingEntry, filters: PvEFilterParams, pokemon: Pokemon?): Boolean {
-    if (filters.includeShadow && !entry.shadow) return false
-    if (!filters.includeShadow && entry.shadow) return false
+    val isUnreleased = filters.unreleased && pokemon?.released == false
+    val isShadow = filters.includeShadow && entry.shadow
+    val isMega = filters.mega && (entry.form.lowercase().startsWith("mega") || entry.form.lowercase() == "primal")
+    val isLegendary = filters.legendary && (pokemon?.tags?.any { it.lowercase() in legendaryTags } ?: false)
 
-    if (!filters.mega) {
-        val form = entry.form.lowercase()
-        if (form.startsWith("mega") || form == "primal") return false
-    }
+    val anyActive = filters.unreleased || filters.includeShadow || filters.mega || filters.legendary
+    if (!anyActive) return true
 
-    if (!filters.legendary) {
-        val isLegendary = pokemon?.tags?.any { it.lowercase() in legendaryTags } ?: false
-        if (isLegendary) return false
-    }
-
-    if (!filters.unreleased) {
-        if (pokemon?.released == false) return false
-    }
-
-    return true
+    return isUnreleased || isShadow || isMega || isLegendary
 }

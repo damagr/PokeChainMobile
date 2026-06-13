@@ -113,7 +113,7 @@ fun PvPScreen(language: AppLanguage = AppLanguage.ES, advancedMode: Boolean = fa
                         if (n == null || n == 0) {
                             topCountText = filtered
                         } else {
-                            val clamped = n.coerceIn(2, 300)
+                            val clamped = n.coerceIn(1, 300)
                             topCountText = clamped.toString()
                             filters = filters.copy(count = clamped)
                         }
@@ -197,7 +197,7 @@ fun PvPScreen(language: AppLanguage = AppLanguage.ES, advancedMode: Boolean = fa
                         val processor = PvPDataProcessor(gameMaster)
                         val useCase = PvPFilterUseCase(processor)
                         val filtered = useCase.execute(rankings, filters)
-                        results = filtered
+                        results = filtered.filter { it.originalRank >= filters.fromRank }
 
                         advanceStage(); delay(50)
                         cachedBaseDexes = filtered.mapNotNull { processor.traceBaseDex(it) }

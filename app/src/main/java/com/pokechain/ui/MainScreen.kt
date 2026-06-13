@@ -92,6 +92,7 @@ fun MainScreen() {
                         painter = painterResource(id = R.mipmap.ic_launcher),
                         contentDescription = "PokeChain",
                         modifier = Modifier
+                            .padding(start = 8.dp)
                             .size(40.dp)
                             .clip(CircleShape)
                             .clickable(
