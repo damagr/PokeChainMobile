@@ -60,6 +60,100 @@ fun PvEScreen(language: AppLanguage = AppLanguage.ES, advancedMode: Boolean = fa
         return "$prefix$namesPart&!#"
     }
 
+    fun doGenerate() {
+        if (advancedMode) {
+            val from = fromText.toIntOrNull()
+            val to = topCountText.toIntOrNull()
+            if (fromText.isBlank() || topCountText.isBlank() || from == null || to == null) {
+                showCountWarning = true
+                return
+            }
+            if (from <= 0 || to <= 0 || from >= to || from > 300 || to > 300) {
+                showCountWarning = true
+                return
+            }
+        } else {
+            val n = topCountText.toIntOrNull()
+            if (topCountText.isBlank() || n == null || n <= 0) {
+                showCountWarning = true
+                return
+            }
+            if (n > 300) {
+                showCountWarning = true
+                return
+            }
+        }
+        scope.launch {
+            loading = true
+            error = null
+            showErrorDialog = false
+            val progressStages = Strings.pveProgress
+            var stageIdx = 0
+            fun advanceStage() {
+                if (stageIdx < progressStages.size) {
+                    val stage = progressStages[stageIdx]
+                    progress = stage.first
+                    progressMessage = stage.second(language)
+                    stageIdx++
+                }
+            }
+            try {
+                advanceStage(); delay(50)
+
+                val rawResults = engine.getCachedResults(filters.count).let { cached ->
+                    if (cached.isNotEmpty()) cached.also { progress = 0.5f }
+                    else engine.compute(filters.count)
+                }
+
+                advanceStage(); delay(50)
+                val gm = PvPokeApi.fetchGameMaster()
+
+                advanceStage(); delay(50)
+                val processor = PvPDataProcessor(gm)
+                val pokemonByDexGrouped = gm.pokemon.groupBy { it.dex }
+                val withRanks = rawResults.mapIndexed { index, entry ->
+                    entry.copy(originalRank = index + 1)
+                }
+                var skippedUnreleased = 0
+                val filtered = withRanks.filter { entry ->
+                    val list = pokemonByDexGrouped[entry.id]
+                    val passes = matchesPvEFilter(entry, filters, list)
+                    if (!filters.unreleased && passes && list == null) {
+                        android.util.Log.w("PvE", "UNRELEASED_CHECK: dex=${entry.id} name=${entry.name} form=${entry.form} — NOT in game master, passes filter")
+                    }
+                    if (!passes) skippedUnreleased++
+                    passes
+                }
+                val sliced = if (filters.fromRank > 1)
+                    filtered.filter { it.originalRank >= filters.fromRank }
+                else filtered
+                results = sliced
+                cachedBaseDexes = sliced.map { it.id }
+                    .distinct()
+                    .mapNotNull { processor.traceBaseDexForDex(it) }
+                    .sorted()
+                cachedFromRank = filters.fromRank
+
+                advanceStage(); delay(50)
+                val names = cachedBaseDexes.distinct().map { translator.getName(it, language) }
+                searchString = buildSearchString(names, language, filters.includeShadow)
+
+                advanceStage(); delay(50)
+                val filteredMsg = if (skippedUnreleased > 0) " (${skippedUnreleased} filtrados)" else ""
+                resultMessage = "Resultados: ${sliced.size} Pokémon$filteredMsg, cadena de ${searchString.length} caracteres"
+                showResultMessage = true
+            } catch (e: Exception) {
+                error = "${e::class.simpleName}: ${e.message}\n\n${e.stackTraceToString()}"
+                showErrorDialog = true
+                resultMessage = "Error: ${e::class.simpleName}: ${e.message}"
+                showResultMessage = true
+            } finally {
+                delay(500)
+                loading = false
+            }
+        }
+    }
+
     LaunchedEffect(language) {
         if (cachedBaseDexes.isEmpty()) return@LaunchedEffect
         val names = cachedBaseDexes.distinct().map { translator.getName(it, language) }
@@ -150,91 +244,7 @@ fun PvEScreen(language: AppLanguage = AppLanguage.ES, advancedMode: Boolean = fa
         Spacer(Modifier.height(8.dp))
 
         Button(
-            onClick = {
-                if (advancedMode) {
-                    val from = fromText.toIntOrNull()
-                    val to = topCountText.toIntOrNull()
-                    if (fromText.isBlank() || topCountText.isBlank() || from == null || to == null) {
-                        showCountWarning = true
-                        return@Button
-                    }
-                    if (from <= 0 || to <= 0 || from >= to || from > 300 || to > 300) {
-                        showCountWarning = true
-                        return@Button
-                    }
-                } else {
-                    val n = topCountText.toIntOrNull()
-                    if (topCountText.isBlank() || n == null || n <= 0) {
-                        showCountWarning = true
-                        return@Button
-                    }
-                    if (n > 300) {
-                        showCountWarning = true
-                        return@Button
-                    }
-                }
-                scope.launch {
-                    loading = true
-                    error = null
-                    showErrorDialog = false
-                    val progressStages = Strings.pveProgress
-                    var stageIdx = 0
-                    fun advanceStage() {
-                        if (stageIdx < progressStages.size) {
-                            val stage = progressStages[stageIdx]
-                            progress = stage.first
-                            progressMessage = stage.second(language)
-                            stageIdx++
-                        }
-                    }
-                    try {
-                        advanceStage(); delay(50)
-
-                        val rawResults = engine.getCachedResults(filters.count).let { cached ->
-                            if (cached.isNotEmpty()) cached.also { progress = 0.5f }
-                            else engine.compute(filters.count)
-                        }
-
-                        advanceStage(); delay(50)
-                        val gm = PvPokeApi.fetchGameMaster()
-
-                        advanceStage(); delay(50)
-                        val processor = PvPDataProcessor(gm)
-                        val pokemonByDexGrouped = gm.pokemon.groupBy { it.dex }
-                        val withRanks = rawResults.mapIndexed { index, entry ->
-                            entry.copy(originalRank = index + 1)
-                        }
-                        val filtered = withRanks.filter { entry ->
-                            matchesPvEFilter(entry, filters, pokemonByDexGrouped[entry.id])
-                        }
-                        val sliced = if (filters.fromRank > 1)
-                            filtered.filter { it.originalRank >= filters.fromRank }
-                        else filtered
-                        results = sliced
-                        cachedBaseDexes = sliced.map { it.id }
-                            .distinct()
-                            .mapNotNull { processor.traceBaseDexForDex(it) }
-                            .sorted()
-                        cachedFromRank = filters.fromRank
-
-                        advanceStage(); delay(50)
-                        val names = cachedBaseDexes.distinct().map { translator.getName(it, language) }
-                        searchString = buildSearchString(names, language, filters.includeShadow)
-
-                        advanceStage(); delay(50)
-                        resultMessage = "Resultados: ${sliced.size} Pokémon, cadena de ${searchString.length} caracteres"
-                        showResultMessage = true
-                    } catch (e: Exception) {
-                        error = "${e::class.simpleName}: ${e.message}\n\n${e.stackTraceToString()}"
-                        showErrorDialog = true
-                        resultMessage = "Error: ${e::class.simpleName}: ${e.message}"
-                        showResultMessage = true
-                    } finally {
-                        delay(500)
-                        loading = false
-                    }
-                }
-            },
+            onClick = { doGenerate() },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(Strings.generate(language))
@@ -322,6 +332,7 @@ fun PvEScreen(language: AppLanguage = AppLanguage.ES, advancedMode: Boolean = fa
             onApply = { newFilters ->
                 filters = newFilters
                 showFilters = false
+                if (results.isNotEmpty()) doGenerate()
             }
         )
     }
