@@ -18,8 +18,8 @@ enum class PvPLeague(val cp: Int) {
 data class PvEFilterParams(
     val unreleased: Boolean = false,
     val includeShadow: Boolean = false,
-    val legendary: Boolean = false,
-    val mega: Boolean = false,
+    val legendary: Boolean = true,
+    val mega: Boolean = true,
     val count: Int = 20,
     val fromRank: Int = 1
 )
