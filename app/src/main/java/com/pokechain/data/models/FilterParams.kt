@@ -20,6 +20,7 @@ data class PvEFilterParams(
     val includeShadow: Boolean = false,
     val legendary: Boolean = true,
     val mega: Boolean = true,
+    val casualShadow: Boolean = false,
     val count: Int = 20,
     val fromRank: Int = 1
 )

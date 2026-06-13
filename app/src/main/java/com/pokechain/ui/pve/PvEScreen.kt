@@ -47,15 +47,22 @@ fun PvEScreen(language: AppLanguage = AppLanguage.ES, advancedMode: Boolean = fa
         engine.init()
     }
 
-    fun buildSearchString(names: List<String>, language: AppLanguage, shadow: Boolean): String {
+    fun buildSearchString(names: List<String>, language: AppLanguage, shadow: Boolean, casualShadow: Boolean): String {
         val shadowSuffix = when (language) {
             AppLanguage.ES -> "oscuro"
             AppLanguage.EN -> "shadow"
         }
-        val prefix = when (language) {
-            AppLanguage.ES -> "4*;3*&3-ataque&"
-            AppLanguage.EN -> "4*;3*&3-attack&"
-        } + if (shadow) "${shadowSuffix}&" else ""
+        val prefix = if (casualShadow) {
+            when (language) {
+                AppLanguage.ES -> "4*;3*;2*&oscuro&"
+                AppLanguage.EN -> "4*;3*;2*&shadow&"
+            }
+        } else {
+            when (language) {
+                AppLanguage.ES -> "4*;3*&3-ataque&"
+                AppLanguage.EN -> "4*;3*&3-attack&"
+            } + if (shadow) "${shadowSuffix}&" else ""
+        }
         val namesPart = names.joinToString(";") { "+$it" }
         return "$prefix$namesPart&!#"
     }
@@ -132,7 +139,7 @@ fun PvEScreen(language: AppLanguage = AppLanguage.ES, advancedMode: Boolean = fa
 
                 advanceStage(); delay(50)
                 val names = cachedBaseDexes.distinct().map { translator.getName(it, language) }
-                searchString = buildSearchString(names, language, filters.includeShadow)
+                searchString = buildSearchString(names, language, filters.includeShadow, filters.casualShadow)
 
                 advanceStage(); delay(50)
                 val filteredMsg = if (skippedUnreleased > 0) " (${skippedUnreleased} filtrados)" else ""
@@ -153,7 +160,7 @@ fun PvEScreen(language: AppLanguage = AppLanguage.ES, advancedMode: Boolean = fa
     LaunchedEffect(language) {
         if (cachedBaseDexes.isEmpty()) return@LaunchedEffect
         val names = cachedBaseDexes.distinct().map { translator.getName(it, language) }
-        searchString = buildSearchString(names, language, filters.includeShadow)
+        searchString = buildSearchString(names, language, filters.includeShadow, filters.casualShadow)
     }
 
     LaunchedEffect(advancedMode) {
@@ -383,8 +390,9 @@ private fun matchesPvEFilter(
 
     if (!filters.mega && isMegaForm) return false
     if (!filters.legendary && isLegendaryTag) return false
-    if (filters.includeShadow && !entry.shadow) return false
-    if (!filters.includeShadow && entry.shadow) return false
+    val shadowOn = filters.includeShadow || filters.casualShadow
+    if (shadowOn && !entry.shadow) return false
+    if (!shadowOn && entry.shadow) return false
     if (!filters.unreleased && (entry.unreleased || pokemon?.released == false || notInGameMaster)) return false
 
     return true

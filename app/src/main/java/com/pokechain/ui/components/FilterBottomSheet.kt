@@ -59,6 +59,7 @@ fun PvEFilterBottomSheet(
     var includeShadow by remember { mutableStateOf(filters.includeShadow) }
     var legendary by remember { mutableStateOf(filters.legendary) }
     var mega by remember { mutableStateOf(filters.mega) }
+    var casualShadow by remember { mutableStateOf(filters.casualShadow) }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
@@ -68,12 +69,23 @@ fun PvEFilterBottomSheet(
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
             ToggleRow(label = Strings.shadowLabel(language), checked = includeShadow, onCheckedChange = {
                 includeShadow = it
-                if (it) mega = false
+                if (it) {
+                    mega = false
+                    casualShadow = false
+                }
+            })
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            ToggleRow(label = Strings.casualShadow(language), checked = casualShadow, onCheckedChange = {
+                casualShadow = it
+                if (it) {
+                    includeShadow = false
+                    mega = false
+                }
             })
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
             ToggleRow(label = Strings.legendary(language), checked = legendary, onCheckedChange = { legendary = it })
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-            ToggleRow(label = Strings.megaPrimal(language), checked = mega, enabled = !includeShadow, onCheckedChange = { mega = it })
+            ToggleRow(label = Strings.megaPrimal(language), checked = mega, enabled = !includeShadow && !casualShadow, onCheckedChange = { mega = it })
 
             Spacer(Modifier.height(16.dp))
             Button(
@@ -94,7 +106,8 @@ fun PvEFilterBottomSheet(
                         unreleased = unreleased,
                         includeShadow = includeShadow,
                         legendary = legendary,
-                        mega = mega
+                        mega = mega,
+                        casualShadow = casualShadow
                     ))
                 },
                 modifier = Modifier.fillMaxWidth()
