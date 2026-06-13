@@ -23,6 +23,7 @@ import androidx.core.content.FileProvider
 import com.pokechain.R
 import com.pokechain.ui.pve.PvEScreen
 import com.pokechain.ui.pvp.PvPScreen
+import com.pokechain.ui.clean.CleanScreen
 import com.pokechain.ui.components.LanguageSelector
 import com.pokechain.data.models.AppLanguage
 import com.pokechain.data.models.Strings
@@ -42,7 +43,7 @@ import java.util.concurrent.TimeUnit
 fun MainScreen() {
     var selectedTab by remember { mutableStateOf(0) }
     var language by remember { mutableStateOf(AppLanguage.ES) }
-    val tabs = listOf("PvP", "PvE")
+    val tabs = listOf("PvP", "PvE", Strings.cleanTab(language))
     val context = LocalContext.current
     val versionName = remember {
         try {
@@ -156,6 +157,7 @@ fun MainScreen() {
             when (selectedTab) {
                 0 -> PvPScreen(language = language, advancedMode = advancedMode)
                 1 -> PvEScreen(language = language, advancedMode = advancedMode)
+                2 -> CleanScreen(language = language)
             }
         }
     }
