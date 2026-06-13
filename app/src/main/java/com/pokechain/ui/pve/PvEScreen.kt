@@ -200,12 +200,12 @@ fun PvEScreen(language: AppLanguage = AppLanguage.ES, advancedMode: Boolean = fa
 
                         advanceStage(); delay(50)
                         val processor = PvPDataProcessor(gm)
-                        val pokemonByDex = gm.pokemon.groupBy { it.dex }.mapValues { (_, list) -> list.first() }
+                        val pokemonByDexGrouped = gm.pokemon.groupBy { it.dex }
                         val withRanks = rawResults.mapIndexed { index, entry ->
                             entry.copy(originalRank = index + 1)
                         }
                         val filtered = withRanks.filter { entry ->
-                            matchesPvEFilter(entry, filters, pokemonByDex[entry.id])
+                            matchesPvEFilter(entry, filters, pokemonByDexGrouped[entry.id])
                         }
                         val sliced = if (filters.fromRank > 1)
                             filtered.filter { it.originalRank >= filters.fromRank }
@@ -370,7 +370,12 @@ private fun cleanPvEName(name: String, form: String): String {
 
 private val legendaryTags = setOf("legendary", "mythical", "ultrabeast")
 
-private fun matchesPvEFilter(entry: PvERankingEntry, filters: PvEFilterParams, pokemon: Pokemon?): Boolean {
+private fun matchesPvEFilter(
+    entry: PvERankingEntry,
+    filters: PvEFilterParams,
+    pokemonList: List<Pokemon>?
+): Boolean {
+    val pokemon = findBestMatch(entry.form, pokemonList)
     val isMegaForm = entry.form.lowercase().startsWith("mega") || entry.form.lowercase() == "primal"
     val isLegendaryTag = pokemon?.tags?.any { it.lowercase() in legendaryTags } ?: false
 
@@ -380,4 +385,17 @@ private fun matchesPvEFilter(entry: PvERankingEntry, filters: PvEFilterParams, p
     if (!filters.unreleased && pokemon?.released == false) return false
 
     return true
+}
+
+private fun findBestMatch(form: String, list: List<Pokemon>?): Pokemon? {
+    if (list.isNullOrEmpty()) return null
+    val f = form.lowercase().trim()
+    return when {
+        f == "normal" || f.isBlank() -> list.minByOrNull { it.speciesId.length }
+        f.startsWith("mega") -> list.firstOrNull { it.speciesId.contains("mega") }
+        f == "primal" -> list.firstOrNull { it.speciesId.contains("primal") }
+        else -> list.firstOrNull {
+            it.speciesId.lowercase().contains(f.replace(" ", "_"))
+        } ?: list.firstOrNull()
+    }
 }
