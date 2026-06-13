@@ -355,11 +355,6 @@ fun PvEScreen(language: AppLanguage = AppLanguage.ES, advancedMode: Boolean = fa
                 TextButton(onClick = { showCountWarning = false }) {
                     Text(Strings.close(language))
                 }
-            },
-            dismissButton = {
-                TextButton(onClick = { showCountWarning = false }) {
-                    Text(Strings.cancel(language))
-                }
             }
         )
     }
@@ -384,11 +379,12 @@ private fun matchesPvEFilter(
     val pokemon = findBestMatch(entry.form, pokemonList)
     val isMegaForm = entry.form.lowercase().startsWith("mega") || entry.form.lowercase() == "primal"
     val isLegendaryTag = pokemon?.tags?.any { it.lowercase() in legendaryTags } ?: false
+    val notInGameMaster = pokemon == null && entry.form.isNotBlank() && !entry.form.lowercase().startsWith("normal")
 
     if (!filters.mega && isMegaForm) return false
     if (!filters.legendary && isLegendaryTag) return false
     if (!filters.includeShadow && entry.shadow) return false
-    if (!filters.unreleased && (entry.unreleased || pokemon?.released == false)) return false
+    if (!filters.unreleased && (entry.unreleased || pokemon?.released == false || notInGameMaster)) return false
 
     return true
 }
@@ -396,12 +392,16 @@ private fun matchesPvEFilter(
 private fun findBestMatch(form: String, list: List<Pokemon>?): Pokemon? {
     if (list.isNullOrEmpty()) return null
     val f = form.lowercase().trim()
+    val normalized = f.replace(" ", "_").replace(Regex("(?<=mega)([a-z])"), "_$1")
     return when {
         f == "normal" || f.isBlank() -> list.minByOrNull { it.speciesId.length }
-        f.startsWith("mega") -> list.firstOrNull { it.speciesId.contains("mega") }
-        f == "primal" -> list.firstOrNull { it.speciesId.contains("primal") }
+        f.startsWith("mega") || f == "primal" -> {
+            list.firstOrNull { it.speciesId.lowercase().endsWith("_$normalized") || it.speciesId.lowercase().endsWith("_${f}") }
+                ?: list.firstOrNull { it.speciesId.contains(normalized) }
+                ?: list.firstOrNull { it.speciesId.contains(f) }
+        }
         else -> list.firstOrNull {
-            it.speciesId.lowercase().contains(f.replace(" ", "_"))
-        } ?: list.firstOrNull()
+            it.speciesId.lowercase().contains(normalized)
+        }
     }
 }

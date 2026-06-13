@@ -118,7 +118,7 @@ class PvEScrapingEngine(private val appContext: Context) {
 
         val raw = withTimeout(120_000) { deferred.await() }
 
-        val parsed = when {
+                val parsed = when {
             raw == "TIMEOUT" || raw.startsWith("ERROR:") -> emptyList()
             raw.startsWith("SUCCESS:") -> parseResults(raw.removePrefix("SUCCESS:"))
             else -> parseResults(raw)
@@ -146,6 +146,7 @@ class PvEScrapingEngine(private val appContext: Context) {
         val id: Int, val name: String, val form: String,
         val shadow: Boolean = false, val level: Int = 40,
         val unreleased: Boolean = false,
+        @SerialName("class") val pokeClass: String? = null,
         val fm: String? = null,
         @SerialName("fm_is_elite") val fmIsElite: Boolean = false,
         @SerialName("fm_type") val fmType: String? = null,
