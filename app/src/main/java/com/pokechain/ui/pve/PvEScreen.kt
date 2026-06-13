@@ -116,11 +116,7 @@ fun PvEScreen(language: AppLanguage = AppLanguage.ES, advancedMode: Boolean = fa
                 }
                 var skippedUnreleased = 0
                 val filtered = withRanks.filter { entry ->
-                    val list = pokemonByDexGrouped[entry.id]
-                    val passes = matchesPvEFilter(entry, filters, list)
-                    if (!filters.unreleased && passes && list == null) {
-                        android.util.Log.w("PvE", "UNRELEASED_CHECK: dex=${entry.id} name=${entry.name} form=${entry.form} — NOT in game master, passes filter")
-                    }
+                    val passes = matchesPvEFilter(entry, filters, pokemonByDexGrouped[entry.id])
                     if (!passes) skippedUnreleased++
                     passes
                 }
@@ -332,7 +328,6 @@ fun PvEScreen(language: AppLanguage = AppLanguage.ES, advancedMode: Boolean = fa
             onApply = { newFilters ->
                 filters = newFilters
                 showFilters = false
-                if (results.isNotEmpty()) doGenerate()
             }
         )
     }
@@ -393,7 +388,7 @@ private fun matchesPvEFilter(
     if (!filters.mega && isMegaForm) return false
     if (!filters.legendary && isLegendaryTag) return false
     if (!filters.includeShadow && entry.shadow) return false
-    if (!filters.unreleased && pokemon?.released == false) return false
+    if (!filters.unreleased && (entry.unreleased || pokemon?.released == false)) return false
 
     return true
 }

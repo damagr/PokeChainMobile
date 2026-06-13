@@ -59,6 +59,7 @@ data class PvERankingEntry(
     val form: String,
     val shadow: Boolean = false,
     val level: Int = 40,
+    val unreleased: Boolean = false,
     val fm: String? = null,
     val fmIsElite: Boolean = false,
     val fmType: String? = null,
