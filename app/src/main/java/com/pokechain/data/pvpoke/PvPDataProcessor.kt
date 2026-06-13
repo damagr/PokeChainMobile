@@ -85,14 +85,16 @@ class PvPDataProcessor(
     }
 
     private fun matchesFilter(result: PvPResult, filters: PvPFilterParams): Boolean {
-        val isXL = filters.xlCandy && result.needsXL
-        val isShadow = filters.includeShadow && result.isShadow
-        val isElite = filters.includeElite && result.eliteMoves.isNotEmpty()
+        if (!filters.xlCandy && result.needsXL) return false
+        if (!filters.includeShadow && result.isShadow) return false
+        if (!filters.includeElite && result.eliteMoves.isNotEmpty()) return false
 
-        val anyActive = filters.xlCandy || filters.includeShadow || filters.includeElite
-        if (!anyActive) return true
+        val anyChecked = filters.xlCandy || filters.includeShadow || filters.includeElite
+        if (!anyChecked) return true
 
-        return isXL || isShadow || isElite
+        return (filters.xlCandy && result.needsXL) ||
+                (filters.includeShadow && result.isShadow) ||
+                (filters.includeElite && result.eliteMoves.isNotEmpty())
     }
 
     private fun needsXLCandy(poke: Pokemon, league: PvPLeague): Boolean {

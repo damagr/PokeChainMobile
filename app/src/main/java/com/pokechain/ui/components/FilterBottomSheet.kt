@@ -7,6 +7,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.pokechain.data.models.*
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,6 +59,8 @@ fun PvEFilterBottomSheet(
     var includeShadow by remember { mutableStateOf(filters.includeShadow) }
     var legendary by remember { mutableStateOf(filters.legendary) }
     var mega by remember { mutableStateOf(filters.mega) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -75,6 +78,18 @@ fun PvEFilterBottomSheet(
             Spacer(Modifier.height(16.dp))
             Button(
                 onClick = {
+                    if (unreleased && !includeShadow && !legendary && !mega) {
+                        legendary = true
+                        mega = true
+                        scope.launch {
+                            snackbarHostState.showSnackbar(
+                                when (language) {
+                                    AppLanguage.EN -> "Unreleased requires Legendary and Mega/Primal enabled"
+                                    AppLanguage.ES -> "Sin liberar requiere Legendario y Mega/Primal activos"
+                                }
+                            )
+                        }
+                    }
                     onApply(filters.copy(
                         unreleased = unreleased,
                         includeShadow = includeShadow,
@@ -86,6 +101,7 @@ fun PvEFilterBottomSheet(
             ) {
                 Text(Strings.apply(language))
             }
+            SnackbarHost(snackbarHostState, modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(16.dp))
         }
     }

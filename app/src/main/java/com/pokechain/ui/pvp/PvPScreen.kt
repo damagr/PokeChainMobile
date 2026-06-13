@@ -201,6 +201,7 @@ fun PvPScreen(language: AppLanguage = AppLanguage.ES, advancedMode: Boolean = fa
 
                         advanceStage(); delay(50)
                         cachedBaseDexes = filtered.mapNotNull { processor.traceBaseDex(it) }
+                            .sorted()
                         cachedLeague = filters.league
                         cachedIncludeShadow = filters.includeShadow
                         cachedFromRank = filters.fromRank

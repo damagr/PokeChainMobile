@@ -184,9 +184,9 @@ fun PvEScreen(language: AppLanguage = AppLanguage.ES, advancedMode: Boolean = fa
                     try {
                         advanceStage(); delay(50)
 
-                        val rawResults = engine.getCachedResults(filters.count, filters.unreleased).let { cached ->
+                        val rawResults = engine.getCachedResults(filters.count).let { cached ->
                             if (cached.isNotEmpty()) cached.also { progress = 0.5f }
-                            else engine.compute(filters.count, filters.unreleased)
+                            else engine.compute(filters.count)
                         }
 
                         advanceStage(); delay(50)
@@ -208,6 +208,7 @@ fun PvEScreen(language: AppLanguage = AppLanguage.ES, advancedMode: Boolean = fa
                         cachedBaseDexes = sliced.map { it.id }
                             .distinct()
                             .mapNotNull { processor.traceBaseDexForDex(it) }
+                            .sorted()
                         cachedFromRank = filters.fromRank
 
                         advanceStage(); delay(50)
@@ -364,13 +365,19 @@ private fun cleanPvEName(name: String, form: String): String {
 private val legendaryTags = setOf("legendary", "mythical", "ultrabeast")
 
 private fun matchesPvEFilter(entry: PvERankingEntry, filters: PvEFilterParams, pokemon: Pokemon?): Boolean {
-    val isUnreleased = filters.unreleased && pokemon?.released == false
-    val isShadow = filters.includeShadow && entry.shadow
-    val isMega = filters.mega && (entry.form.lowercase().startsWith("mega") || entry.form.lowercase() == "primal")
-    val isLegendary = filters.legendary && (pokemon?.tags?.any { it.lowercase() in legendaryTags } ?: false)
+    val isMegaForm = entry.form.lowercase().startsWith("mega") || entry.form.lowercase() == "primal"
+    val isLegendaryTag = pokemon?.tags?.any { it.lowercase() in legendaryTags } ?: false
 
-    val anyActive = filters.unreleased || filters.includeShadow || filters.mega || filters.legendary
-    if (!anyActive) return true
+    if (!filters.mega && isMegaForm) return false
+    if (!filters.legendary && isLegendaryTag) return false
+    if (!filters.includeShadow && entry.shadow) return false
+    if (!filters.unreleased && pokemon?.released == false) return false
 
-    return isUnreleased || isShadow || isMega || isLegendary
+    val anyChecked = filters.unreleased || filters.includeShadow || filters.mega || filters.legendary
+    if (!anyChecked) return true
+
+    return (filters.mega && isMegaForm) ||
+            (filters.legendary && isLegendaryTag) ||
+            (filters.includeShadow && entry.shadow) ||
+            (filters.unreleased && pokemon?.released == false)
 }

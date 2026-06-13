@@ -21,7 +21,6 @@ class PvEScrapingEngine(private val appContext: Context) {
     private val json = Json { ignoreUnknownKeys = true }
 
     private var lastCount: Int? = null
-    private var lastUnreleased: Boolean? = null
     private var lastResults: List<PvERankingEntry> = emptyList()
 
     private class EngineBridge {
@@ -72,12 +71,12 @@ class PvEScrapingEngine(private val appContext: Context) {
         }
     }
 
-    fun getCachedResults(count: Int, unreleased: Boolean): List<PvERankingEntry> {
-        return if (count == lastCount && unreleased == lastUnreleased) lastResults else emptyList()
+    fun getCachedResults(count: Int): List<PvERankingEntry> {
+        return if (count == lastCount) lastResults else emptyList()
     }
 
-    suspend fun compute(count: Int, unreleased: Boolean): List<PvERankingEntry> = withContext(Dispatchers.Main) {
-        if (count == lastCount && unreleased == lastUnreleased && lastResults.isNotEmpty()) {
+    suspend fun compute(count: Int): List<PvERankingEntry> = withContext(Dispatchers.Main) {
+        if (count == lastCount && lastResults.isNotEmpty()) {
             return@withContext lastResults
         }
         init()
@@ -88,7 +87,6 @@ class PvEScrapingEngine(private val appContext: Context) {
         b.pendingDeferred = deferred
 
         val n = count.coerceAtMost(300)
-        val unreleasedJs = unreleased.toString()
 
         view.evaluateJavascript("""
             (async function() {
@@ -104,10 +102,10 @@ class PvEScrapingEngine(private val appContext: Context) {
                     var params = {
                         type: "Any", elite: true, mixed: true, offtype: true,
                         suboptimal: false, level: 40, real_damage: false,
-                        shadow: false,
+                        shadow: true,
                         mega: true,
                         legendary: true,
-                        unreleased: $unreleasedJs
+                        unreleased: true
                     };
                     var results = await GetStrongestOfOneType(params);
                     var sliced = results.slice(0, $n);
@@ -127,7 +125,6 @@ class PvEScrapingEngine(private val appContext: Context) {
         }
 
         lastCount = count
-        lastUnreleased = unreleased
         lastResults = parsed
         parsed
     }
