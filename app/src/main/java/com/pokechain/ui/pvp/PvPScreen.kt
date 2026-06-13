@@ -285,7 +285,7 @@ fun PvPScreen(language: AppLanguage = AppLanguage.ES, advancedMode: Boolean = fa
         LazyColumn(modifier = Modifier.fillMaxSize()) {
             itemsIndexed(results) { index, result ->
                 PokemonRow(
-                    rank = cachedFromRank + index,
+                    rank = result.originalRank,
                     name = result.speciesName,
                     score = result.score.toString(),
                     subtitle = result.moveset.joinToString(", ") {

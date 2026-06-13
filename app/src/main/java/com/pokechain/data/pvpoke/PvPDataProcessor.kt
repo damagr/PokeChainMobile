@@ -9,12 +9,9 @@ class PvPDataProcessor(
     private val shadowPokemon = gameMaster.shadowPokemon?.toSet() ?: emptySet()
 
     fun processRankings(raw: List<PvPRawEntry>, filters: PvPFilterParams): List<PvPResult> {
-        val sliced = if (filters.fromRank > 1) {
-            raw.take(filters.count).drop(filters.fromRank - 1)
-        } else {
-            raw.take(filters.count)
-        }
-        val results = sliced.map { entry ->
+        return raw
+            .take(filters.count)
+            .mapIndexed { index, entry ->
                 val poke = pokemonMap[entry.speciesId] ?: pokemonMap[entry.speciesId.removeSuffix("_shadow")]
 
                 PvPResult(
@@ -27,10 +24,9 @@ class PvPDataProcessor(
                     eliteMoves = poke?.eliteMoves?.filter { it in entry.moveset }?.toSet() ?: emptySet(),
                     dex = poke?.dex ?: 0,
                     family = poke?.family,
+                    originalRank = index + 1,
                 )
             }
-
-        return results
             .filter { matchesFilter(it, filters) }
             .distinctBy { it.speciesId.removeSuffix("_shadow") }
     }
@@ -122,4 +118,5 @@ data class PvPResult(
     val eliteMoves: Set<String>,
     val dex: Int,
     val family: Family?,
+    val originalRank: Int = 0,
 )

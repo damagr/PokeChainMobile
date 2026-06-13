@@ -67,4 +67,5 @@ data class PvERankingEntry(
     val cmType: String? = null,
     val tier: String? = null,
     val pct: Double? = null,
+    val originalRank: Int = 0,
 )

@@ -1,21 +1,26 @@
 package com.pokechain.ui
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
+import com.pokechain.R
 import com.pokechain.ui.pve.PvEScreen
 import com.pokechain.ui.pvp.PvPScreen
 import com.pokechain.ui.components.LanguageSelector
@@ -82,25 +87,34 @@ fun MainScreen() {
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             CenterAlignedTopAppBar(
-                title = {
-                    Column(
-                        horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
-                        modifier = Modifier.clickable(
-                            indication = null,
-                            interactionSource = remember { MutableInteractionSource() }
-                        ) {
-                            tapCount++
-                            if (tapCount >= 5) {
-                                tapCount = 0
-                                advancedMode = !advancedMode
-                                scope.launch {
-                                    snackbarHostState.showSnackbar(
-                                        if (advancedMode) Strings.advancedModeOn(language)
-                                        else Strings.advancedModeOff(language)
-                                    )
+                navigationIcon = {
+                    Image(
+                        painter = painterResource(id = R.mipmap.ic_launcher),
+                        contentDescription = "PokeChain",
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .clickable(
+                                indication = null,
+                                interactionSource = remember { MutableInteractionSource() }
+                            ) {
+                                tapCount++
+                                if (tapCount >= 5) {
+                                    tapCount = 0
+                                    advancedMode = !advancedMode
+                                    scope.launch {
+                                        snackbarHostState.showSnackbar(
+                                            if (advancedMode) Strings.advancedModeOn(language)
+                                            else Strings.advancedModeOff(language)
+                                        )
+                                    }
                                 }
                             }
-                        }
+                    )
+                },
+                title = {
+                    Column(
+                        horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
                     ) {
                         if (advancedMode) {
                             Text(

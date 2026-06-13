@@ -184,9 +184,9 @@ fun PvEScreen(language: AppLanguage = AppLanguage.ES, advancedMode: Boolean = fa
                     try {
                         advanceStage(); delay(50)
 
-                        val rawResults = engine.getCachedResults(filters.count).let { cached ->
+                        val rawResults = engine.getCachedResults(filters.count, filters.unreleased).let { cached ->
                             if (cached.isNotEmpty()) cached.also { progress = 0.5f }
-                            else engine.compute(filters.count)
+                            else engine.compute(filters.count, filters.unreleased)
                         }
 
                         advanceStage(); delay(50)
@@ -195,10 +195,15 @@ fun PvEScreen(language: AppLanguage = AppLanguage.ES, advancedMode: Boolean = fa
                         advanceStage(); delay(50)
                         val processor = PvPDataProcessor(gm)
                         val pokemonByDex = gm.pokemon.groupBy { it.dex }.mapValues { (_, list) -> list.first() }
-                        val filtered = rawResults.filter { entry ->
+                        val withRanks = rawResults.mapIndexed { index, entry ->
+                            entry.copy(originalRank = index + 1)
+                        }
+                        val filtered = withRanks.filter { entry ->
                             matchesPvEFilter(entry, filters, pokemonByDex[entry.id])
                         }
-                        val sliced = if (filters.fromRank > 1) filtered.drop(filters.fromRank - 1) else filtered
+                        val sliced = if (filters.fromRank > 1)
+                            filtered.filter { it.originalRank >= filters.fromRank }
+                        else filtered
                         results = sliced
                         cachedBaseDexes = sliced.map { it.id }
                             .distinct()
@@ -284,7 +289,7 @@ fun PvEScreen(language: AppLanguage = AppLanguage.ES, advancedMode: Boolean = fa
         LazyColumn(modifier = Modifier.fillMaxSize()) {
             itemsIndexed(results) { index, entry ->
                 PokemonRow(
-                    rank = cachedFromRank + index,
+                    rank = entry.originalRank,
                     name = cleanPvEName(entry.name, entry.form),
                     score = "%.2f".format(entry.rat),
                     subtitle = entry.tier?.let {
