@@ -2,9 +2,9 @@ package com.pokechain.data.models
 
 data class PvPFilterParams(
     val league: PvPLeague = PvPLeague.GREAT,
-    val xlCandy: Boolean = false,
+    val xlCandy: Boolean = true,
     val includeShadow: Boolean = false,
-    val includeElite: Boolean = false,
+    val includeElite: Boolean = true,
     val count: Int = 20,
     val fromRank: Int = 1
 )
