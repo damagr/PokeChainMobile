@@ -63,8 +63,11 @@ fun PvEFilterBottomSheet(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
-    ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(modifier = Modifier.padding(16.dp).navigationBarsPadding()) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        modifier = Modifier.navigationBarsPadding()
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
             ToggleRow(label = Strings.unreleased(language), checked = unreleased, onCheckedChange = { unreleased = it })
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
             ToggleRow(label = Strings.shadowLabel(language), checked = includeShadow, onCheckedChange = {
