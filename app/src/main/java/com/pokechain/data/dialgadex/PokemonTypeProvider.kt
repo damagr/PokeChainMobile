@@ -13,6 +13,9 @@ data class PokemonTypeEntry(
 ) {
     val isBaseForm: Boolean get() = !speciesId.contains("_")
 
+    /** PokeAPI sprite ID — base forms use dex, alternate forms use hardcoded IDs */
+    val spriteId: Int get() = PokemonTypeEntry.spriteIds[speciesId] ?: dex
+
     /** Returns the localized display name, translating form suffixes when possible. */
     fun displayName(language: AppLanguage, translator: NameTranslator): String {
         if (language == AppLanguage.EN) return name
@@ -251,6 +254,73 @@ data class PokemonTypeEntry(
             "u" to "U", "v" to "V", "w" to "W",
             "exclamation" to "!", "question" to "?",
         )
+
+        /** PokeAPI sprite IDs for alternate forms (base forms use dex number) */
+        val spriteIds: Map<String, Int> = mapOf(
+            // Zacian
+            "zacian_crowned_sword" to 10188,
+            // Zamazenta
+            "zamazenta_crowned_shield" to 10189,
+            // Dialga
+            "dialga_origin" to 10245,
+            // Palkia
+            "palkia_origin" to 10246,
+            // Giratina
+            "giratina_origin" to 10007,
+            // Necrozma
+            "necrozma_dusk_mane" to 10155,
+            "necrozma_dawn_wings" to 10156,
+            "necrozma_ultra" to 10157,
+            // Kyurem
+            "kyurem_black" to 10022,
+            "kyurem_white" to 10023,
+            // Deoxys
+            "deoxys_attack" to 10001,
+            "deoxys_defense" to 10002,
+            "deoxys_speed" to 10003,
+            // Wormadam
+            "wormadam_sandy" to 10004,
+            "wormadam_trash" to 10005,
+            // Shaymin
+            "shaymin_sky" to 10006,
+            // Rotom forms
+            "rotom_heat" to 10008,
+            "rotom_wash" to 10009,
+            "rotom_frost" to 10010,
+            "rotom_fan" to 10011,
+            "rotom_mow" to 10012,
+            // Castform
+            "castform_sunny" to 10013,
+            "castform_rainy" to 10014,
+            "castform_snowy" to 10015,
+            // Cherrim
+            "cherrim_sunny" to 10018,
+            // Shellos/Gastrodon
+            "shellos_east" to 10019,
+            "gastrodon_east" to 10020,
+            // Basculin
+            "basculin_blue_striped" to 10016,
+            // Darmanitan
+            "darmanitan_zen" to 10017,
+            // Tornadus/Thundurus/Landorus
+            "tornadus_therian" to 10024,
+            "thundurus_therian" to 10025,
+            "landorus_therian" to 10026,
+            // Keldeo
+            "keldeo_resolute" to 10027,
+            // Meloetta
+            "meloetta_pirouette" to 10028,
+            // Genesect drives
+            "genesect_douse" to 10029,
+            "genesect_shock" to 10030,
+            "genesect_burn" to 10031,
+            "genesect_chill" to 10032,
+            // Hoopa
+            "hoopa_unbound" to 10086,
+            // Zygarde
+            "zygarde_10" to 10109,
+            "zygarde_complete" to 10110,
+        )
     }
 }
 
@@ -316,18 +386,37 @@ class PokemonTypeProvider {
         language: AppLanguage
     ): List<PokemonTypeEntry> {
         val entries = allEntries ?: return emptyList()
-        if (query.isBlank()) return entries
+        if (query.isBlank()) {
+            return entries.filter {
+                val sid = it.speciesId.lowercase()
+                !sid.endsWith("_shadow") && !sid.endsWith("_purified")
+            }
+        }
 
-        val q = query.trim().lowercase()
+        val words = query.trim().lowercase().split("\\s+".toRegex())
 
         // Build a map of dex → localized base name for matching
         val localizedByDex = translator.getAllNames(language)
             .associate { it.first to it.second.lowercase() }
 
-        return entries.filter { entry ->
-            entry.name.lowercase().contains(q) ||
-            entry.dex.toString() == q ||
-            (localizedByDex[entry.dex]?.contains(q) == true)
+        // Exclude shadow and purified forms to reduce clutter
+        val nonShadow = entries.filter { 
+            val sid = it.speciesId.lowercase()
+            !sid.endsWith("_shadow") && !sid.endsWith("_purified") 
+        }
+
+        return nonShadow.filter { entry ->
+            words.all { word ->
+                val displayName = entry.displayName(language, translator).lowercase()
+                val internalName = entry.name.lowercase()
+                val localizedName = localizedByDex[entry.dex] ?: ""
+
+                // Match any of: internal name, dex, localized name, display name (includes forms)
+                internalName.contains(word) ||
+                entry.dex.toString() == word ||
+                localizedName.contains(word) ||
+                displayName.contains(word)
+            }
         }
     }
 

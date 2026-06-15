@@ -13,8 +13,8 @@ android {
         applicationId = "com.pokechain"
         minSdk = 26
         targetSdk = 35
-        versionCode = 51
-        versionName = "1.2.0-beta"
+        versionCode = 52
+        versionName = "1.2.1-beta"
     }
 
     signingConfigs {
@@ -83,6 +83,9 @@ dependencies {
     // Networking
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.google.code.gson:gson:2.11.0")
+
+    // Image loading
+    implementation("io.coil-kt:coil-compose:2.7.0")
 
     // WebView is part of the Android framework — no extra dependency needed
 }
