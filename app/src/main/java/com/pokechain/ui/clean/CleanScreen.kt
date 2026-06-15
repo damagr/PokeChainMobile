@@ -60,7 +60,7 @@ fun CleanScreen(language: AppLanguage = AppLanguage.ES) {
     fun resetLabel() = when (language) { AppLanguage.ES -> "Reiniciar"; AppLanguage.EN -> "Reset" }
 
     Column(
-        modifier = Modifier.fillMaxSize().padding(16.dp)
+        modifier = Modifier.fillMaxSize().padding(16.dp).navigationBarsPadding()
     ) {
         if (!showResult) {
             cleanAttributes.forEachIndexed { index, attr ->

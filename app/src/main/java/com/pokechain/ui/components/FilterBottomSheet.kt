@@ -22,7 +22,7 @@ fun FilterBottomSheet(
     var includeElite by remember { mutableStateOf(filters.includeElite) }
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(16.dp).navigationBarsPadding()) {
             ToggleRow(label = Strings.xlCandy(language), checked = xl, onCheckedChange = { xl = it })
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
             ToggleRow(label = Strings.shadowLabel(language), checked = includeShadow, onCheckedChange = { includeShadow = it })
@@ -64,7 +64,7 @@ fun PvEFilterBottomSheet(
     val scope = rememberCoroutineScope()
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(16.dp).navigationBarsPadding()) {
             ToggleRow(label = Strings.unreleased(language), checked = unreleased, onCheckedChange = { unreleased = it })
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
             ToggleRow(label = Strings.shadowLabel(language), checked = includeShadow, onCheckedChange = {
@@ -85,7 +85,13 @@ fun PvEFilterBottomSheet(
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
             ToggleRow(label = Strings.legendary(language), checked = legendary, onCheckedChange = { legendary = it })
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-            ToggleRow(label = Strings.megaPrimal(language), checked = mega, enabled = !includeShadow && !casualShadow, onCheckedChange = { mega = it })
+            ToggleRow(label = Strings.megaPrimal(language), checked = mega, onCheckedChange = {
+                mega = it
+                if (it) {
+                    includeShadow = false
+                    casualShadow = false
+                }
+            })
 
             Spacer(Modifier.height(16.dp))
             Button(

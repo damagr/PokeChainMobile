@@ -26,6 +26,6 @@ data class PvEFilterParams(
 )
 
 enum class AppLanguage(val code: String) {
-    EN("en"),
-    ES("es")
+    ES("es"),
+    EN("en")
 }

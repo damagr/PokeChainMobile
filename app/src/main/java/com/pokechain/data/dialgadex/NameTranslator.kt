@@ -56,6 +56,22 @@ class NameTranslator(context: Context) {
         return list.getOrNull(dex - 1) ?: enNames.getOrNull(dex - 1) ?: "???"
     }
 
+    /**
+     * Returns the full list of (dexNumber, name) pairs for autocomplete lookup.
+     * The list is sorted by dex number (ascending).
+     */
+    fun getAllNames(language: AppLanguage): List<Pair<Int, String>> {
+        val list = when (language) {
+            AppLanguage.EN -> enNames
+            AppLanguage.ES -> esNames
+        }
+        return list
+            .mapIndexedNotNull { index, name ->
+                val dex = index + 1
+                if (name.isNotBlank()) dex to name else null
+            }
+    }
+
     fun getMoveName(moveIdOrName: String, language: AppLanguage): String {
         val normalized = moveIdOrName
             .replace("_", " ")

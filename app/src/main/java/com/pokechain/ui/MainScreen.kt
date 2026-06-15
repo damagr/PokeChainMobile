@@ -1,36 +1,19 @@
 package com.pokechain.ui
 
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
-import androidx.core.content.FileProvider
-import com.pokechain.R
-import com.pokechain.ui.pve.PvEScreen
-import com.pokechain.ui.pvp.PvPScreen
-import com.pokechain.ui.clean.CleanScreen
-import com.pokechain.ui.components.LanguageSelector
 import com.pokechain.data.models.AppLanguage
 import com.pokechain.data.models.Strings
 import com.pokechain.data.version.VersionCheckResult
 import com.pokechain.data.version.VersionChecker
+import com.pokechain.ui.types.TypesScreen
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -38,12 +21,13 @@ import okhttp3.Request
 import java.io.File
 import java.util.concurrent.TimeUnit
 
-@OptIn(ExperimentalMaterial3Api::class)
+private enum class Screen { HOME, CHAIN, TYPES }
+
 @Composable
 fun MainScreen() {
-    var selectedTab by remember { mutableStateOf(0) }
+    var currentScreen by remember { mutableStateOf(Screen.HOME) }
     var language by remember { mutableStateOf(AppLanguage.ES) }
-    val tabs = listOf("PvP", "PvE", Strings.cleanTab(language))
+
     val context = LocalContext.current
     val versionName = remember {
         try {
@@ -58,17 +42,6 @@ fun MainScreen() {
     var downloadProgress by remember { mutableStateOf(0f) }
     var downloadError by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
-    val snackbarHostState = remember { SnackbarHostState() }
-
-    var advancedMode by remember { mutableStateOf(false) }
-    var tapCount by remember { mutableStateOf(0) }
-
-    LaunchedEffect(tapCount) {
-        if (tapCount > 0) {
-            delay(1500)
-            tapCount = 0
-        }
-    }
 
     LaunchedEffect(Unit) {
         scope.launch {
@@ -84,81 +57,26 @@ fun MainScreen() {
         }
     }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            CenterAlignedTopAppBar(
-                navigationIcon = {
-                    Image(
-                        painter = painterResource(id = R.mipmap.ic_launcher),
-                        contentDescription = "PokeChain",
-                        modifier = Modifier
-                            .padding(start = 16.dp)
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .clickable(
-                                indication = null,
-                                interactionSource = remember { MutableInteractionSource() }
-                            ) {
-                                tapCount++
-                                if (tapCount >= 5) {
-                                    tapCount = 0
-                                    advancedMode = !advancedMode
-                                    scope.launch {
-                                        snackbarHostState.showSnackbar(
-                                            if (advancedMode) Strings.advancedModeOn(language)
-                                            else Strings.advancedModeOff(language)
-                                        )
-                                    }
-                                }
-                            }
-                    )
-                },
-                title = {
-                    Column(
-                        horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
-                    ) {
-                        if (advancedMode) {
-                            Text(
-                                buildAnnotatedString {
-                                    withStyle(SpanStyle(color = Color(0xFFFFD600))) { append("Poke") }
-                                    withStyle(SpanStyle(color = Color(0xFFFF1744))) { append("Chain") }
-                                }
-                            )
-                        } else {
-                            Text("PokeChain")
-                        }
-                        Text(
-                            text = "v$versionName",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                },
-                actions = {
-                    LanguageSelector(
-                        selected = language,
-                        onSelect = { language = it }
-                    )
-                }
+    when (currentScreen) {
+        Screen.HOME -> {
+            HomeScreen(
+                language = language,
+                onLanguageChange = { language = it },
+                onChainClick = { currentScreen = Screen.CHAIN },
+                onTypesClick = { currentScreen = Screen.TYPES }
             )
         }
-    ) { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-            TabRow(selectedTabIndex = selectedTab) {
-                tabs.forEachIndexed { index, title ->
-                    Tab(
-                        selected = selectedTab == index,
-                        onClick = { selectedTab = index },
-                        text = { Text(title) }
-                    )
-                }
-            }
-            when (selectedTab) {
-                0 -> PvPScreen(language = language, advancedMode = advancedMode)
-                1 -> PvEScreen(language = language, advancedMode = advancedMode)
-                2 -> CleanScreen(language = language)
-            }
+        Screen.CHAIN -> {
+            ChainScreen(
+                language = language,
+                onBack = { currentScreen = Screen.HOME }
+            )
+        }
+        Screen.TYPES -> {
+            TypesScreen(
+                language = language,
+                onBack = { currentScreen = Screen.HOME }
+            )
         }
     }
 
@@ -339,7 +257,7 @@ private suspend fun downloadApk(url: String, context: android.content.Context, o
 }
 
 private fun installApk(context: android.content.Context, file: java.io.File) {
-    val uri = FileProvider.getUriForFile(
+    val uri = androidx.core.content.FileProvider.getUriForFile(
         context,
         "${context.packageName}.fileprovider",
         file
