@@ -4,12 +4,15 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -32,7 +35,7 @@ fun TypesScreen(
     val translator = remember { NameTranslator(context) }
     val typeProvider = remember { PokemonTypeProvider() }
 
-    var searchQuery by remember { mutableStateOf("") }
+    var textFieldValue by remember { mutableStateOf(TextFieldValue("")) }
     var showDropdown by remember { mutableStateOf(false) }
     var selectedEntry by remember { mutableStateOf<PokemonTypeEntry?>(null) }
     var isLoadingTypes by remember { mutableStateOf(true) }
@@ -51,9 +54,9 @@ fun TypesScreen(
         }
     }
 
-    val suggestions = remember(searchQuery, typeProvider.isLoaded) {
+    val suggestions = remember(textFieldValue.text, typeProvider.isLoaded) {
         if (!typeProvider.isLoaded) emptyList()
-        else typeProvider.searchAll(searchQuery, translator, language).take(30)
+        else typeProvider.searchAll(textFieldValue.text, translator, language).take(30)
     }
 
     Scaffold(
@@ -82,9 +85,9 @@ fun TypesScreen(
                 onExpandedChange = { showDropdown = it }
             ) {
                 OutlinedTextField(
-                    value = searchQuery,
+                    value = textFieldValue,
                     onValueChange = { newValue ->
-                        searchQuery = newValue
+                        textFieldValue = newValue
                         showDropdown = true
                         selectedEntry = null
                     },
@@ -92,7 +95,17 @@ fun TypesScreen(
                         .fillMaxWidth()
                         .menuAnchor(MenuAnchorType.PrimaryEditable),
                     placeholder = { Text(Strings.typeSearch(language)) },
-                    singleLine = true
+                    singleLine = true,
+                    trailingIcon = {
+                        if (textFieldValue.text.isNotEmpty()) {
+                            IconButton(onClick = {
+                                textFieldValue = TextFieldValue("")
+                                selectedEntry = null
+                            }) {
+                                Icon(Icons.Default.Clear, contentDescription = "Clear")
+                            }
+                        }
+                    }
                 )
 
                 ExposedDropdownMenu(
@@ -142,7 +155,8 @@ fun TypesScreen(
                                 }
                             },
                             onClick = {
-                                searchQuery = entry.displayName(language, translator)
+                                val name = entry.displayName(language, translator)
+                                textFieldValue = TextFieldValue(name, selection = TextRange(name.length))
                                 selectedEntry = entry
                                 showDropdown = false
                             }
