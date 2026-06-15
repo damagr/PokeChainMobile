@@ -56,6 +56,12 @@ fun CleanScreen(language: AppLanguage = AppLanguage.ES) {
         showResult = true
     }
 
+    val allChecked = remember(checked.toList()) { checked.all { it } }
+
+    fun selectAllLabel() = when (language) {
+        AppLanguage.ES -> if (allChecked) "Deseleccionar todo" else "Seleccionar todo"
+        AppLanguage.EN -> if (allChecked) "Deselect all" else "Select all"
+    }
     fun editLabel() = when (language) { AppLanguage.ES -> "Editar"; AppLanguage.EN -> "Edit" }
     fun resetLabel() = when (language) { AppLanguage.ES -> "Reiniciar"; AppLanguage.EN -> "Reset" }
 
@@ -63,18 +69,58 @@ fun CleanScreen(language: AppLanguage = AppLanguage.ES) {
         modifier = Modifier.fillMaxSize().padding(16.dp).navigationBarsPadding()
     ) {
         if (!showResult) {
-            cleanAttributes.forEachIndexed { index, attr ->
-                val label = when (language) {
-                    AppLanguage.ES -> attr.labelEs
-                    AppLanguage.EN -> attr.labelEn
+            val leftAttrs = cleanAttributes.take(6)
+            val rightAttrs = cleanAttributes.drop(6)
+
+            OutlinedButton(
+                onClick = {
+                    val newValue = !allChecked
+                    cleanAttributes.indices.forEach { checked[it] = newValue }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(selectAllLabel())
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    leftAttrs.forEachIndexed { colIndex, attr ->
+                        val label = when (language) {
+                            AppLanguage.ES -> attr.labelEs
+                            AppLanguage.EN -> attr.labelEn
+                        }
+                        ToggleRow(
+                            label = label,
+                            checked = checked[colIndex],
+                            onCheckedChange = { checked[colIndex] = it }
+                        )
+                        if (colIndex < leftAttrs.size - 1) {
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                        }
+                    }
                 }
-                ToggleRow(
-                    label = label,
-                    checked = checked[index],
-                    onCheckedChange = { checked[index] = it }
-                )
-                if (index < cleanAttributes.size - 1) {
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    rightAttrs.forEachIndexed { colIndex, attr ->
+                        val globalIndex = 6 + colIndex
+                        val label = when (language) {
+                            AppLanguage.ES -> attr.labelEs
+                            AppLanguage.EN -> attr.labelEn
+                        }
+                        ToggleRow(
+                            label = label,
+                            checked = checked[globalIndex],
+                            onCheckedChange = { checked[globalIndex] = it }
+                        )
+                        if (colIndex < rightAttrs.size - 1) {
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                        }
+                    }
                 }
             }
 
