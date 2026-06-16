@@ -197,7 +197,7 @@ fun PvPScreen(language: AppLanguage = AppLanguage.ES, advancedMode: Boolean = fa
                         val gameMaster = api.fetchGameMaster()
 
                         advanceStage(); delay(50)
-                        val rankings = api.fetchRankings(filters.league.cp)
+                        val rankings = api.fetchRankings(filters.league.cp, filters.league.cup)
 
                         advanceStage(); delay(50)
                         val processor = PvPDataProcessor(gameMaster)

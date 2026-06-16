@@ -84,8 +84,8 @@ object Strings {
     fun updateFailed(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Download failed"; AppLanguage.ES -> "Fallo al descargar" }
 
     fun leagueName(league: PvPLeague, lang: AppLanguage) = when (lang) {
-        AppLanguage.EN -> when (league) { PvPLeague.GREAT -> "Great"; PvPLeague.ULTRA -> "Ultra"; PvPLeague.MASTER -> "Master" }
-        AppLanguage.ES -> when (league) { PvPLeague.GREAT -> "Super"; PvPLeague.ULTRA -> "Ultra"; PvPLeague.MASTER -> "Master" }
+        AppLanguage.EN -> when (league) { PvPLeague.GREAT -> "Great"; PvPLeague.ULTRA -> "Ultra"; PvPLeague.MASTER -> "Master"; PvPLeague.SUNSHINE -> "Sunshine" }
+        AppLanguage.ES -> when (league) { PvPLeague.GREAT -> "Super"; PvPLeague.ULTRA -> "Ultra"; PvPLeague.MASTER -> "Master"; PvPLeague.SUNSHINE -> "Sunshine" }
     }
 
     fun errorTitle(screen: String, lang: AppLanguage) = when (lang) {

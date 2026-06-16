@@ -97,6 +97,7 @@ class PvPDataProcessor(
             PvPLeague.GREAT -> "cp1500"
             PvPLeague.ULTRA -> "cp2500"
             PvPLeague.MASTER -> "cp10000"
+            PvPLeague.SUNSHINE -> "cp1500"
         }
         val maxCp = poke.defaultIVs?.get(cpKey)?.getOrNull(0) ?: return true
         return maxCp > 40.0

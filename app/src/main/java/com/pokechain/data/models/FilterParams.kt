@@ -9,10 +9,11 @@ data class PvPFilterParams(
     val fromRank: Int = 1
 )
 
-enum class PvPLeague(val cp: Int) {
+enum class PvPLeague(val cp: Int, val cup: String? = null) {
     GREAT(1500),
     ULTRA(2500),
-    MASTER(10000)
+    MASTER(10000),
+    SUNSHINE(1500, "sunshine")
 }
 
 data class PvEFilterParams(

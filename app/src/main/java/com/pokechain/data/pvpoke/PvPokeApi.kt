@@ -12,7 +12,7 @@ import java.util.concurrent.TimeUnit
 object PvPokeApi {
     private const val BASE_URL = "https://pvpoke.com/data"
     private const val GAMEMASTER_URL = "$BASE_URL/gamemaster.min.json"
-    private const val RANKINGS_URL = "$BASE_URL/rankings/all/overall/rankings-%d.json"
+    private const val RANKINGS_URL = "$BASE_URL/rankings/%s/overall/rankings-%d.json"
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
@@ -28,8 +28,8 @@ object PvPokeApi {
         json.decodeFromString(body)
     }
 
-    suspend fun fetchRankings(cp: Int): List<PvPRawEntry> = withContext(Dispatchers.IO) {
-        val url = RANKINGS_URL.format(cp)
+    suspend fun fetchRankings(cp: Int, cup: String? = null): List<PvPRawEntry> = withContext(Dispatchers.IO) {
+        val url = RANKINGS_URL.format(cup ?: "all", cp)
         val request = Request.Builder().url(url).build()
         val response = client.newCall(request).execute()
         val body = response.body?.string() ?: throw Exception("Empty response")

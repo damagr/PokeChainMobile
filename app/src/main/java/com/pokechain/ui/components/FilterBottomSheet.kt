@@ -124,7 +124,7 @@ fun PvEFilterBottomSheet(
                 Text(Strings.apply(language))
             }
             SnackbarHost(snackbarHostState, modifier = Modifier.fillMaxWidth())
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(40.dp))
         }
     }
 }
