@@ -85,7 +85,7 @@ object Strings {
 
     fun leagueName(league: PvPLeague, lang: AppLanguage) = when (lang) {
         AppLanguage.EN -> when (league) { PvPLeague.GREAT -> "Great"; PvPLeague.ULTRA -> "Ultra"; PvPLeague.MASTER -> "Master"; PvPLeague.SUNSHINE -> "Sunshine" }
-        AppLanguage.ES -> when (league) { PvPLeague.GREAT -> "Super"; PvPLeague.ULTRA -> "Ultra"; PvPLeague.MASTER -> "Master"; PvPLeague.SUNSHINE -> "Sunshine" }
+        AppLanguage.ES -> when (league) { PvPLeague.GREAT -> "Super"; PvPLeague.ULTRA -> "Ultra"; PvPLeague.MASTER -> "Master"; PvPLeague.SUNSHINE -> "Luz Solar" }
     }
 
     fun errorTitle(screen: String, lang: AppLanguage) = when (lang) {
