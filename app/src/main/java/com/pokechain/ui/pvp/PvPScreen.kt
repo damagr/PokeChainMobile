@@ -31,7 +31,6 @@ fun PvPScreen(language: AppLanguage = AppLanguage.ES, advancedMode: Boolean = fa
     var progressMessage by remember { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
     var showErrorDialog by remember { mutableStateOf(false) }
-    var showFilters by remember { mutableStateOf(false) }
     var topCountText by remember { mutableStateOf("") }
     var fromText by remember { mutableStateOf("") }
     var cachedBaseDexes by remember { mutableStateOf<List<Int>>(emptyList()) }
@@ -71,7 +70,7 @@ fun PvPScreen(language: AppLanguage = AppLanguage.ES, advancedMode: Boolean = fa
     Column(
         modifier = Modifier.fillMaxSize().padding(16.dp)
     ) {
-        LeagueSelector(
+        LeagueDropdown(
             selected = filters.league,
             language = language,
             onSelect = { filters = filters.copy(league = it) }
@@ -79,12 +78,11 @@ fun PvPScreen(language: AppLanguage = AppLanguage.ES, advancedMode: Boolean = fa
 
         Spacer(Modifier.height(8.dp))
 
-        OutlinedButton(
-            onClick = { showFilters = true },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(Strings.filters(language))
-        }
+        FilterDropdown(
+            filters = filters,
+            language = language,
+            onApply = { filters = it }
+        )
 
         Spacer(Modifier.height(8.dp))
 
@@ -307,18 +305,6 @@ fun PvPScreen(language: AppLanguage = AppLanguage.ES, advancedMode: Boolean = fa
                 )
             }
         }
-    }
-
-    if (showFilters) {
-        FilterBottomSheet(
-            filters = filters,
-            language = language,
-            onDismiss = { showFilters = false },
-            onApply = { newFilters ->
-                filters = newFilters
-                showFilters = false
-            }
-        )
     }
 
     if (showErrorDialog && error != null) {

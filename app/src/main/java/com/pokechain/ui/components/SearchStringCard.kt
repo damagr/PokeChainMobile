@@ -19,7 +19,7 @@ import com.pokechain.data.models.Strings
 @Composable
 fun SearchStringCard(searchString: String, language: AppLanguage) {
     val clipboard = LocalClipboardManager.current
-    var copied by remember { mutableStateOf(false) }
+    var copied by remember(searchString) { mutableStateOf(false) }
     var expanded by remember { mutableStateOf(true) }
 
     Card(

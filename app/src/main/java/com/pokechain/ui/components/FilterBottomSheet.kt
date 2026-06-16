@@ -1,6 +1,9 @@
 package com.pokechain.ui.components
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -168,18 +171,242 @@ fun LanguageSelector(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LeagueSelector(
+fun LeagueDropdown(
     selected: PvPLeague,
     language: AppLanguage,
     onSelect: (PvPLeague) -> Unit
 ) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        PvPLeague.entries.forEach { league ->
-            FilterChip(
-                selected = selected == league,
-                onClick = { onSelect(league) },
-                label = { Text(Strings.leagueName(league, language)) }
+    var expanded by remember { mutableStateOf(false) }
+    val standardLeagues = PvPLeague.entries.filter { it.cup == null }
+    val cups = PvPLeague.entries.filter { it.cup != null }.sortedBy { Strings.leagueName(it, language) }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it }
+    ) {
+        OutlinedTextField(
+            value = Strings.leagueName(selected, language),
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(when (language) { AppLanguage.EN -> "Leagues & Cups"; AppLanguage.ES -> "Ligas y copas" }) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth()
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        when (language) { AppLanguage.EN -> "Standard Leagues"; AppLanguage.ES -> "Ligas estándar" },
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                },
+                onClick = {},
+                enabled = false
+            )
+            standardLeagues.forEach { league ->
+                DropdownMenuItem(
+                    text = { Text(Strings.leagueName(league, language)) },
+                    onClick = { onSelect(league); expanded = false },
+                    leadingIcon = if (selected == league) {
+                        { Icon(Icons.Default.Check, contentDescription = null) }
+                    } else null
+                )
+            }
+            HorizontalDivider()
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        when (language) { AppLanguage.EN -> "Cups"; AppLanguage.ES -> "Copas" },
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                },
+                onClick = {},
+                enabled = false
+            )
+            cups.forEach { league ->
+                DropdownMenuItem(
+                    text = { Text(Strings.leagueName(league, language)) },
+                    onClick = { onSelect(league); expanded = false },
+                    leadingIcon = if (selected == league) {
+                        { Icon(Icons.Default.Check, contentDescription = null) }
+                    } else null
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun FilterDropdown(
+    filters: PvPFilterParams,
+    language: AppLanguage,
+    onApply: (PvPFilterParams) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    val summary = buildList {
+        if (filters.xlCandy) add(Strings.xlCandy(language))
+        if (filters.includeShadow) add(Strings.shadowLabel(language))
+        if (filters.includeElite) add(Strings.eliteMove(language))
+    }.joinToString(", ").ifEmpty {
+        when (language) { AppLanguage.EN -> "All"; AppLanguage.ES -> "Todo" }
+    }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it }
+    ) {
+        OutlinedTextField(
+            value = summary,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(Strings.filters(language)) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth()
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            DropdownMenuItem(
+                text = {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                        Text(Strings.xlCandy(language), modifier = Modifier.weight(1f))
+                        Switch(checked = filters.xlCandy, onCheckedChange = null)
+                    }
+                },
+                onClick = { onApply(filters.copy(xlCandy = !filters.xlCandy)) }
+            )
+            DropdownMenuItem(
+                text = {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                        Text(Strings.shadowLabel(language), modifier = Modifier.weight(1f))
+                        Switch(checked = filters.includeShadow, onCheckedChange = null)
+                    }
+                },
+                onClick = { onApply(filters.copy(includeShadow = !filters.includeShadow)) }
+            )
+            DropdownMenuItem(
+                text = {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                        Text(Strings.eliteMove(language), modifier = Modifier.weight(1f))
+                        Switch(checked = filters.includeElite, onCheckedChange = null)
+                    }
+                },
+                onClick = { onApply(filters.copy(includeElite = !filters.includeElite)) }
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PvEFilterDropdown(
+    filters: PvEFilterParams,
+    language: AppLanguage,
+    onApply: (PvEFilterParams) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    val summary = buildList {
+        if (filters.unreleased) add(Strings.unreleased(language))
+        if (filters.includeShadow) add(Strings.shadowLabel(language))
+        if (filters.casualShadow) add(Strings.casualShadow(language))
+        if (filters.legendary) add(Strings.legendary(language))
+        if (filters.mega) add(Strings.megaPrimal(language))
+    }.joinToString(", ").ifEmpty {
+        when (language) { AppLanguage.EN -> "All"; AppLanguage.ES -> "Todo" }
+    }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it }
+    ) {
+        OutlinedTextField(
+            value = summary,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(Strings.filters(language)) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth()
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            DropdownMenuItem(
+                text = {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                        Text(Strings.unreleased(language), modifier = Modifier.weight(1f))
+                        Switch(checked = filters.unreleased, onCheckedChange = null)
+                    }
+                },
+                onClick = { onApply(filters.copy(unreleased = !filters.unreleased)) }
+            )
+            DropdownMenuItem(
+                text = {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                        Text(Strings.shadowLabel(language), modifier = Modifier.weight(1f))
+                        Switch(checked = filters.includeShadow, onCheckedChange = null)
+                    }
+                },
+                onClick = {
+                    val newShadow = !filters.includeShadow
+                    onApply(filters.copy(
+                        includeShadow = newShadow,
+                        mega = if (newShadow) false else filters.mega,
+                        casualShadow = if (newShadow) false else filters.casualShadow
+                    ))
+                }
+            )
+            DropdownMenuItem(
+                text = {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                        Text(Strings.casualShadow(language), modifier = Modifier.weight(1f))
+                        Switch(checked = filters.casualShadow, onCheckedChange = null)
+                    }
+                },
+                onClick = {
+                    val newCasual = !filters.casualShadow
+                    onApply(filters.copy(
+                        casualShadow = newCasual,
+                        includeShadow = if (newCasual) false else filters.includeShadow,
+                        mega = if (newCasual) false else filters.mega
+                    ))
+                }
+            )
+            DropdownMenuItem(
+                text = {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                        Text(Strings.legendary(language), modifier = Modifier.weight(1f))
+                        Switch(checked = filters.legendary, onCheckedChange = null)
+                    }
+                },
+                onClick = { onApply(filters.copy(legendary = !filters.legendary)) }
+            )
+            DropdownMenuItem(
+                text = {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                        Text(Strings.megaPrimal(language), modifier = Modifier.weight(1f))
+                        Switch(checked = filters.mega, onCheckedChange = null)
+                    }
+                },
+                onClick = {
+                    val newMega = !filters.mega
+                    onApply(filters.copy(
+                        mega = newMega,
+                        includeShadow = if (newMega) false else filters.includeShadow,
+                        casualShadow = if (newMega) false else filters.casualShadow
+                    ))
+                }
             )
         }
     }

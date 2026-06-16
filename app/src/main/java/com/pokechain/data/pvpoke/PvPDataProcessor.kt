@@ -93,12 +93,7 @@ class PvPDataProcessor(
     }
 
     private fun needsXLCandy(poke: Pokemon, league: PvPLeague): Boolean {
-        val cpKey = when (league) {
-            PvPLeague.GREAT -> "cp1500"
-            PvPLeague.ULTRA -> "cp2500"
-            PvPLeague.MASTER -> "cp10000"
-            PvPLeague.SUNSHINE -> "cp1500"
-        }
+        val cpKey = "cp${league.cp}"
         val maxCp = poke.defaultIVs?.get(cpKey)?.getOrNull(0) ?: return true
         return maxCp > 40.0
     }

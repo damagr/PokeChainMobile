@@ -84,8 +84,40 @@ object Strings {
     fun updateFailed(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Download failed"; AppLanguage.ES -> "Fallo al descargar" }
 
     fun leagueName(league: PvPLeague, lang: AppLanguage) = when (lang) {
-        AppLanguage.EN -> when (league) { PvPLeague.GREAT -> "Great"; PvPLeague.ULTRA -> "Ultra"; PvPLeague.MASTER -> "Master"; PvPLeague.SUNSHINE -> "Sunshine" }
-        AppLanguage.ES -> when (league) { PvPLeague.GREAT -> "Super"; PvPLeague.ULTRA -> "Ultra"; PvPLeague.MASTER -> "Master"; PvPLeague.SUNSHINE -> "Luz Solar" }
+        AppLanguage.EN -> when (league) {
+            PvPLeague.GREAT -> "Great"; PvPLeague.ULTRA -> "Ultra"; PvPLeague.MASTER -> "Master"
+            PvPLeague.SUNSHINE -> "Sunshine"; PvPLeague.CATCH -> "Catch"; PvPLeague.COLOR -> "Color"
+            PvPLeague.ELEMENT -> "Element"; PvPLeague.EVOLUTION -> "Evolution"
+            PvPLeague.FANTASY -> "Fantasy"; PvPLeague.ULTRA_FANTASY -> "Ultra Fantasy"
+            PvPLeague.FIGHTING -> "Fighting"; PvPLeague.FLYING -> "Flying"; PvPLeague.FOSSIL -> "Fossil"
+            PvPLeague.HALLOWEEN -> "Halloween"; PvPLeague.ULTRA_HALLOWEEN -> "Ultra Halloween"
+            PvPLeague.HISUI -> "Hisui"; PvPLeague.JUNGLE -> "Jungle"; PvPLeague.KANTO -> "Kanto"
+            PvPLeague.LOVE -> "Love"; PvPLeague.MOUNTAIN -> "Mountain"
+            PvPLeague.PREMIER -> "Premier"; PvPLeague.ULTRA_PREMIER -> "Ultra Premier"
+            PvPLeague.PSYCHIC -> "Psychic"
+            PvPLeague.REMIX -> "Remix"; PvPLeague.ULTRA_REMIX -> "Ultra Remix"
+            PvPLeague.RETRO -> "Retro"; PvPLeague.SPRING -> "Spring"
+            PvPLeague.SUMMER -> "Summer"; PvPLeague.ULTRA_SUMMER -> "Ultra Summer"
+            PvPLeague.WEATHER -> "Weather"; PvPLeague.ULTRA_WEATHER -> "Ultra Weather"
+            PvPLeague.WILLPOWER -> "Willpower"
+        }
+        AppLanguage.ES -> when (league) {
+            PvPLeague.GREAT -> "Super"; PvPLeague.ULTRA -> "Ultra"; PvPLeague.MASTER -> "Master"
+            PvPLeague.SUNSHINE -> "Luz Solar"; PvPLeague.CATCH -> "Captura"; PvPLeague.COLOR -> "Color"
+            PvPLeague.ELEMENT -> "Elemental"; PvPLeague.EVOLUTION -> "Evolución"
+            PvPLeague.FANTASY -> "Fantasía"; PvPLeague.ULTRA_FANTASY -> "Ultra Fantasía"
+            PvPLeague.FIGHTING -> "Lucha"; PvPLeague.FLYING -> "Volador"; PvPLeague.FOSSIL -> "Fósil"
+            PvPLeague.HALLOWEEN -> "Halloween"; PvPLeague.ULTRA_HALLOWEEN -> "Ultra Halloween"
+            PvPLeague.HISUI -> "Hisui"; PvPLeague.JUNGLE -> "Jungla"; PvPLeague.KANTO -> "Kanto"
+            PvPLeague.LOVE -> "Amor"; PvPLeague.MOUNTAIN -> "Montaña"
+            PvPLeague.PREMIER -> "Premier"; PvPLeague.ULTRA_PREMIER -> "Ultra Premier"
+            PvPLeague.PSYCHIC -> "Psíquico"
+            PvPLeague.REMIX -> "Remix"; PvPLeague.ULTRA_REMIX -> "Ultra Remix"
+            PvPLeague.RETRO -> "Retro"; PvPLeague.SPRING -> "Primavera"
+            PvPLeague.SUMMER -> "Verano"; PvPLeague.ULTRA_SUMMER -> "Ultra Verano"
+            PvPLeague.WEATHER -> "Clima"; PvPLeague.ULTRA_WEATHER -> "Ultra Clima"
+            PvPLeague.WILLPOWER -> "Voluntad"
+        }
     }
 
     fun errorTitle(screen: String, lang: AppLanguage) = when (lang) {
