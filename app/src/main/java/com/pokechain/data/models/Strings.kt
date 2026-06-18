@@ -34,7 +34,7 @@ object Strings {
     fun eliteMove(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Elite Move"; AppLanguage.ES -> "Mov. Élite" }
     fun cleanTab(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Clean"; AppLanguage.ES -> "Limpiar" }
     fun chainSection(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Chain"; AppLanguage.ES -> "Cadena" }
-    fun typesSection(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Types"; AppLanguage.ES -> "Tipos" }
+    fun typesSection(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Pokédex"; AppLanguage.ES -> "Pokédex" }
     fun typeSearch(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Search Pokémon…"; AppLanguage.ES -> "Buscar Pokémon…" }
     fun resistantTo(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Resistant to"; AppLanguage.ES -> "Resistente a" }
     fun weakTo(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Weak to"; AppLanguage.ES -> "Débil contra" }
@@ -178,6 +178,36 @@ object Strings {
     fun ivCandyLabel(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Candy"; AppLanguage.ES -> "Caramelos" }
     fun ivXlCandyLabel(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "XL Candy"; AppLanguage.ES -> "Caram. XL" }
     fun ivGoName(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "GO Name"; AppLanguage.ES -> "Nombre GO" }
+    // ── Pokédex PvP / PvE ───────────────────────────────────────
+    fun pvpLeagues(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Leagues & Cups"; AppLanguage.ES -> "Ligas y Copas" }
+    fun pvpTopN(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Top 100"; AppLanguage.ES -> "Top 100" }
+    fun pvpOut(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "—"; AppLanguage.ES -> "—" }
+    fun pvpLoading(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Loading leagues…"; AppLanguage.ES -> "Cargando ligas…" }
+    fun pvpLoadAll(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Load all cups"; AppLanguage.ES -> "Cargar todas las copas" }
+    fun pveRanking(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "PvE Ranking"; AppLanguage.ES -> "Ranking PvE" }
+    fun pveTopN(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Top 200"; AppLanguage.ES -> "Top 200" }
+    fun pveNormal(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Normal"; AppLanguage.ES -> "Normal" }
+    fun pveShadow(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Shadow"; AppLanguage.ES -> "Oscuro" }
+    fun pveNotRanked(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Not ranked"; AppLanguage.ES -> "No existe" }
+    fun pveLoading(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Loading PvE…"; AppLanguage.ES -> "Cargando PvE…" }
+    fun pveBestMoveset(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Best Moveset"; AppLanguage.ES -> "Mejor Moveset" }
+    fun retry(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Retry"; AppLanguage.ES -> "Reintentar" }
+    fun pveInitEngine(lang: AppLanguage) = when (lang) {
+        AppLanguage.EN -> "Initializing PvE engine… (may take up to 60s)"
+        AppLanguage.ES -> "Inicializando motor PvE… (puede tardar hasta 60s)"
+    }
+    fun pveComputing(lang: AppLanguage) = when (lang) {
+        AppLanguage.EN -> "Computing rankings (top 200)…"
+        AppLanguage.ES -> "Calculando rankings (top 200)…"
+    }
+    fun pveTapToLoad(lang: AppLanguage) = when (lang) {
+        AppLanguage.EN -> "Tap to load PvE rankings"
+        AppLanguage.ES -> "Pulsa para cargar ranking PvE"
+    }
+    fun pveLoadButton(lang: AppLanguage) = when (lang) {
+        AppLanguage.EN -> "Load PvE Ranking"
+        AppLanguage.ES -> "Cargar ranking PvE"
+    }
 
     val pveProgress: List<Pair<Float, AppLanguage.() -> String>> = listOf(
         0.1f to { when (this) { AppLanguage.EN -> "Downloading game data..."; AppLanguage.ES -> "Descargando datos del juego..." } },

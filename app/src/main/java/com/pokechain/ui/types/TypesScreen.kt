@@ -1,7 +1,9 @@
 package com.pokechain.ui.types
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
@@ -10,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
@@ -24,8 +27,14 @@ import com.pokechain.data.dialgadex.PokemonTypeEntry
 import com.pokechain.data.dialgadex.PokemonTypeProvider
 import com.pokechain.data.models.AppLanguage
 import com.pokechain.data.models.PokemonType
+import com.pokechain.data.models.PvPLeague
 import com.pokechain.data.models.Strings
 import com.pokechain.data.models.TypeChart
+import com.pokechain.data.pvpoke.PvPokeApi
+import com.pokechain.data.pvpoke.GameMasterResponse
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -247,6 +256,49 @@ private fun PokemonTypeDetail(
         TypeChart.getEffectiveness(entry.types)
     }
 
+    // ── PvP rankings state ──────────────────────────────────────
+    var pvpRanks by remember { mutableStateOf<List<PvpLeagueRank>>(emptyList()) }
+    var isPvpLoading by remember { mutableStateOf(false) }
+    var pvpError by remember { mutableStateOf<String?>(null) }
+
+    // ── PvE rankings state ──────────────────────────────────────
+    // (derived from pveCache — see below)
+
+    // ── Fetch PvP: all 32 leagues, dual normal + shadow ─────────
+    LaunchedEffect(entry.speciesId) {
+        isPvpLoading = true
+        pvpError = null
+        try {
+            val gm = PvPokeApi.fetchGameMaster()
+            val targetDex = entry.dex
+            val allLeagues = PvPLeague.entries
+
+            // Phase 1: 3 main leagues in parallel
+            val mainLeagues = listOf(PvPLeague.GREAT, PvPLeague.ULTRA, PvPLeague.MASTER)
+            val mainRanks = coroutineScope {
+                mainLeagues.map { league ->
+                    async { fetchLeagueRank(league, gm, targetDex) }
+                }.awaitAll()
+            }
+
+            // Phase 2: remaining 29 cups in parallel
+            val cupLeagues = allLeagues.filter { it !in mainLeagues }
+            val cupRanks = coroutineScope {
+                cupLeagues.map { league ->
+                    async { fetchLeagueRank(league, gm, targetDex) }
+                }.awaitAll()
+            }
+
+            pvpRanks = (mainRanks + cupRanks)
+                .filter { it.normalRank != null || it.shadowRank != null }
+                .sortedBy { it.league.ordinal }
+        } catch (e: Exception) {
+            pvpError = e.message
+        } finally {
+            isPvpLoading = false
+        }
+    }
+
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -301,6 +353,14 @@ private fun PokemonTypeDetail(
         SectionCard(
             title = Strings.weakTo(language),
             types = weaknesses,
+            language = language
+        )
+
+        // ── PvP Card ────────────────────────────────────────────
+        PvpRankingsCard(
+            ranks = pvpRanks,
+            isLoading = isPvpLoading,
+            error = pvpError,
             language = language
         )
     }
@@ -361,4 +421,139 @@ fun TypeBadge(
             fontWeight = FontWeight.Bold
         )
     }
+}
+
+// ── PvP Rankings Card ───────────────────────────────────────────────
+
+data class PvpLeagueRank(
+    val league: PvPLeague,
+    val normalRank: Int?,   // 1..100 or null
+    val shadowRank: Int?    // 1..100 or null
+)
+
+@Composable
+private fun PvpRankingsCard(
+    ranks: List<PvpLeagueRank>,
+    isLoading: Boolean,
+    error: String?,
+    language: AppLanguage
+) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text(
+                text = "${Strings.pvpLeagues(language)} (${Strings.pvpTopN(language)})",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold
+            )
+
+            Spacer(Modifier.height(8.dp))
+
+            when {
+                isLoading -> {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                        Text(
+                            text = Strings.pvpLoading(language),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                error != null -> {
+                    Text(
+                        text = error,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+
+                ranks.isEmpty() && !isLoading -> {
+                    Text(
+                        text = Strings.pvpOut(language),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                else -> {
+                    Column(
+                        modifier = Modifier
+                            .heightIn(max = 130.dp)
+                            .verticalScroll(rememberScrollState())
+                    ) {
+                        ranks.forEach { entry ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                            Text(
+                                text = Strings.leagueName(entry.league, language),
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.weight(1f)
+                            )
+                            entry.normalRank?.let { r ->
+                                Text(
+                                    text = "#$r",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.padding(end = 6.dp)
+                                )
+                            }
+                            entry.shadowRank?.let { r ->
+                                Text(
+                                    text = when (language) {
+                                        AppLanguage.EN -> "Shadow #$r"
+                                        AppLanguage.ES -> "Oscuro #$r"
+                                    },
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = PokemonType.POISON.color,
+                                )
+                            }
+                        }
+                    }
+                }
+                }
+            }
+        }
+    }
+}
+
+// ── Helper: fetch rank for a single league (normal + shadow) ───────
+
+private suspend fun fetchLeagueRank(
+    league: PvPLeague,
+    gm: GameMasterResponse,
+    targetDex: Int
+): PvpLeagueRank {
+    return try {
+        val raw = PvPokeApi.fetchRankings(league.cp, league.cup)
+        val normalIdx = raw.indexOfFirst {
+            !it.speciesId.endsWith("_shadow") && resolveDex(it.speciesId, gm) == targetDex
+        }
+        val shadowIdx = raw.indexOfFirst {
+            it.speciesId.endsWith("_shadow") && resolveDex(it.speciesId, gm) == targetDex
+        }
+        PvpLeagueRank(
+            league = league,
+            normalRank = if (normalIdx >= 0) (normalIdx + 1).takeIf { it <= 100 } else null,
+            shadowRank = if (shadowIdx >= 0) (shadowIdx + 1).takeIf { it <= 100 } else null
+        )
+    } catch (_: Exception) {
+        PvpLeagueRank(league, null, null)
+    }
+}
+
+// ── Helper: resolve dex from a ranking entry speciesId ────────────
+
+private fun resolveDex(speciesId: String, gm: GameMasterResponse): Int? {
+    val cleanId = speciesId.removeSuffix("_shadow")
+    return gm.pokemon.find { it.speciesId == cleanId }?.dex
 }

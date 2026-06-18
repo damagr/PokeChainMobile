@@ -13,6 +13,9 @@ import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import java.util.concurrent.TimeUnit
 
 class PvEScrapingEngine(private val appContext: Context) {
 
@@ -53,7 +56,7 @@ class PvEScrapingEngine(private val appContext: Context) {
             loadUrl("https://dialgadex.com/?strongest&t=Any")
         }
         webView = wv
-        withTimeout(30_000) { deferred.await() }
+        withTimeout(90_000) { deferred.await() }
     }
 
     private fun pollReady(view: WebView, deferred: CompletableDeferred<Boolean>) {
@@ -127,6 +130,45 @@ class PvEScrapingEngine(private val appContext: Context) {
         lastCount = count
         lastResults = parsed
         parsed
+    }
+
+    // ── HTTP-based alternative (no WebView) ─────────────────────────
+
+    private val httpClient = OkHttpClient.Builder()
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .build()
+
+    /**
+     * Fetches PvE rankings via plain HTTP GET (no WebView).
+     * Extracts the jb_pkm JSON array from the page's inline script.
+     * Much faster and more reliable than WebView on emulators.
+     */
+    suspend fun computeHttp(count: Int): List<PvERankingEntry> = withContext(Dispatchers.IO) {
+        if (count == lastCount && lastResults.isNotEmpty()) {
+            return@withContext lastResults
+        }
+
+        val request = Request.Builder()
+            .url("https://dialgadex.com/?strongest&t=Any")
+            .header("User-Agent", "Mozilla/5.0")
+            .build()
+
+        val response = httpClient.newCall(request).execute()
+        val html = response.body?.string() ?: return@withContext emptyList()
+
+        // Extract jb_pkm = [{...}, ...];
+        val regex = Regex("""jb_pkm\s*=\s*(\[[\s\S]*?\])\s*;""")
+        val match = regex.find(html) ?: return@withContext emptyList()
+        val jsonStr = match.groupValues[1]
+
+        val allEntries = parseResults(jsonStr)
+        val n = count.coerceAtMost(allEntries.size)
+        val sliced = allEntries.take(n)
+
+        lastCount = count
+        lastResults = sliced
+        sliced
     }
 
     fun destroy() {
