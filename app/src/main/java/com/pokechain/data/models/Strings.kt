@@ -189,6 +189,7 @@ object Strings {
     fun pveNormal(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Normal"; AppLanguage.ES -> "Normal" }
     fun pveShadow(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Shadow"; AppLanguage.ES -> "Oscuro" }
     fun pveNotRanked(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Not ranked"; AppLanguage.ES -> "No existe" }
+    fun pveOutOfClass(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Out of ranking"; AppLanguage.ES -> "Fuera de la clasificación" }
     fun pveLoading(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Loading PvE…"; AppLanguage.ES -> "Cargando PvE…" }
     fun pveBestMoveset(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Best Moveset"; AppLanguage.ES -> "Mejor Moveset" }
     fun retry(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Retry"; AppLanguage.ES -> "Reintentar" }

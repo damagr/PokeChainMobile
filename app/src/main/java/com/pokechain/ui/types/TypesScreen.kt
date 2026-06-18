@@ -25,8 +25,10 @@ import coil.compose.AsyncImage
 import com.pokechain.data.dialgadex.NameTranslator
 import com.pokechain.data.dialgadex.PokemonTypeEntry
 import com.pokechain.data.dialgadex.PokemonTypeProvider
+import com.pokechain.data.dialgadex.PvEScrapingEngine
 import com.pokechain.data.models.AppLanguage
 import com.pokechain.data.models.PokemonType
+import com.pokechain.data.models.PvERankingEntry
 import com.pokechain.data.models.PvPLeague
 import com.pokechain.data.models.Strings
 import com.pokechain.data.models.TypeChart
@@ -35,6 +37,7 @@ import com.pokechain.data.pvpoke.GameMasterResponse
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,6 +55,15 @@ fun TypesScreen(
     var isLoadingTypes by remember { mutableStateOf(true) }
     var typeLoadError by remember { mutableStateOf<String?>(null) }
 
+    // ── PvE state: engine + cache shared across Pokémon lookups ─────
+    val appContext = remember { context.applicationContext }
+    val pveEngine = remember { PvEScrapingEngine(appContext) }
+    val scope = rememberCoroutineScope()
+    var pveRankingCache by remember { mutableStateOf<List<PvERankingEntry>>(emptyList()) }
+    var isPveLoading by remember { mutableStateOf(false) }
+    var pveError by remember { mutableStateOf<String?>(null) }
+    var pveLoaded by remember { mutableStateOf(false) }
+
     LaunchedEffect(Unit) {
         try {
             typeProvider.ensureLoaded()
@@ -63,6 +75,11 @@ fun TypesScreen(
         } finally {
             isLoadingTypes = false
         }
+    }
+
+    // ── Pre-calentar motor PvE en segundo plano ───────────────────
+    LaunchedEffect(Unit) {
+        pveEngine.init()
     }
 
     val suggestions = remember(textFieldValue.text, typeProvider.isLoaded) {
@@ -217,7 +234,31 @@ fun TypesScreen(
                 selectedEntry != null -> {
                     PokemonTypeDetail(
                         entry = selectedEntry!!,
-                        language = language
+                        language = language,
+                        pveRankingCache = pveRankingCache,
+                        isPveLoading = isPveLoading,
+                        pveError = pveError,
+                        pveLoaded = pveLoaded,
+                        onFetchPvE = {
+                            scope.launch {
+                                isPveLoading = true
+                                pveError = null
+                                try {
+                                    val rawResults = pveEngine.getCachedResults(300).let { cached ->
+                                        if (cached.isNotEmpty()) cached
+                                        else pveEngine.compute(300)
+                                    }
+                                    pveRankingCache = rawResults.mapIndexed { index, entry ->
+                                        entry.copy(originalRank = index + 1)
+                                    }
+                                    pveLoaded = true
+                                } catch (e: Exception) {
+                                    pveError = e.message
+                                } finally {
+                                    isPveLoading = false
+                                }
+                            }
+                        }
                     )
                 }
 
@@ -244,7 +285,12 @@ fun TypesScreen(
 @Composable
 private fun PokemonTypeDetail(
     entry: PokemonTypeEntry,
-    language: AppLanguage
+    language: AppLanguage,
+    pveRankingCache: List<PvERankingEntry>,
+    isPveLoading: Boolean,
+    pveError: String?,
+    pveLoaded: Boolean,
+    onFetchPvE: () -> Unit
 ) {
     val context = LocalContext.current
     val translator = remember { NameTranslator(context) }
@@ -361,6 +407,18 @@ private fun PokemonTypeDetail(
             ranks = pvpRanks,
             isLoading = isPvpLoading,
             error = pvpError,
+            language = language
+        )
+
+        // ── PvE Card ────────────────────────────────────────────
+        PveRankingCard(
+            targetDex = entry.dex,
+            targetSpeciesId = entry.speciesId,
+            pveRankingCache = pveRankingCache,
+            isPveLoading = isPveLoading,
+            pveError = pveError,
+            pveLoaded = pveLoaded,
+            onFetchPvE = onFetchPvE,
             language = language
         )
     }
@@ -556,4 +614,137 @@ private suspend fun fetchLeagueRank(
 private fun resolveDex(speciesId: String, gm: GameMasterResponse): Int? {
     val cleanId = speciesId.removeSuffix("_shadow")
     return gm.pokemon.find { it.speciesId == cleanId }?.dex
+}
+
+// ── PvE Ranking Card ──────────────────────────────────────────────
+
+@Composable
+private fun PveRankingCard(
+    targetDex: Int,
+    targetSpeciesId: String,
+    pveRankingCache: List<PvERankingEntry>,
+    isPveLoading: Boolean,
+    pveError: String?,
+    pveLoaded: Boolean,
+    onFetchPvE: () -> Unit,
+    language: AppLanguage
+) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text(
+                text = "${Strings.pveRanking(language)} (Top 300)",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold
+            )
+
+            Spacer(Modifier.height(8.dp))
+
+            when {
+                isPveLoading -> {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                        Text(
+                            text = Strings.pveLoading(language),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                pveError != null -> {
+                    Text(
+                        text = pveError,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    TextButton(onClick = onFetchPvE) {
+                        Text(Strings.retry(language))
+                    }
+                }
+
+                !pveLoaded -> {
+                    Text(
+                        text = Strings.pveTapToLoad(language),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    OutlinedButton(onClick = onFetchPvE) {
+                        Text(Strings.pveLoadButton(language))
+                    }
+                }
+
+                else -> {
+                    val matches = pveRankingCache.filter { it.id == targetDex }
+                    if (matches.isEmpty()) {
+                        Text(
+                            text = Strings.pveOutOfClass(language),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else {
+                        // Sort all entries by rank (best first)
+                        val sorted = matches.sortedBy { it.originalRank }
+
+                        Column(
+                            modifier = Modifier.heightIn(max = 130.dp)
+                                .verticalScroll(rememberScrollState())
+                        ) {
+                            sorted.forEach { entry ->
+                                val isShadow = entry.shadow
+                                val label = when {
+                                    isShadow -> Strings.pveShadow(language)
+                                    entry.form == "Normal" -> Strings.pveNormal(language)
+                                    else -> entry.form
+                                }
+                                val rankColor = if (isShadow)
+                                    PokemonType.POISON.color
+                                else
+                                    MaterialTheme.colorScheme.primary
+
+                                PveRankRow(
+                                    label = label,
+                                    rank = entry.originalRank,
+                                    rankColor = rankColor,
+                                    labelColor = rankColor
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PveRankRow(
+    label: String,
+    rank: Int,
+    rankColor: Color,
+    labelColor: Color = rankColor
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = labelColor,
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            text = "#$rank",
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Bold,
+            color = rankColor
+        )
+    }
 }
