@@ -1,6 +1,7 @@
 package com.pokechain.data.dialgadex
 
 import com.pokechain.data.models.AppLanguage
+import com.pokechain.data.models.BaseStats
 import com.pokechain.data.models.PokemonType
 import com.pokechain.data.models.TypeChart
 import com.pokechain.data.pvpoke.PvPokeApi
@@ -9,7 +10,8 @@ data class PokemonTypeEntry(
     val speciesId: String,
     val dex: Int,
     val name: String,
-    val types: List<PokemonType>
+    val types: List<PokemonType>,
+    val baseStats: BaseStats? = null,
 ) {
     val isBaseForm: Boolean get() = !speciesId.contains("_")
 
@@ -358,7 +360,8 @@ class PokemonTypeProvider {
                     speciesId = it.speciesId,
                     dex = it.dex,
                     name = it.speciesName,
-                    types = it.types.mapNotNull { t -> PokemonType.fromString(t) }
+                    types = it.types.mapNotNull { t -> PokemonType.fromString(t) },
+                    baseStats = it.baseStats,
                 )
             }
         } finally {
@@ -376,6 +379,9 @@ class PokemonTypeProvider {
 
     fun getBySpeciesId(speciesId: String): PokemonTypeEntry? =
         allEntries?.find { it.speciesId == speciesId }
+
+    fun getBaseStats(speciesId: String): BaseStats? =
+        allEntries?.find { it.speciesId == speciesId }?.baseStats
 
     /**
      * Searches all forms by gamemaster name, dex number, or localized base name.

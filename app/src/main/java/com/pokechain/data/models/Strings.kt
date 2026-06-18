@@ -139,6 +139,46 @@ object Strings {
         1.0f to { when (this) { AppLanguage.EN -> "Complete"; AppLanguage.ES -> "Completado" } },
     )
 
+    // ── IV Calculator ──────────────────────────────────────────────
+    fun ivCalcSection(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "IV Calc"; AppLanguage.ES -> "Calc. IV" }
+    fun ivCalculator(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "IV Calculator"; AppLanguage.ES -> "Calculadora IV" }
+    fun ivComingSoon(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Coming soon"; AppLanguage.ES -> "Próximamente" }
+    fun ivSelectPokemon(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Select Pokémon…"; AppLanguage.ES -> "Buscar Pokémon…" }
+    fun ivCpLabel(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "CP (Combat Points)"; AppLanguage.ES -> "PC (Puntos de Combate)" }
+    fun ivAtkLabel(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "ATK IV"; AppLanguage.ES -> "IV Ataque" }
+    fun ivDefLabel(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "DEF IV"; AppLanguage.ES -> "IV Defensa" }
+    fun ivHpLabel(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "HP IV"; AppLanguage.ES -> "IV Salud" }
+    fun ivCalculate(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Calculate"; AppLanguage.ES -> "Calcular" }
+    fun ivPerfection(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "IV Perfection"; AppLanguage.ES -> "Perfección IV" }
+    fun ivLevel(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Level"; AppLanguage.ES -> "Nivel" }
+    fun ivEstimatedHp(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Estimated HP"; AppLanguage.ES -> "PS Estimados" }
+    fun ivNoResults(lang: AppLanguage) = when (lang) {
+        AppLanguage.EN -> "No level found with these values. Check CP and IVs."
+        AppLanguage.ES -> "No se encontró nivel con esos valores. Revisa PC e IVs."
+    }
+    fun ivInsertValid(lang: AppLanguage) = when (lang) {
+        AppLanguage.EN -> "Enter valid values (IVs 0–15, CP ≥ 10)"
+        AppLanguage.ES -> "Introduce valores válidos (IVs 0–15, PC ≥ 10)"
+    }
+    fun ivSelectFirst(lang: AppLanguage) = when (lang) {
+        AppLanguage.EN -> "Select a Pokémon first"
+        AppLanguage.ES -> "Selecciona un Pokémon primero"
+    }
+    fun ivCheckStats(lang: AppLanguage) = when (lang) {
+        AppLanguage.EN -> "Check IV perfection & level"
+        AppLanguage.ES -> "Calcula perfección IV y nivel"
+    }
+    // ── CP Projection ─────────────────────────────────────────────
+    fun ivProjection(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "CP Projection"; AppLanguage.ES -> "Proyección de PC" }
+    fun ivTargetLevel(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Target Level"; AppLanguage.ES -> "Nivel objetivo" }
+    fun ivProjectedCp(lang: AppLanguage) = "PC"
+    fun ivProjectedHp(lang: AppLanguage) = "PS"
+    fun ivCost(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Cost"; AppLanguage.ES -> "Coste" }
+    fun ivDust(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Dust"; AppLanguage.ES -> "Polvo" }
+    fun ivCandyLabel(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Candy"; AppLanguage.ES -> "Caramelos" }
+    fun ivXlCandyLabel(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "XL Candy"; AppLanguage.ES -> "Caram. XL" }
+    fun ivGoName(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "GO Name"; AppLanguage.ES -> "Nombre GO" }
+
     val pveProgress: List<Pair<Float, AppLanguage.() -> String>> = listOf(
         0.1f to { when (this) { AppLanguage.EN -> "Downloading game data..."; AppLanguage.ES -> "Descargando datos del juego..." } },
         0.3f to { when (this) { AppLanguage.EN -> "Initializing PvE calculator..."; AppLanguage.ES -> "Inicializando calculadora PvE..." } },
