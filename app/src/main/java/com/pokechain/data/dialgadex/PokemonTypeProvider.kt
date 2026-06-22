@@ -16,7 +16,9 @@ data class PokemonTypeEntry(
     val isBaseForm: Boolean get() = !speciesId.contains("_")
 
     /** PokeAPI sprite ID — base forms use dex, alternate forms use hardcoded IDs */
-    val spriteId: Int get() = PokemonTypeEntry.spriteIds[speciesId] ?: dex
+    val spriteId: Int get() = (PokemonTypeEntry.spriteIds[speciesId] ?: dex).also {
+        android.util.Log.d("SpriteDebug", "speciesId=$speciesId dex=$dex → spriteId=$it")
+    }
 
     /** Returns the localized display name, translating form suffixes when possible. */
     fun displayName(language: AppLanguage, translator: NameTranslator): String {
@@ -26,7 +28,7 @@ data class PokemonTypeEntry(
 
         // Try to extract form from speciesId and translate it
         val suffix = speciesId.substringAfter("_", "")
-        val translatedForm = formTranslations[suffix]
+        val translatedForm = formTranslations[speciesId] ?: formTranslations[suffix] // ponytail: try full speciesId first for compound keys (e.g. zygarde_10)
         return if (translatedForm != null) "$baseName ($translatedForm)" else name
     }
 
@@ -320,8 +322,9 @@ data class PokemonTypeEntry(
             // Hoopa
             "hoopa_unbound" to 10086,
             // Zygarde
-            "zygarde_10" to 10109,
-            "zygarde_complete" to 10110,
+            "zygarde" to 10181,
+            "zygarde_10" to 718,
+            "zygarde_complete" to 10120,
         )
     }
 }

@@ -155,6 +155,10 @@ fun IvScreen(
                         searchText = newValue
                         showDropdown = true
                         selectedEntry = null
+                        cpText = ""
+                        atkIvText = ""
+                        defIvText = ""
+                        staIvText = ""
                         results = emptyList()
                         hasCalculated = false
                         errorMessage = null
@@ -169,6 +173,10 @@ fun IvScreen(
                             IconButton(onClick = {
                                 searchText = TextFieldValue("")
                                 selectedEntry = null
+                                cpText = ""
+                                atkIvText = ""
+                                defIvText = ""
+                                staIvText = ""
                                 results = emptyList()
                                 hasCalculated = false
                                 errorMessage = null
@@ -198,6 +206,10 @@ fun IvScreen(
                                 searchText = TextFieldValue(name, selection = TextRange(name.length))
                                 selectedEntry = entry
                                 showDropdown = false
+                                cpText = ""
+                                atkIvText = ""
+                                defIvText = ""
+                                staIvText = ""
                                 results = emptyList()
                                 hasCalculated = false
                                 errorMessage = null
@@ -247,9 +259,11 @@ fun IvScreen(
             ) {
                 OutlinedTextField(
                     value = atkIvText,
-                    onValueChange = {
-                        atkIvText = it
-                        hasCalculated = false
+                    onValueChange = { newValue ->
+                        if (newValue.isEmpty() || (newValue.all { it.isDigit() } && newValue.toInt() in 0..15)) {
+                            atkIvText = newValue
+                            hasCalculated = false
+                        }
                     },
                     modifier = Modifier.weight(1f),
                     label = { Text(Strings.ivAtkLabel(language)) },
@@ -258,9 +272,11 @@ fun IvScreen(
                 )
                 OutlinedTextField(
                     value = defIvText,
-                    onValueChange = {
-                        defIvText = it
-                        hasCalculated = false
+                    onValueChange = { newValue ->
+                        if (newValue.isEmpty() || (newValue.all { it.isDigit() } && newValue.toInt() in 0..15)) {
+                            defIvText = newValue
+                            hasCalculated = false
+                        }
                     },
                     modifier = Modifier.weight(1f),
                     label = { Text(Strings.ivDefLabel(language)) },
@@ -269,9 +285,11 @@ fun IvScreen(
                 )
                 OutlinedTextField(
                     value = staIvText,
-                    onValueChange = {
-                        staIvText = it
-                        hasCalculated = false
+                    onValueChange = { newValue ->
+                        if (newValue.isEmpty() || (newValue.all { it.isDigit() } && newValue.toInt() in 0..15)) {
+                            staIvText = newValue
+                            hasCalculated = false
+                        }
                     },
                     modifier = Modifier.weight(1f),
                     label = { Text(Strings.ivHpLabel(language)) },
