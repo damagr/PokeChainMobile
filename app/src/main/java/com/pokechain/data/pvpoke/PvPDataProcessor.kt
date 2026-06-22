@@ -97,11 +97,6 @@ class PvPDataProcessor(
         val maxCp = poke.defaultIVs?.get(cpKey)?.getOrNull(0) ?: return true
         return maxCp > 40.0
     }
-
-    private fun hasEliteMove(poke: Pokemon?, moveset: List<String>): Boolean {
-        val elite = poke?.eliteMoves ?: return false
-        return moveset.any { it in elite }
-    }
 }
 
 data class PvPResult(

@@ -13,7 +13,6 @@ import androidx.compose.ui.unit.dp
 import com.pokechain.data.dialgadex.NameTranslator
 import com.pokechain.data.models.*
 import com.pokechain.data.pvpoke.*
-import com.pokechain.domain.PvPFilterUseCase
 import com.pokechain.ui.components.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -199,8 +198,7 @@ fun PvPScreen(language: AppLanguage = AppLanguage.ES, advancedMode: Boolean = fa
 
                         advanceStage(); delay(50)
                         val processor = PvPDataProcessor(gameMaster)
-                        val useCase = PvPFilterUseCase(processor)
-                        val filtered = useCase.execute(rankings, filters)
+                        val filtered = processor.processRankings(rankings, filters)
                         results = filtered.filter { it.originalRank >= filters.fromRank }
 
                         advanceStage(); delay(50)

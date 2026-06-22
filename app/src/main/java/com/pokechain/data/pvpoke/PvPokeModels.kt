@@ -1,9 +1,7 @@
 package com.pokechain.data.pvpoke
 
-import com.pokechain.data.models.Move
 import com.pokechain.data.models.Pokemon
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.JsonElement
 
 @Serializable
 data class GameMasterResponse(
@@ -17,16 +15,4 @@ data class PvPRawEntry(
     val speciesName: String,
     val score: Double,
     val moveset: List<String>,
-    val scores: List<Double>? = null,
-    val stats: RawStats? = null,
-    val editorScore: JsonElement? = null,
-    val editorNotes: String? = null,
-)
-
-@Serializable
-data class RawStats(
-    val product: Int,
-    val atk: Double,
-    val `def`: Double,
-    val hp: Int,
 )

@@ -202,36 +202,6 @@ fun HomeScreen(
                         }
                     }
 
-                    ElevatedCard(
-                        onClick = { },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(160.dp),
-                        enabled = false,
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Star,
-                                contentDescription = null,
-                                modifier = Modifier.size(48.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                            )
-                            Spacer(Modifier.height(12.dp))
-                            Text(
-                                text = Strings.ivComingSoon(language),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                textAlign = TextAlign.Center,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                            )
-                        }
-                    }
                 }
             }
 

@@ -1,25 +1,28 @@
 package com.pokechain.data.version
 
-import com.google.gson.Gson
-import com.google.gson.annotations.SerializedName
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.util.concurrent.TimeUnit
 
+@Serializable
 data class GitHubRelease(
-    @SerializedName("tag_name") val tagName: String,
-    @SerializedName("name") val name: String,
-    @SerializedName("html_url") val htmlUrl: String,
-    @SerializedName("body") val body: String?,
-    @SerializedName("prerelease") val prerelease: Boolean,
-    @SerializedName("assets") val assets: List<GitHubReleaseAsset>? = null
+    @SerialName("tag_name") val tagName: String,
+    @SerialName("name") val name: String,
+    @SerialName("html_url") val htmlUrl: String,
+    @SerialName("body") val body: String?,
+    @SerialName("prerelease") val prerelease: Boolean,
+    @SerialName("assets") val assets: List<GitHubReleaseAsset>? = null
 )
 
+@Serializable
 data class GitHubReleaseAsset(
-    @SerializedName("name") val name: String,
-    @SerializedName("browser_download_url") val browserDownloadUrl: String
+    @SerialName("name") val name: String,
+    @SerialName("browser_download_url") val browserDownloadUrl: String
 )
 
 class VersionChecker(private val okHttpClient: OkHttpClient = OkHttpClient.Builder()
@@ -27,7 +30,7 @@ class VersionChecker(private val okHttpClient: OkHttpClient = OkHttpClient.Build
     .readTimeout(10, TimeUnit.SECONDS)
     .build()) {
 
-    private val gson = Gson()
+    private val json = Json { ignoreUnknownKeys = true }
 
     suspend fun checkForUpdate(currentVersion: String, repoOwner: String = "damagr", repoName: String = "PokeChainMobile"): VersionCheckResult {
         return withContext(Dispatchers.IO) {
@@ -44,8 +47,7 @@ class VersionChecker(private val okHttpClient: OkHttpClient = OkHttpClient.Build
                 }
 
                 val body = response.body?.string() ?: return@withContext VersionCheckResult.Error("Empty response")
-                val releases: Array<GitHubRelease> = gson.fromJson(body, Array<GitHubRelease>::class.java)
-                    ?: return@withContext VersionCheckResult.Error("Empty releases")
+                val releases: List<GitHubRelease> = json.decodeFromString(body)
 
                 val current = currentVersion.removePrefix("v")
 
