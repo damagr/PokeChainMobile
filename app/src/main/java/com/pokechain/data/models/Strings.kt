@@ -178,6 +178,38 @@ object Strings {
     fun ivCandyLabel(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Candy"; AppLanguage.ES -> "Caramelos" }
     fun ivXlCandyLabel(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "XL Candy"; AppLanguage.ES -> "Caram. XL" }
     fun ivGoName(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "GO Name"; AppLanguage.ES -> "Nombre GO" }
+
+    // ── Showcase Calculator ─────────────────────────────────────────
+    fun showcaseSection(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Showcase"; AppLanguage.ES -> "Exhibición" }
+    fun showcaseCalculator(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Showcase Calc"; AppLanguage.ES -> "Calc. Exhibición" }
+    fun showcaseSubtitle(lang: AppLanguage) = when (lang) {
+        AppLanguage.EN -> "Score PokéStop Showcases"
+        AppLanguage.ES -> "Calcula puntos de exhibición"
+    }
+    fun showcaseSelectPokemon(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Select Pokémon…"; AppLanguage.ES -> "Buscar Pokémon…" }
+    fun showcaseHeight(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Height (m)"; AppLanguage.ES -> "Altura (m)" }
+    fun showcaseWeight(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Weight (kg)"; AppLanguage.ES -> "Peso (kg)" }
+    fun showcaseIvsOptional(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "IVs (optional)"; AppLanguage.ES -> "IVs (opcional)" }
+    fun showcaseCalculate(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Calculate"; AppLanguage.ES -> "Calcular" }
+    fun showcaseEnterValid(lang: AppLanguage) = when (lang) {
+        AppLanguage.EN -> "Enter valid height, weight, and select a Pokémon first"
+        AppLanguage.ES -> "Introduce altura, peso válidos y selecciona un Pokémon"
+    }
+    fun showcaseScore(lang: AppLanguage) = "Score"
+    fun showcaseMax(lang: AppLanguage) = "/ 1178"
+    fun showcaseBreakdown(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Breakdown"; AppLanguage.ES -> "Desglose" }
+    fun showcaseIvLabel(lang: AppLanguage) = "IVs"
+    fun showcaseXxlBonus(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "XXL Bonus"; AppLanguage.ES -> "Bonus XXL" }
+    fun showcaseRatio(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "× base height"; AppLanguage.ES -> "× altura base" }
+    fun showcaseNoData(lang: AppLanguage) = when (lang) {
+        AppLanguage.EN -> "No size data for this Pokémon"
+        AppLanguage.ES -> "Sin datos de tamaño para este Pokémon"
+    }
+    fun showcaseTrophy(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Trophy class — near the cap"; AppLanguage.ES -> "Clase trofeo — casi imbatible" }
+    fun showcaseExcellent(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Excellent — wins most showcases"; AppLanguage.ES -> "Excelente — gana la mayoría" }
+    fun showcaseGood(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Good — competitive"; AppLanguage.ES -> "Bueno — competitivo" }
+    fun showcaseBelow(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Below par — XXL height wins"; AppLanguage.ES -> "Por debajo — la altura XXL gana" }
+
     // ── Pokédex PvP / PvE ───────────────────────────────────────
     fun pvpLeagues(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Leagues & Cups"; AppLanguage.ES -> "Ligas y Copas" }
     fun pvpTopN(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Top 100"; AppLanguage.ES -> "Top 100" }

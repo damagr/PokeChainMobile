@@ -13,8 +13,8 @@ android {
         applicationId = "com.pokechain"
         minSdk = 26
         targetSdk = 35
-        versionCode = 61
-        versionName = "1.5.1-beta"
+        versionCode = 62
+        versionName = "1.6.0"
     }
 
     signingConfigs {

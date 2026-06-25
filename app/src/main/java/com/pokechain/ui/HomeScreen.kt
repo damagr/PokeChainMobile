@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cable
+import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
@@ -30,7 +31,8 @@ fun HomeScreen(
     onLanguageChange: (AppLanguage) -> Unit,
     onChainClick: () -> Unit,
     onTypesClick: () -> Unit,
-    onIvCalcClick: () -> Unit
+    onIvCalcClick: () -> Unit,
+    onShowcaseClick: () -> Unit
 ) {
     val context = LocalContext.current
     val versionName = remember {
@@ -195,6 +197,42 @@ fun HomeScreen(
                             Spacer(Modifier.height(4.dp))
                             Text(
                                 text = Strings.ivCheckStats(language),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+
+                    ElevatedCard(
+                        onClick = onShowcaseClick,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(160.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.EmojiEvents,
+                                contentDescription = null,
+                                modifier = Modifier.size(48.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(Modifier.height(12.dp))
+                            Text(
+                                text = Strings.showcaseSection(language),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                textAlign = TextAlign.Center
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                text = Strings.showcaseSubtitle(language),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 textAlign = TextAlign.Center

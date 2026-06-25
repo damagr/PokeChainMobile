@@ -13,6 +13,7 @@ import com.pokechain.data.models.Strings
 import com.pokechain.data.version.VersionCheckResult
 import com.pokechain.data.version.VersionChecker
 import com.pokechain.ui.iv.IvScreen
+import com.pokechain.ui.showcase.ShowcaseScreen
 import com.pokechain.ui.types.TypesScreen
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -22,7 +23,7 @@ import okhttp3.Request
 import java.io.File
 import java.util.concurrent.TimeUnit
 
-private enum class Screen { HOME, CHAIN, TYPES, IV_CALC }
+private enum class Screen { HOME, CHAIN, TYPES, IV_CALC, SHOWCASE }
 
 @Composable
 fun MainScreen() {
@@ -65,7 +66,8 @@ fun MainScreen() {
                 onLanguageChange = { language = it },
                 onChainClick = { currentScreen = Screen.CHAIN },
                 onTypesClick = { currentScreen = Screen.TYPES },
-                onIvCalcClick = { currentScreen = Screen.IV_CALC }
+                onIvCalcClick = { currentScreen = Screen.IV_CALC },
+                onShowcaseClick = { currentScreen = Screen.SHOWCASE }
             )
         }
         Screen.CHAIN -> {
@@ -82,6 +84,12 @@ fun MainScreen() {
         }
         Screen.IV_CALC -> {
             IvScreen(
+                language = language,
+                onBack = { currentScreen = Screen.HOME }
+            )
+        }
+        Screen.SHOWCASE -> {
+            ShowcaseScreen(
                 language = language,
                 onBack = { currentScreen = Screen.HOME }
             )
