@@ -46,11 +46,11 @@ jobs:
       - name: Install Android SDK 37
         run: |
           export SDK_ROOT="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
-          echo "SDK root: $SDK_ROOT"
-          ls "$SDK_ROOT/cmdline-tools/" 2>/dev/null || echo "No cmdline-tools found"
           yes | "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$SDK_ROOT" "platforms;android-37.0" "build-tools;37.0.0"
-          # AGP expects android-37 not android-37.0
-          mv "$SDK_ROOT/platforms/android-37.0" "$SDK_ROOT/platforms/android-37" 2>/dev/null || true
+          # AGP 8.7 expects android-37 not android-37.0 — rename dir AND fix registry
+          mv "$SDK_ROOT/platforms/android-37.0" "$SDK_ROOT/platforms/android-37"
+          sed -i 's|platforms;android-37.0|platforms;android-37|g' "$SDK_ROOT/platforms/android-37/package.xml"
+          sed -i 's|<api-level>37.0</api-level>|<api-level>37</api-level>|g' "$SDK_ROOT/platforms/android-37/package.xml"
           ls "$SDK_ROOT/platforms/" | grep android-37
 
       - name: Build Release APK
@@ -102,11 +102,11 @@ jobs:
       - name: Install Android SDK 37
         run: |
           export SDK_ROOT="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
-          echo "SDK root: $SDK_ROOT"
-          ls "$SDK_ROOT/cmdline-tools/" 2>/dev/null || echo "No cmdline-tools found"
           yes | "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$SDK_ROOT" "platforms;android-37.0" "build-tools;37.0.0"
-          # AGP expects android-37 not android-37.0
-          mv "$SDK_ROOT/platforms/android-37.0" "$SDK_ROOT/platforms/android-37" 2>/dev/null || true
+          # AGP 8.7 expects android-37 not android-37.0 — rename dir AND fix registry
+          mv "$SDK_ROOT/platforms/android-37.0" "$SDK_ROOT/platforms/android-37"
+          sed -i 's|platforms;android-37.0|platforms;android-37|g' "$SDK_ROOT/platforms/android-37/package.xml"
+          sed -i 's|<api-level>37.0</api-level>|<api-level>37</api-level>|g' "$SDK_ROOT/platforms/android-37/package.xml"
           ls "$SDK_ROOT/platforms/" | grep android-37
 
       - name: Build Debug APK
