@@ -59,7 +59,7 @@ fun TypesScreen(
     val pveEngine = remember { PvEScrapingEngine(context as android.app.Activity) }
     val scope = rememberCoroutineScope()
     var pveRankingCache by remember { mutableStateOf<List<PvERankingEntry>>(emptyList()) }
-    var isPveLoading by remember { mutableStateOf(false) }
+    var isPveLoading by remember { mutableStateOf(true) }
     var pveError by remember { mutableStateOf<String?>(null) }
     var pveLoaded by remember { mutableStateOf(false) }
 
@@ -79,6 +79,27 @@ fun TypesScreen(
     // ── Pre-calentar motor PvE en segundo plano ───────────────────
     LaunchedEffect(Unit) {
         pveEngine.init()
+    }
+
+    // ── Auto-fetch PvE al seleccionar Pokémon ────────────────────
+    LaunchedEffect(selectedEntry) {
+        if (selectedEntry == null) return@LaunchedEffect
+        isPveLoading = true
+        pveError = null
+        try {
+            val rawResults = pveEngine.getCachedResults(300).let { cached ->
+                if (cached.isNotEmpty()) cached
+                else pveEngine.compute(300)
+            }
+            pveRankingCache = rawResults.mapIndexed { index, entry ->
+                entry.copy(originalRank = index + 1)
+            }
+            pveLoaded = true
+        } catch (e: Exception) {
+            pveError = e.message
+        } finally {
+            isPveLoading = false
+        }
     }
 
     val suggestions = remember(textFieldValue.text, typeProvider.isLoaded) {
@@ -231,6 +252,7 @@ fun TypesScreen(
                 }
 
                 selectedEntry != null -> {
+                    Box(modifier = Modifier.weight(1f)) {
                     PokemonTypeDetail(
                         entry = selectedEntry!!,
                         language = language,
@@ -257,8 +279,10 @@ fun TypesScreen(
                                     isPveLoading = false
                                 }
                             }
-                        }
+                        },
+                        pveEngine = pveEngine
                     )
+                    }
                 }
 
                 typeProvider.isLoaded && selectedEntry == null -> {
@@ -289,7 +313,8 @@ private fun PokemonTypeDetail(
     isPveLoading: Boolean,
     pveError: String?,
     pveLoaded: Boolean,
-    onFetchPvE: () -> Unit
+    onFetchPvE: () -> Unit,
+    pveEngine: PvEScrapingEngine
 ) {
     val context = LocalContext.current
     val translator = remember { NameTranslator(context) }
@@ -308,6 +333,11 @@ private fun PokemonTypeDetail(
 
     // ── PvE rankings state ──────────────────────────────────────
     // (derived from pveCache — see below)
+
+    // ── Type ranking state ─────────────────────────────────────
+    val typeRankingCache = remember { mutableStateMapOf<String, List<PvERankingEntry>>() }
+    val typeLoadingMap = remember { mutableStateMapOf<String, Boolean>() }
+    val typeErrorMap = remember { mutableStateMapOf<String, String?>() }
 
     // ── Fetch PvP: all 32 leagues, dual normal + shadow ─────────
     LaunchedEffect(entry.speciesId) {
@@ -344,8 +374,25 @@ private fun PokemonTypeDetail(
         }
     }
 
+    // ── Auto-fetch type rankings ───────────────────────────────
+    LaunchedEffect(entry.speciesId) {
+        entry.types.forEach { type ->
+            val typeKey = type.nameEn
+            typeLoadingMap[typeKey] = true
+            typeErrorMap.remove(typeKey)
+            try {
+                val results = pveEngine.computeByType(typeKey, 25)
+                typeRankingCache[typeKey] = results
+            } catch (e: Exception) {
+                typeErrorMap[typeKey] = e.message
+            } finally {
+                typeLoadingMap[typeKey] = false
+            }
+        }
+    }
+
     Column(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         // Pokémon card: sprite + name + dex + types
@@ -418,8 +465,34 @@ private fun PokemonTypeDetail(
             pveError = pveError,
             pveLoaded = pveLoaded,
             onFetchPvE = onFetchPvE,
-            language = language
+            language = language,
+            translator = translator
         )
+
+        // ── Type Ranking Cards ─────────────────────────────────
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                Text(
+                    text = Strings.pveTypeRanking(language),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(Modifier.height(8.dp))
+                entry.types.forEach { type ->
+                    val typeKey = type.nameEn
+                    PveTypeRankingCard(
+                        type = type,
+                        targetDex = entry.dex,
+                        rankingCache = typeRankingCache[typeKey] ?: emptyList(),
+                        isLoading = typeLoadingMap[typeKey] == true,
+                        error = typeErrorMap[typeKey],
+                        language = language,
+                        translator = translator
+                    )
+                    Spacer(Modifier.height(8.dp))
+                }
+            }
+        }
     }
 }
 
@@ -537,11 +610,7 @@ private fun PvpRankingsCard(
                 }
 
                 else -> {
-                    Column(
-                        modifier = Modifier
-                            .heightIn(max = 130.dp)
-                            .verticalScroll(rememberScrollState())
-                    ) {
+                    Column {
                         ranks.forEach { entry ->
                             Row(
                                 modifier = Modifier
@@ -551,17 +620,19 @@ private fun PvpRankingsCard(
                             ) {
                             Text(
                                 text = Strings.leagueName(entry.league, language),
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.weight(1f)
+                                style = MaterialTheme.typography.bodyMedium
                             )
+                            Spacer(Modifier.weight(1f))
                             entry.normalRank?.let { r ->
                                 Text(
                                     text = "#$r",
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.padding(end = 6.dp)
                                 )
+                            }
+                            if (entry.normalRank != null && entry.shadowRank != null) {
+                                Spacer(Modifier.width(8.dp))
                             }
                             entry.shadowRank?.let { r ->
                                 Text(
@@ -626,15 +697,39 @@ private fun PveRankingCard(
     pveError: String?,
     pveLoaded: Boolean,
     onFetchPvE: () -> Unit,
-    language: AppLanguage
+    language: AppLanguage,
+    translator: NameTranslator
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(12.dp)) {
-            Text(
-                text = "${Strings.pveRanking(language)} (Top 300)",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold
-            )
+            // Title row: label + top-1 moveset (when loaded)
+            val bestEntry = if (pveLoaded) {
+                pveRankingCache.filter { it.id == targetDex }.minByOrNull { it.originalRank }
+            } else null
+            val headerMoveset = bestEntry?.let { e ->
+                val fm = e.fm?.let { translator.getMoveName(it, language) } ?: "-"
+                val cm = e.cm?.let { translator.getMoveName(it, language) } ?: "-"
+                "$fm${if (e.fmIsElite) "*" else ""} / $cm${if (e.cmIsElite) "*" else ""}"
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "${Strings.pveRanking(language)} (Top 300)",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f)
+                )
+                if (headerMoveset != null) {
+                    Text(
+                        text = headerMoveset,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White,
+                        maxLines = 1
+                    )
+                }
+            }
 
             Spacer(Modifier.height(8.dp))
 
@@ -665,18 +760,6 @@ private fun PveRankingCard(
                     }
                 }
 
-                !pveLoaded -> {
-                    Text(
-                        text = Strings.pveTapToLoad(language),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(Modifier.height(6.dp))
-                    OutlinedButton(onClick = onFetchPvE) {
-                        Text(Strings.pveLoadButton(language))
-                    }
-                }
-
                 else -> {
                     val matches = pveRankingCache.filter { it.id == targetDex }
                     if (matches.isEmpty()) {
@@ -689,16 +772,13 @@ private fun PveRankingCard(
                         // Sort all entries by rank (best first)
                         val sorted = matches.sortedBy { it.originalRank }
 
-                        Column(
-                            modifier = Modifier.heightIn(max = 130.dp)
-                                .verticalScroll(rememberScrollState())
-                        ) {
+                        Column {
                             sorted.forEach { entry ->
                                 val isShadow = entry.shadow
                                 val label = when {
                                     isShadow -> Strings.pveShadow(language)
                                     entry.form == "Normal" -> Strings.pveNormal(language)
-                                    else -> entry.form
+                                    else -> PokemonTypeEntry.translateForm(entry.form, language) ?: entry.form
                                 }
                                 val rankColor = if (isShadow)
                                     PokemonType.POISON.color
@@ -736,14 +816,112 @@ private fun PveRankRow(
         Text(
             text = label,
             style = MaterialTheme.typography.bodyMedium,
-            color = labelColor,
-            modifier = Modifier.weight(1f)
+            color = labelColor
         )
+        Spacer(Modifier.weight(1f))
         Text(
             text = "#$rank",
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Bold,
             color = rankColor
         )
+    }
+}
+
+@Composable
+private fun PveTypeRankingCard(
+    type: PokemonType,
+    targetDex: Int,
+    rankingCache: List<PvERankingEntry>,
+    isLoading: Boolean,
+    error: String?,
+    language: AppLanguage,
+    translator: NameTranslator
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = type.color.copy(alpha = 0.08f))
+    ) {
+        // Top-1 moveset from best-ranked match
+        val bestEntry = rankingCache.filter { it.id == targetDex }.minByOrNull { it.originalRank }
+        val headerMoveset = bestEntry?.let { e ->
+            val fm = e.fm?.let { translator.getMoveName(it, language) } ?: "-"
+            val cm = e.cm?.let { translator.getMoveName(it, language) } ?: "-"
+            "$fm${if (e.fmIsElite) "*" else ""} / $cm${if (e.cmIsElite) "*" else ""}"
+        }
+        Column(modifier = Modifier.padding(10.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TypeBadge(type = type, language = language)
+                Spacer(Modifier.weight(1f))
+                if (headerMoveset != null) {
+                    Text(
+                        text = headerMoveset,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White,
+                        maxLines = 1
+                    )
+                }
+            }
+            Spacer(Modifier.height(6.dp))
+
+            when {
+                isLoading || (rankingCache.isEmpty() && error == null) -> {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                        Text(
+                            text = Strings.pveLoading(language),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                error != null -> {
+                    Text(
+                        text = error,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+
+                else -> {
+                    val matches = rankingCache.filter { it.id == targetDex }
+                    if (matches.isEmpty()) {
+                        Text(
+                            text = Strings.pveTypeOutOfRanking(language),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else {
+                        val sorted = matches.sortedBy { it.originalRank }
+                        sorted.forEach { entry ->
+                            val isShadow = entry.shadow
+                            val label = when {
+                                isShadow -> Strings.pveShadow(language)
+                                entry.form == "Normal" -> Strings.pveNormal(language)
+                                else -> PokemonTypeEntry.translateForm(entry.form, language) ?: entry.form
+                            }
+                            val rankColor = if (isShadow)
+                                PokemonType.POISON.color
+                            else
+                                MaterialTheme.colorScheme.primary
+
+                            PveRankRow(
+                                label = label,
+                                rank = entry.originalRank,
+                                rankColor = rankColor,
+                                labelColor = rankColor
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 }

@@ -11,6 +11,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.pokechain.data.dialgadex.NameTranslator
+import com.pokechain.data.dialgadex.PokemonTypeEntry
 import com.pokechain.data.dialgadex.PvEScrapingEngine
 import com.pokechain.data.models.*
 import com.pokechain.data.pvpoke.PvPDataProcessor
@@ -308,7 +309,7 @@ fun PvEScreen(language: AppLanguage = AppLanguage.ES, advancedMode: Boolean = fa
             itemsIndexed(results) { index, entry ->
                 PokemonRow(
                     rank = entry.originalRank,
-                    name = cleanPvEName(entry.name, entry.form),
+                    name = cleanPvEName(entry.name, entry.form, language),
                     score = "%.2f".format(entry.rat),
                     subtitle = entry.tier?.let {
                         "Tier $it — ${entry.fm?.let { fm -> translator.getMoveName(fm, language) } ?: "-"}${if (entry.fmIsElite) "*" else ""}/${
@@ -353,12 +354,15 @@ fun PvEScreen(language: AppLanguage = AppLanguage.ES, advancedMode: Boolean = fa
     }
 }
 
-private fun cleanPvEName(name: String, form: String): String {
+private fun cleanPvEName(name: String, form: String, language: AppLanguage): String {
     return when {
         form == "Normal" -> name
         name.startsWith("Mega ") || name.startsWith("Primal ") -> name
         form.startsWith("Mega") -> "Mega $name"
-        else -> "$name ($form)"
+        else -> {
+            val translated = PokemonTypeEntry.translateForm(form, language) ?: form
+            "$name ($translated)"
+        }
     }
 }
 

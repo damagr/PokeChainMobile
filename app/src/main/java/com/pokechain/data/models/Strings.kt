@@ -242,6 +242,19 @@ object Strings {
         AppLanguage.ES -> "Cargar ranking PvE"
     }
 
+    // ── Pokédex type ranking ───────────────────────────────────
+    fun pveTypeRanking(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Type Ranking (Top 25)"; AppLanguage.ES -> "Ranking por Tipo (Top 25)" }
+    fun pveTypeTop25(lang: AppLanguage) = "Top 25"
+    fun pveTypeLoad(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Load"; AppLanguage.ES -> "Cargar" }
+    fun pveTypeTapToLoad(lang: AppLanguage) = when (lang) {
+        AppLanguage.EN -> "Tap to load"
+        AppLanguage.ES -> "Pulsa para cargar"
+    }
+    fun pveTypeOutOfRanking(lang: AppLanguage) = when (lang) {
+        AppLanguage.EN -> "Not in type top 25"
+        AppLanguage.ES -> "Fuera del top 25 del tipo"
+    }
+
     val pveProgress: List<Pair<Float, AppLanguage.() -> String>> = listOf(
         0.1f to { when (this) { AppLanguage.EN -> "Downloading game data..."; AppLanguage.ES -> "Descargando datos del juego..." } },
         0.3f to { when (this) { AppLanguage.EN -> "Initializing PvE calculator..."; AppLanguage.ES -> "Inicializando calculadora PvE..." } },

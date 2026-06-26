@@ -114,8 +114,8 @@ fun HomeScreen(
                             Spacer(Modifier.height(4.dp))
                             Text(
                                 text = when (language) {
-                                    AppLanguage.EN -> "Check types & weaknesses"
-                                    AppLanguage.ES -> "Consultar tipos y debilidades"
+                                    AppLanguage.EN -> "Check types, weaknesses & rankings"
+                                    AppLanguage.ES -> "Consultar tipos, debilidades y rankings"
                                 },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,

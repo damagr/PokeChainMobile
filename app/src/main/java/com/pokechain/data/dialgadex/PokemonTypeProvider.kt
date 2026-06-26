@@ -46,8 +46,9 @@ data class PokemonTypeEntry(
             "mega" to "Mega",
             "mega_x" to "Mega X",
             "mega_y" to "Mega Y",
-            // Primal / Primigenio
+            // Primal / Primigenio (Kyogre, Groudon)
             "primal" to "Primigenio",
+            "Primal" to "Primigenio",
             // Origin
             "origin" to "Origen",
             // Altered / Modificada
@@ -326,6 +327,13 @@ data class PokemonTypeEntry(
             "zygarde_10" to 718,
             "zygarde_complete" to 10120,
         )
+
+        /** Translate a raw form string to Spanish. Returns null if no translation exists. */
+        fun translateForm(form: String, language: AppLanguage): String? {
+            if (language == AppLanguage.EN) return null
+            // ponytail: try exact, then lowercase; DialgaDex sometimes capitalizes
+            return formTranslations[form] ?: formTranslations[form.lowercase()]
+        }
     }
 }
 
