@@ -45,9 +45,13 @@ jobs:
 
       - name: Install Android SDK 37
         run: |
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-37.0" "build-tools;37.0.0"
+          export SDK_ROOT="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+          echo "SDK root: $SDK_ROOT"
+          ls "$SDK_ROOT/cmdline-tools/" 2>/dev/null || echo "No cmdline-tools found"
+          yes | "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$SDK_ROOT" "platforms;android-37.0" "build-tools;37.0.0"
           # AGP expects android-37 not android-37.0
-          mv $ANDROID_HOME/platforms/android-37.0 $ANDROID_HOME/platforms/android-37 2>/dev/null || true
+          mv "$SDK_ROOT/platforms/android-37.0" "$SDK_ROOT/platforms/android-37" 2>/dev/null || true
+          ls "$SDK_ROOT/platforms/" | grep android-37
 
       - name: Build Release APK
         run: ./gradlew assembleRelease
@@ -97,9 +101,13 @@ jobs:
 
       - name: Install Android SDK 37
         run: |
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-37.0" "build-tools;37.0.0"
+          export SDK_ROOT="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+          echo "SDK root: $SDK_ROOT"
+          ls "$SDK_ROOT/cmdline-tools/" 2>/dev/null || echo "No cmdline-tools found"
+          yes | "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$SDK_ROOT" "platforms;android-37.0" "build-tools;37.0.0"
           # AGP expects android-37 not android-37.0
-          mv $ANDROID_HOME/platforms/android-37.0 $ANDROID_HOME/platforms/android-37 2>/dev/null || true
+          mv "$SDK_ROOT/platforms/android-37.0" "$SDK_ROOT/platforms/android-37" 2>/dev/null || true
+          ls "$SDK_ROOT/platforms/" | grep android-37
 
       - name: Build Debug APK
         run: ./gradlew assembleDebug
