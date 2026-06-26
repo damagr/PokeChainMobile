@@ -1,5 +1,6 @@
 package com.pokechain.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -57,6 +58,11 @@ fun MainScreen() {
                 else -> {}
             }
         }
+    }
+
+    // ponytail: mandatory predictive back on API 36+
+    BackHandler(enabled = currentScreen != Screen.HOME) {
+        currentScreen = Screen.HOME
     }
 
     when (currentScreen) {

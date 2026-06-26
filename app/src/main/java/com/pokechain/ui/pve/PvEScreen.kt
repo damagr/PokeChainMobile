@@ -25,7 +25,7 @@ fun PvEScreen(language: AppLanguage = AppLanguage.ES, advancedMode: Boolean = fa
     val context = LocalContext.current
     val appContext = remember { context.applicationContext }
     val translator = remember { NameTranslator(appContext) }
-    val engine = remember { PvEScrapingEngine(appContext) }
+    val engine = remember { PvEScrapingEngine(context as android.app.Activity) }
     var filters by remember { mutableStateOf(PvEFilterParams()) }
     var results by remember { mutableStateOf<List<PvERankingEntry>>(emptyList()) }
     var searchString by remember { mutableStateOf("") }

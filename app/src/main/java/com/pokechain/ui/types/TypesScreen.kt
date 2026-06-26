@@ -56,8 +56,7 @@ fun TypesScreen(
     var typeLoadError by remember { mutableStateOf<String?>(null) }
 
     // ── PvE state: engine + cache shared across Pokémon lookups ─────
-    val appContext = remember { context.applicationContext }
-    val pveEngine = remember { PvEScrapingEngine(appContext) }
+    val pveEngine = remember { PvEScrapingEngine(context as android.app.Activity) }
     val scope = rememberCoroutineScope()
     var pveRankingCache by remember { mutableStateOf<List<PvERankingEntry>>(emptyList()) }
     var isPveLoading by remember { mutableStateOf(false) }
