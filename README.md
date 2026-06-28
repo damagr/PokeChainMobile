@@ -5,6 +5,16 @@
 
 Aplicación complementaria para Pokémon GO con generador de cadenas de búsqueda, pokédex, calculadora IV, calculadora de exhibiciones y más.
 
+## Índice / Index
+
+| Español | English |
+|---------|---------|
+| [Características](#características) | [Features](#features) |
+| [Stack tecnológico](#stack-tecnológico) | [Tech Stack](#tech-stack) |
+| [Compilar](#compilar) | [Build](#build) |
+| [Licencia](#licencia) | [License](#license) |
+| [¿iPhone?](#iphone) | [iPhone?](#iphone-1) |
+
 ---
 
 ## Características
@@ -50,6 +60,15 @@ Aplicación complementaria para Pokémon GO con generador de cadenas de búsqued
 ## Licencia
 
 [MIT](LICENSE)
+
+### ¿iPhone?
+
+PokeChain es solo para Android. Si usas iPhone, puedes ejecutarlo en tu PC con el emulador oficial de Google:
+
+1. Instala [Android Studio](https://developer.android.com/studio) (gratis, Windows/Mac/Linux)
+2. Abre el Device Manager y crea un dispositivo virtual (ej. Pixel 6 con Android 14+)
+3. Inicia el emulador y descarga el APK desde [GitHub Releases](https://github.com/Damagr/PokeChainMobile/releases)
+4. Arrastra el APK a la ventana del emulador — se instala automáticamente
 
 ---
 
@@ -100,3 +119,12 @@ Companion app for Pokémon GO with search string generator, pokédex, IV calcula
 ## License
 
 [MIT](LICENSE)
+
+### iPhone?
+
+PokeChain is Android-only. If you're on iPhone, you can run it on your PC using Google's official emulator:
+
+1. Install [Android Studio](https://developer.android.com/studio) (free, Windows/Mac/Linux)
+2. Open Device Manager and create a virtual device (e.g. Pixel 6 with Android 14+)
+3. Launch the emulator and download the APK from [GitHub Releases](https://github.com/Damagr/PokeChainMobile/releases)
+4. Drag the APK onto the emulator window — it installs automatically
