@@ -91,8 +91,8 @@ class ShowcaseDataProvider(context: Context) {
         val formKey = formSuffix ?: ""
         // Try exact form key first, then any form iff all forms are identical
         val size = entry.forms[formKey]
-            ?: if (entry.isUniform) entry.forms.values.firstOrNull() else null
-            ?: return null
+            ?: entry.forms.values.firstOrNull().takeIf { entry.isUniform }
+        if (size == null) return null
         return SpeciesFormEntry(
             dex = dex,
             name = entry.name,
