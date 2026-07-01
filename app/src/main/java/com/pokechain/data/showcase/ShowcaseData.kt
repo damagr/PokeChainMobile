@@ -52,7 +52,8 @@ class ShowcaseDataProvider(context: Context) {
 
     data class SpeciesFormData(
         val name: String,
-        val forms: Map<String, SpeciesSize>
+        val forms: Map<String, SpeciesSize>,
+        val isUniform: Boolean   // true if all forms have identical size data
     )
 
     private fun load(context: Context): Map<String, SpeciesFormData> {
@@ -71,7 +72,13 @@ class ShowcaseDataProvider(context: Context) {
                         maxHeight = a[2].jsonPrimitive.content.toDouble()
                     )
                 }
-                SpeciesFormData(name, forms)
+                val sizes = forms.values.toList()
+                val isUniform = sizes.isEmpty() || sizes.all {
+                    it.baseHeight == sizes[0].baseHeight &&
+                    it.baseWeight == sizes[0].baseWeight &&
+                    it.maxHeight == sizes[0].maxHeight
+                }
+                SpeciesFormData(name, forms, isUniform)
             }
         } catch (e: Exception) {
             emptyMap()
@@ -82,8 +89,10 @@ class ShowcaseDataProvider(context: Context) {
     fun getSize(dex: Int, formSuffix: String? = null): SpeciesFormEntry? {
         val entry = data[dex.toString()] ?: return null
         val formKey = formSuffix ?: ""
-        // Try exact form key first, then "" (default)
-        val size = entry.forms[formKey] ?: entry.forms[""] ?: return null
+        // Try exact form key first, then any form iff all forms are identical
+        val size = entry.forms[formKey]
+            ?: if (entry.isUniform) entry.forms.values.firstOrNull() else null
+            ?: return null
         return SpeciesFormEntry(
             dex = dex,
             name = entry.name,
