@@ -21,6 +21,7 @@ class PvEScrapingEngine(private val activity: Activity) {
 
     private var webView: WebView? = null
     private var bridge: EngineBridge? = null
+    private var readyDeferred: CompletableDeferred<Unit>? = null
     private val json = Json { ignoreUnknownKeys = true }
 
     private var lastCount: Int? = null
@@ -42,30 +43,41 @@ class PvEScrapingEngine(private val activity: Activity) {
     }
 
     suspend fun init() = withContext(Dispatchers.Main) {
-        if (webView != null) return@withContext
-        val b = EngineBridge()
-        val deferred = CompletableDeferred<Boolean>()
-        bridge = b
+        // If init already in progress, wait for it; if already done, return
+        readyDeferred?.let { it.await(); return@withContext }
+        val pageReady = CompletableDeferred<Unit>()
+        readyDeferred = pageReady
+        try {
+            val b = EngineBridge()
+            val deferred = CompletableDeferred<Boolean>()
+            bridge = b
 
-        val wv = WebView(activity).apply {
-            layoutParams = FrameLayout.LayoutParams(1, 1)
-            settings.javaScriptEnabled = true
-            settings.domStorageEnabled = true
-            settings.cacheMode = android.webkit.WebSettings.LOAD_CACHE_ELSE_NETWORK
-            addJavascriptInterface(b, "Android")
-            webViewClient = object : WebViewClient() {
-                override fun onPageFinished(view: WebView, url: String) {
-                    if (deferred.isCompleted) return
-                    pollReady(view, deferred)
+            val wv = WebView(activity).apply {
+                layoutParams = FrameLayout.LayoutParams(1, 1)
+                settings.javaScriptEnabled = true
+                settings.domStorageEnabled = true
+                settings.cacheMode = android.webkit.WebSettings.LOAD_CACHE_ELSE_NETWORK
+                addJavascriptInterface(b, "Android")
+                webViewClient = object : WebViewClient() {
+                    override fun onPageFinished(view: WebView, url: String) {
+                        if (deferred.isCompleted) return
+                        pollReady(view, deferred)
+                    }
                 }
+                loadUrl("https://dialgadex.com/?strongest&t=Any")
             }
-            loadUrl("https://dialgadex.com/?strongest&t=Any")
+            // ponytail: attach to window, Android 16+ requires Window for WebView
+            activity.window.decorView.findViewById<FrameLayout>(android.R.id.content)
+                ?.addView(wv)
+            withTimeout(90_000) { deferred.await() }
+            // Only assign webView once the page is actually ready
+            webView = wv
+            pageReady.complete(Unit)
+        } catch (e: Exception) {
+            // Init failed — allow a retry on next call
+            readyDeferred = null
+            throw e
         }
-        // ponytail: attach to window, Android 16+ requires Window for WebView
-        activity.window.decorView.findViewById<FrameLayout>(android.R.id.content)
-            ?.addView(wv)
-        webView = wv
-        withTimeout(90_000) { deferred.await() }
     }
 
     private fun pollReady(view: WebView, deferred: CompletableDeferred<Boolean>) {

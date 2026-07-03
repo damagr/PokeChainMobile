@@ -6,7 +6,6 @@ class PvPDataProcessor(
     private val gameMaster: GameMasterResponse
 ) {
     private val pokemonMap = gameMaster.pokemon.associateBy { it.speciesId }
-    private val shadowPokemon = gameMaster.shadowPokemon?.toSet() ?: emptySet()
 
     fun processRankings(raw: List<PvPRawEntry>, filters: PvPFilterParams): List<PvPResult> {
         return raw
@@ -23,7 +22,6 @@ class PvPDataProcessor(
                     needsXL = poke?.let { needsXLCandy(it, filters.league) } ?: false,
                     eliteMoves = poke?.eliteMoves?.filter { it in entry.moveset }?.toSet() ?: emptySet(),
                     dex = poke?.dex ?: 0,
-                    family = poke?.family,
                     originalRank = index + 1,
                 )
             }
@@ -33,7 +31,9 @@ class PvPDataProcessor(
 
     fun traceBaseForm(entry: PvPResult): String? {
         var speciesId = entry.speciesId.removeSuffix("_shadow").removeSuffix("_xl")
+        val seen = mutableSetOf<String>()
         while (true) {
+            if (!seen.add(speciesId)) break
             val poke = pokemonMap[speciesId] ?: break
             val parent = poke.family?.parent ?: break
             speciesId = parent
@@ -41,7 +41,7 @@ class PvPDataProcessor(
         return speciesId
     }
 
-    fun traceBaseFormForDex(dex: Int, form: String = "Normal"): String? {
+    fun traceBaseFormForDex(dex: Int): String? {
         val poke = gameMaster.pokemon
             .filter { it.dex == dex }
             .minByOrNull { it.speciesId.length }
@@ -66,18 +66,6 @@ class PvPDataProcessor(
     fun traceBaseDexForDex(dex: Int): Int? {
         val baseSpeciesId = traceBaseFormForDex(dex)
         return pokemonMap[baseSpeciesId]?.dex
-    }
-
-    fun traceBaseFormById(speciesId: String): String? {
-        var current = speciesId.removeSuffix("_shadow")
-        val seen = mutableSetOf<String>()
-        while (true) {
-            if (!seen.add(current)) break
-            val poke = pokemonMap[current] ?: break
-            val parent = poke.family?.parent ?: break
-            current = parent
-        }
-        return current
     }
 
     private fun cleanName(name: String): String {
@@ -108,6 +96,5 @@ data class PvPResult(
     val needsXL: Boolean,
     val eliteMoves: Set<String>,
     val dex: Int,
-    val family: Family?,
     val originalRank: Int = 0,
 )
