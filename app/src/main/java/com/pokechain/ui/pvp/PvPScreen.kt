@@ -2,7 +2,7 @@ package com.pokechain.ui.pvp
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -286,7 +286,7 @@ fun PvPScreen(language: AppLanguage = AppLanguage.ES, advancedMode: Boolean = fa
         }
 
         LazyColumn(modifier = Modifier.fillMaxSize()) {
-            itemsIndexed(results) { index, result ->
+            items(results) { result ->
                 PokemonRow(
                     rank = result.originalRank,
                     name = result.speciesName,

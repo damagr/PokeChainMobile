@@ -25,6 +25,20 @@ import com.pokechain.data.models.AppLanguage
 import com.pokechain.data.models.Strings
 import com.pokechain.ui.components.LanguageSelector
 
+import androidx.compose.ui.graphics.vector.ImageVector
+
+@Composable
+fun rememberVersionName(): String {
+    val context = LocalContext.current
+    return remember {
+        try {
+            context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "?"
+        } catch (_: Exception) {
+            "?"
+        }
+    }
+}
+
 @Composable
 fun HomeScreen(
     language: AppLanguage,
@@ -34,14 +48,7 @@ fun HomeScreen(
     onIvCalcClick: () -> Unit,
     onShowcaseClick: () -> Unit
 ) {
-    val context = LocalContext.current
-    val versionName = remember {
-        try {
-            context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "?"
-        } catch (e: Exception) {
-            "?"
-        }
-    }
+    val versionName = rememberVersionName()
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -85,161 +92,46 @@ fun HomeScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    ElevatedCard(
+                    HomeCard(
+                        icon = Icons.Default.Shield,
+                        title = Strings.typesSection(language),
+                        subtitle = when (language) {
+                            AppLanguage.EN -> "Check types, weaknesses & rankings"
+                            AppLanguage.ES -> "Consultar tipos, debilidades y rankings"
+                        },
                         onClick = onTypesClick,
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(160.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Shield,
-                                contentDescription = null,
-                                modifier = Modifier.size(48.dp),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                            Spacer(Modifier.height(12.dp))
-                            Text(
-                                text = Strings.typesSection(language),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                textAlign = TextAlign.Center
-                            )
-                            Spacer(Modifier.height(4.dp))
-                            Text(
-                                text = when (language) {
-                                    AppLanguage.EN -> "Check types, weaknesses & rankings"
-                                    AppLanguage.ES -> "Consultar tipos, debilidades y rankings"
-                                },
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                    }
-
-                    ElevatedCard(
+                        modifier = Modifier.weight(1f)
+                    )
+                    HomeCard(
+                        icon = Icons.Default.Cable,
+                        title = Strings.chainSection(language),
+                        subtitle = when (language) {
+                            AppLanguage.EN -> "Generate search strings"
+                            AppLanguage.ES -> "Generar cadenas de búsqueda"
+                        },
                         onClick = onChainClick,
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(160.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Cable,
-                                contentDescription = null,
-                                modifier = Modifier.size(48.dp),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                            Spacer(Modifier.height(12.dp))
-                            Text(
-                                text = Strings.chainSection(language),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                textAlign = TextAlign.Center
-                            )
-                            Spacer(Modifier.height(4.dp))
-                            Text(
-                                text = when (language) {
-                                    AppLanguage.EN -> "Generate search strings"
-                                    AppLanguage.ES -> "Generar cadenas de búsqueda"
-                                },
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                    }
+                        modifier = Modifier.weight(1f)
+                    )
                 }
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    ElevatedCard(
+                    HomeCard(
+                        icon = Icons.Default.Star,
+                        title = Strings.ivCalcSection(language),
+                        subtitle = Strings.ivCheckStats(language),
                         onClick = onIvCalcClick,
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(160.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Star,
-                                contentDescription = null,
-                                modifier = Modifier.size(48.dp),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                            Spacer(Modifier.height(12.dp))
-                            Text(
-                                text = Strings.ivCalcSection(language),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                textAlign = TextAlign.Center
-                            )
-                            Spacer(Modifier.height(4.dp))
-                            Text(
-                                text = Strings.ivCheckStats(language),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                    }
-
-                    ElevatedCard(
+                        modifier = Modifier.weight(1f)
+                    )
+                    HomeCard(
+                        icon = Icons.Default.EmojiEvents,
+                        title = Strings.showcaseSection(language),
+                        subtitle = Strings.showcaseSubtitle(language),
                         onClick = onShowcaseClick,
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(160.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(16.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.EmojiEvents,
-                                contentDescription = null,
-                                modifier = Modifier.size(48.dp),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                            Spacer(Modifier.height(12.dp))
-                            Text(
-                                text = Strings.showcaseSection(language),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                textAlign = TextAlign.Center
-                            )
-                            Spacer(Modifier.height(4.dp))
-                            Text(
-                                text = Strings.showcaseSubtitle(language),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                    }
-
+                        modifier = Modifier.weight(1f)
+                    )
                 }
             }
 
@@ -255,6 +147,34 @@ fun HomeScreen(
                     .clip(CircleShape)
                     .alpha(0.5f)
             )
+        }
+    }
+}
+
+@Composable
+private fun HomeCard(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    ElevatedCard(
+        onClick = onClick,
+        modifier = modifier.height(160.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(icon, contentDescription = null, modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.primary)
+            Spacer(Modifier.height(12.dp))
+            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
+            Spacer(Modifier.height(4.dp))
+            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
         }
     }
 }

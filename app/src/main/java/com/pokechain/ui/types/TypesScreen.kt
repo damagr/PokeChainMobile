@@ -34,6 +34,7 @@ import com.pokechain.data.models.Strings
 import com.pokechain.data.models.TypeChart
 import com.pokechain.data.pvpoke.PvPokeApi
 import com.pokechain.data.pvpoke.GameMasterResponse
+import com.pokechain.data.pvpoke.PvPRawEntry
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -352,7 +353,7 @@ private fun PokemonTypeDetail(
             val mainLeagues = listOf(PvPLeague.GREAT, PvPLeague.ULTRA, PvPLeague.MASTER)
             val mainRanks = coroutineScope {
                 mainLeagues.map { league ->
-                    async { fetchLeagueRank(league, gm, targetDex) }
+                    async { fetchLeagueRank(league, gm, targetDex, language) }
                 }.awaitAll()
             }
 
@@ -360,12 +361,12 @@ private fun PokemonTypeDetail(
             val cupLeagues = allLeagues.filter { it !in mainLeagues }
             val cupRanks = coroutineScope {
                 cupLeagues.map { league ->
-                    async { fetchLeagueRank(league, gm, targetDex) }
+                    async { fetchLeagueRank(league, gm, targetDex, language) }
                 }.awaitAll()
             }
 
             pvpRanks = (mainRanks + cupRanks)
-                .filter { it.normalRank != null || it.shadowRank != null }
+                .filter { it.ranks.isNotEmpty() }
                 .sortedBy { it.league.ordinal }
         } catch (e: Exception) {
             pvpError = e.message
@@ -555,10 +556,16 @@ fun TypeBadge(
 
 // ── PvP Rankings Card ───────────────────────────────────────────────
 
+data class PvpFormRank(
+    val speciesId: String,
+    val formLabel: String,
+    val isShadow: Boolean,
+    val rank: Int,           // 1..100
+)
+
 data class PvpLeagueRank(
     val league: PvPLeague,
-    val normalRank: Int?,   // 1..100 or null
-    val shadowRank: Int?    // 1..100 or null
+    val ranks: List<PvpFormRank>,   // one entry per form found in top 100
 )
 
 @Composable
@@ -610,72 +617,98 @@ private fun PvpRankingsCard(
                 }
 
                 else -> {
-                    Column {
-                        ranks.forEach { entry ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 2.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        ranks.forEach { leagueEntry ->
+                            // League header
                             Text(
-                                text = Strings.leagueName(entry.league, language),
-                                style = MaterialTheme.typography.bodyMedium
+                                text = Strings.leagueName(leagueEntry.league, language),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                            Spacer(Modifier.weight(1f))
-                            entry.normalRank?.let { r ->
-                                Text(
-                                    text = "#$r",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary,
-                                )
-                            }
-                            if (entry.normalRank != null && entry.shadowRank != null) {
-                                Spacer(Modifier.width(8.dp))
-                            }
-                            entry.shadowRank?.let { r ->
-                                Text(
-                                    text = when (language) {
-                                        AppLanguage.EN -> "Shadow #$r"
-                                        AppLanguage.ES -> "Oscuro #$r"
-                                    },
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = PokemonType.POISON.color,
-                                )
-                            }
+                            // One row per form, sorted by rank asc
+                            leagueEntry.ranks
+                                .sortedBy { it.rank }
+                                .forEach { fr ->
+                                    val color = if (fr.isShadow)
+                                        PokemonType.POISON.color
+                                    else
+                                        MaterialTheme.colorScheme.primary
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(start = 8.dp, top = 1.dp, bottom = 1.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = fr.formLabel,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = color
+                                        )
+                                        Spacer(Modifier.weight(1f))
+                                        Text(
+                                            text = "#${fr.rank}",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = color
+                                        )
+                                    }
+                                }
                         }
                     }
-                }
                 }
             }
         }
     }
 }
 
-// ── Helper: fetch rank for a single league (normal + shadow) ───────
+// ── Helper: build form ranks from raw ranking entries (pure, testable) ──
+
+internal fun buildFormRanks(
+    raw: List<PvPRawEntry>,
+    targetDex: Int,
+    gm: GameMasterResponse,
+    language: AppLanguage
+): List<PvpFormRank> {
+    val shadowTag = Strings.pveShadow(language)
+    val normalTag = Strings.pveNormal(language)
+    return raw.mapIndexedNotNull { idx, entry ->
+        val dex = resolveDex(entry.speciesId, gm) ?: return@mapIndexedNotNull null
+        if (dex != targetDex) return@mapIndexedNotNull null
+        val rank = idx + 1
+        if (rank > 100) return@mapIndexedNotNull null
+
+        val isShadow = entry.speciesId.endsWith("_shadow")
+        val base = entry.speciesId.removeSuffix("_shadow")
+        val formBase = if (!base.contains("_")) {
+            normalTag
+        } else {
+            val suffix = base.substringAfter("_")
+            // ponytail: capitalize fallback suffix for EN (translateForm returns null in EN)
+            PokemonTypeEntry.translateForm(suffix, language) ?: suffix.replaceFirstChar { it.uppercase() }
+        }
+        val formLabel = when {
+            isShadow && formBase != normalTag -> "$formBase $shadowTag"
+            isShadow -> shadowTag
+            else -> formBase
+        }
+        PvpFormRank(entry.speciesId, formLabel, isShadow, rank)
+    }
+}
+
+// ── Helper: fetch rank for a single league (network wrapper) ───────
 
 private suspend fun fetchLeagueRank(
     league: PvPLeague,
     gm: GameMasterResponse,
-    targetDex: Int
+    targetDex: Int,
+    language: AppLanguage
 ): PvpLeagueRank {
     return try {
         val raw = PvPokeApi.fetchRankings(league.cp, league.cup)
-        val normalIdx = raw.indexOfFirst {
-            !it.speciesId.endsWith("_shadow") && resolveDex(it.speciesId, gm) == targetDex
-        }
-        val shadowIdx = raw.indexOfFirst {
-            it.speciesId.endsWith("_shadow") && resolveDex(it.speciesId, gm) == targetDex
-        }
-        PvpLeagueRank(
-            league = league,
-            normalRank = if (normalIdx >= 0) (normalIdx + 1).takeIf { it <= 100 } else null,
-            shadowRank = if (shadowIdx >= 0) (shadowIdx + 1).takeIf { it <= 100 } else null
-        )
+        PvpLeagueRank(league, buildFormRanks(raw, targetDex, gm, language))
     } catch (_: Exception) {
-        PvpLeagueRank(league, null, null)
+        PvpLeagueRank(league, emptyList())
     }
 }
 

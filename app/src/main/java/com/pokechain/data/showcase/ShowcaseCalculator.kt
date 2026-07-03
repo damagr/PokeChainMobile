@@ -30,7 +30,7 @@ object ShowcaseCalculator {
         hpIv: Int? = null
     ): ShowcaseResult {
         val ratio = size.maxHeight / size.baseHeight
-        val maxWeight = size.baseWeight * (ratio + 0.5)
+        val maxWeight = size.maxWeight
         val cappedHeight = min(inputHeight, size.maxHeight)
         val cappedWeight = min(inputWeight, maxWeight)
 

@@ -88,37 +88,21 @@ fun CleanScreen(language: AppLanguage = AppLanguage.ES) {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    leftAttrs.forEachIndexed { colIndex, attr ->
-                        val label = when (language) {
-                            AppLanguage.ES -> attr.labelEs
-                            AppLanguage.EN -> attr.labelEn
-                        }
-                        ToggleRow(
-                            label = label,
-                            checked = checked[colIndex],
-                            onCheckedChange = { checked[colIndex] = it }
-                        )
-                        if (colIndex < leftAttrs.size - 1) {
-                            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-                        }
-                    }
-                }
-
-                Column(modifier = Modifier.weight(1f)) {
-                    rightAttrs.forEachIndexed { colIndex, attr ->
-                        val globalIndex = 6 + colIndex
-                        val label = when (language) {
-                            AppLanguage.ES -> attr.labelEs
-                            AppLanguage.EN -> attr.labelEn
-                        }
-                        ToggleRow(
-                            label = label,
-                            checked = checked[globalIndex],
-                            onCheckedChange = { checked[globalIndex] = it }
-                        )
-                        if (colIndex < rightAttrs.size - 1) {
-                            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                listOf(leftAttrs to 0, rightAttrs to 6).forEach { (attrs, offset) ->
+                    Column(modifier = Modifier.weight(1f)) {
+                        attrs.forEachIndexed { i, attr ->
+                            val globalIndex = offset + i
+                            ToggleRow(
+                                label = when (language) {
+                                    AppLanguage.ES -> attr.labelEs
+                                    AppLanguage.EN -> attr.labelEn
+                                },
+                                checked = checked[globalIndex],
+                                onCheckedChange = { checked[globalIndex] = it }
+                            )
+                            if (i < attrs.size - 1) {
+                                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                            }
                         }
                     }
                 }

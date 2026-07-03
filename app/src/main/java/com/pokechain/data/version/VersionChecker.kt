@@ -25,10 +25,12 @@ data class GitHubReleaseAsset(
     @SerialName("browser_download_url") val browserDownloadUrl: String
 )
 
-class VersionChecker(private val okHttpClient: OkHttpClient = OkHttpClient.Builder()
-    .connectTimeout(10, TimeUnit.SECONDS)
-    .readTimeout(10, TimeUnit.SECONDS)
-    .build()) {
+class VersionChecker {
+
+    private val okHttpClient = OkHttpClient.Builder()
+        .connectTimeout(10, TimeUnit.SECONDS)
+        .readTimeout(10, TimeUnit.SECONDS)
+        .build()
 
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -52,7 +54,7 @@ class VersionChecker(private val okHttpClient: OkHttpClient = OkHttpClient.Build
                 val current = currentVersion.removePrefix("v")
 
                 val latestRelease = releases
-                    .filter { !it.prerelease && !it.tagName.isNullOrBlank() }
+                    .filter { !it.prerelease && it.tagName.isNotBlank() }
                     .maxByOrNull { compareVersions(it.tagName.removePrefix("v"), "0") }
 
                 if (latestRelease == null) {
@@ -75,7 +77,7 @@ class VersionChecker(private val okHttpClient: OkHttpClient = OkHttpClient.Build
         }
     }
 
-    private fun compareVersions(v1: String, v2: String): Int {
+    internal fun compareVersions(v1: String, v2: String): Int {
         val parts1 = v1.split("-")[0].split(".").map { it.toIntOrNull() ?: 0 }
         val parts2 = v2.split("-")[0].split(".").map { it.toIntOrNull() ?: 0 }
         val maxLength = maxOf(parts1.size, parts2.size)

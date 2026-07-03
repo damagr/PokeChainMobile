@@ -3,7 +3,6 @@ package com.pokechain.data.dialgadex
 import com.pokechain.data.models.AppLanguage
 import com.pokechain.data.models.BaseStats
 import com.pokechain.data.models.PokemonType
-import com.pokechain.data.models.TypeChart
 import com.pokechain.data.pvpoke.PvPokeApi
 
 data class PokemonTypeEntry(
@@ -16,9 +15,7 @@ data class PokemonTypeEntry(
     val isBaseForm: Boolean get() = !speciesId.contains("_")
 
     /** PokeAPI sprite ID — base forms use dex, alternate forms use hardcoded IDs */
-    val spriteId: Int get() = (PokemonTypeEntry.spriteIds[speciesId] ?: dex).also {
-        android.util.Log.d("SpriteDebug", "speciesId=$speciesId dex=$dex → spriteId=$it")
-    }
+    val spriteId: Int get() = spriteIds[speciesId] ?: dex
 
     /** Returns the localized display name, translating form suffixes when possible. */
     fun displayName(language: AppLanguage, translator: NameTranslator): String {
@@ -337,14 +334,6 @@ data class PokemonTypeEntry(
     }
 }
 
-data class CounterEntry(
-    val speciesId: String,
-    val dex: Int,
-    val name: String,
-    val types: List<PokemonType>,
-    val netScore: Double
-)
-
 class PokemonTypeProvider {
     @Volatile
     private var allEntries: List<PokemonTypeEntry>? = null
@@ -379,20 +368,6 @@ class PokemonTypeProvider {
             isLoading = false
         }
     }
-
-    /** All forms for a given dex number, base form first */
-    fun getFormsByDex(dex: Int): List<PokemonTypeEntry> {
-        val entries = allEntries ?: return emptyList()
-        return entries
-            .filter { it.dex == dex }
-            .sortedBy { it.speciesId.length } // base form first
-    }
-
-    fun getBySpeciesId(speciesId: String): PokemonTypeEntry? =
-        allEntries?.find { it.speciesId == speciesId }
-
-    fun getBaseStats(speciesId: String): BaseStats? =
-        allEntries?.find { it.speciesId == speciesId }?.baseStats
 
     /**
      * Searches all forms by gamemaster name, dex number, or localized base name.
@@ -435,40 +410,5 @@ class PokemonTypeProvider {
                 displayName.contains(word)
             }
         }
-    }
-
-    /**
-     * Finds the best counter Pokémon for the given target types.
-     * A counter is a Pokémon whose types deal super-effective damage to the target
-     * while resisting the target's attacks in return.
-     */
-    fun findCounters(targetTypes: List<PokemonType>, topN: Int = 15): List<CounterEntry> {
-        val entries = allEntries ?: return emptyList()
-        if (targetTypes.isEmpty()) return emptyList()
-
-        return entries
-            .filter { it.types.isNotEmpty() }
-            .map { candidate ->
-                // Offensive: best multiplier of candidate's types vs target
-                val offensive = candidate.types.maxOf { candType ->
-                    targetTypes.fold(1.0) { acc, targetType ->
-                        acc * TypeChart.getMultiplier(candType, targetType)
-                    }
-                }
-
-                // Defensive: best multiplier of target's types vs candidate
-                val defensive = targetTypes.maxOf { targetType ->
-                    candidate.types.fold(1.0) { acc, candType ->
-                        acc * TypeChart.getMultiplier(targetType, candType)
-                    }
-                }
-
-                val netScore = offensive / defensive
-                CounterEntry(candidate.speciesId, candidate.dex, candidate.name, candidate.types, netScore)
-            }
-            .filter { it.netScore > 1.0 }
-            .distinctBy { it.dex } // one entry per dex
-            .sortedByDescending { it.netScore }
-            .take(topN)
     }
 }

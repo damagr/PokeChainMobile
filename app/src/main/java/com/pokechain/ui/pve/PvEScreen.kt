@@ -2,7 +2,7 @@ package com.pokechain.ui.pve
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -306,17 +306,14 @@ fun PvEScreen(language: AppLanguage = AppLanguage.ES, advancedMode: Boolean = fa
         }
 
         LazyColumn(modifier = Modifier.fillMaxSize()) {
-            itemsIndexed(results) { index, entry ->
+            items(results) { entry ->
+                val moveset = "${entry.fm?.let { fm -> translator.getMoveName(fm, language) } ?: "-"}${if (entry.fmIsElite) "*" else ""}/${
+                    entry.cm?.let { cm -> translator.getMoveName(cm, language) } ?: "-" }${if (entry.cmIsElite) "*" else ""}"
                 PokemonRow(
                     rank = entry.originalRank,
                     name = cleanPvEName(entry.name, entry.form, language),
                     score = "%.2f".format(entry.rat),
-                    subtitle = entry.tier?.let {
-                        "Tier $it — ${entry.fm?.let { fm -> translator.getMoveName(fm, language) } ?: "-"}${if (entry.fmIsElite) "*" else ""}/${
-                            entry.cm?.let { cm -> translator.getMoveName(cm, language) } ?: "-" }${if (entry.cmIsElite) "*" else ""}"
-                    }
-                        ?: "${entry.fm?.let { fm -> translator.getMoveName(fm, language) } ?: "-"}${if (entry.fmIsElite) "*" else ""}/${
-                            entry.cm?.let { cm -> translator.getMoveName(cm, language) } ?: "-" }${if (entry.cmIsElite) "*" else ""}",
+                    subtitle = entry.tier?.let { "Tier $it — $moveset" } ?: moveset,
                     tags = listOfNotNull(
                         if (entry.shadow) Strings.tagShadow(language) else null,
                         if (entry.form.startsWith("Mega")) Strings.tagMega(language) else null

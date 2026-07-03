@@ -32,13 +32,7 @@ fun MainScreen() {
     var language by remember { mutableStateOf(AppLanguage.ES) }
 
     val context = LocalContext.current
-    val versionName = remember {
-        try {
-            context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "?"
-        } catch (e: Exception) {
-            "?"
-        }
-    }
+    val versionName = rememberVersionName()
     var showUpdateDialog by remember { mutableStateOf(false) }
     var updateInfo by remember { mutableStateOf<VersionCheckResult.UpdateAvailable?>(null) }
     var isDownloading by remember { mutableStateOf(false) }

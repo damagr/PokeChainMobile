@@ -1,7 +1,5 @@
 package com.pokechain.data.pvpoke
 
-import com.pokechain.data.models.Move
-import com.pokechain.data.models.Pokemon
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json

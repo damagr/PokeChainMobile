@@ -1,10 +1,9 @@
 package com.pokechain.data.showcase
 
 import android.content.Context
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 
 /**
  * Per-form size data: [pokedexHeight(m), pokedexWeight(kg), maxHeight(m)].
@@ -15,10 +14,7 @@ data class SpeciesSize(
     val maxHeight: Double
 ) {
     /** Derived maximum weight for this species. */
-    val maxWeight: Double get() {
-        val ratio = maxHeight / baseHeight
-        return baseWeight * (ratio + 0.5)
-    }
+    val maxWeight: Double get() = baseWeight * (maxHeight / baseHeight + 0.5)
 }
 
 /**
@@ -39,11 +35,14 @@ data class ShowcaseResult(
     val maxW: Double
 )
 
+@Serializable
+private data class ShowcaseFileEntry(
+    @SerialName("n") val name: String,
+    @SerialName("f") val forms: Map<String, List<Double>>
+)
+
 /**
  * Loads per-species size data from the bundled [showcase_data.json] asset.
- *
- * Data structure: `{ "dex": { "n": "Name", "f": { "formId": [baseH, baseW, maxH], ... } } }`
- * where dex is a string, formId "" is the default form.
  */
 class ShowcaseDataProvider(context: Context) {
 
@@ -53,51 +52,39 @@ class ShowcaseDataProvider(context: Context) {
     data class SpeciesFormData(
         val name: String,
         val forms: Map<String, SpeciesSize>,
-        val isUniform: Boolean   // true if all forms have identical size data
+        val isUniform: Boolean
     )
 
     private fun load(context: Context): Map<String, SpeciesFormData> {
         return try {
             val text = context.assets.open("showcase_data.json")
                 .bufferedReader().use { it.readText() }
-            val root = json.parseToJsonElement(text).jsonObject
-            root.mapValues { (_, v) ->
-                val obj = v.jsonObject
-                val name = obj["n"]!!.jsonPrimitive.content
-                val forms = obj["f"]!!.jsonObject.mapValues { (_, arr) ->
-                    val a = arr.jsonArray
-                    SpeciesSize(
-                        baseHeight = a[0].jsonPrimitive.content.toDouble(),
-                        baseWeight = a[1].jsonPrimitive.content.toDouble(),
-                        maxHeight = a[2].jsonPrimitive.content.toDouble()
-                    )
+            json.decodeFromString<Map<String, ShowcaseFileEntry>>(text)
+                .mapValues { (_, e) ->
+                    val forms = e.forms.mapValues { (_, v) ->
+                        SpeciesSize(v[0], v[1], v[2])
+                    }
+                    val sizes = forms.values.toList()
+                    val isUniform = sizes.isEmpty() || sizes.all {
+                        it.baseHeight == sizes[0].baseHeight &&
+                        it.baseWeight == sizes[0].baseWeight &&
+                        it.maxHeight == sizes[0].maxHeight
+                    }
+                    SpeciesFormData(e.name, forms, isUniform)
                 }
-                val sizes = forms.values.toList()
-                val isUniform = sizes.isEmpty() || sizes.all {
-                    it.baseHeight == sizes[0].baseHeight &&
-                    it.baseWeight == sizes[0].baseWeight &&
-                    it.maxHeight == sizes[0].maxHeight
-                }
-                SpeciesFormData(name, forms, isUniform)
-            }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             emptyMap()
         }
     }
 
-    /** Get size data for a species by dex number and optional form suffix (e.g. "alolan"). */
+    /** Get size data for a species by dex number and optional form suffix. */
     fun getSize(dex: Int, formSuffix: String? = null): SpeciesFormEntry? {
         val entry = data[dex.toString()] ?: return null
         val formKey = formSuffix ?: ""
-        // Try exact form key first, then any form iff all forms are identical
         val size = entry.forms[formKey]
             ?: entry.forms.values.firstOrNull().takeIf { entry.isUniform }
-        if (size == null) return null
-        return SpeciesFormEntry(
-            dex = dex,
-            name = entry.name,
-            size = size
-        )
+            ?: return null
+        return SpeciesFormEntry(dex, entry.name, size)
     }
 
     /** Search by name or dex number. Returns dex numbers of matches. */
@@ -106,9 +93,7 @@ class ShowcaseDataProvider(context: Context) {
         val q = query.trim().lowercase()
         return data.entries
             .filter { (dex, entry) ->
-                dex == q ||
-                entry.name.lowercase().contains(q) ||
-                dex.startsWith(q)
+                dex == q || entry.name.lowercase().contains(q) || dex.startsWith(q)
             }
             .mapNotNull { it.key.toIntOrNull() }
             .sorted()

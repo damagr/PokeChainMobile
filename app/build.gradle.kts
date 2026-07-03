@@ -84,4 +84,9 @@ dependencies {
     implementation("io.coil-kt:coil-compose:2.7.0")
 
     // WebView is part of the Android framework — no extra dependency needed
+
+    // ── Test ────────────────────────────────────────────────────────
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("androidx.compose.ui:ui-graphics")
+    testImplementation(platform("androidx.compose:compose-bom:2024.12.01"))
 }

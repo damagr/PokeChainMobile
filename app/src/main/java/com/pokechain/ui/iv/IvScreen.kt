@@ -649,29 +649,11 @@ private fun formatPerfection(perfection: Double, language: AppLanguage): String 
  *          "Fletchinder" + 93% → "Fletchind⁹³" (13→11, truncated)
  */
 private fun buildGoName(pokemonName: String, perfection: Int): String {
-    val superScript = perfection.toString().map {
-        when (it) {
-            '0' -> '⁰'
-            '1' -> '¹'
-            '2' -> '²'
-            '3' -> '³'
-            '4' -> '⁴'
-            '5' -> '⁵'
-            '6' -> '⁶'
-            '7' -> '⁷'
-            '8' -> '⁸'
-            '9' -> '⁹'
-            else -> it
-        }
-    }.joinToString("")
-
+    val supers = "⁰¹²³⁴⁵⁶⁷⁸⁹"
+    val superScript = perfection.toString().map { if (it.isDigit()) supers[it - '0'] else it }.joinToString("")
     val maxLen = 12
     var name = pokemonName
-
-    while (name.length + superScript.length > maxLen && name.length > 1) {
-        name = name.dropLast(1)
-    }
-
+    while (name.length + superScript.length > maxLen && name.length > 1) name = name.dropLast(1)
     return name + superScript
 }
 

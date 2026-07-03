@@ -26,7 +26,6 @@ object Strings {
     fun copy(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Copy"; AppLanguage.ES -> "Copiar" }
     fun copied(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Copied!"; AppLanguage.ES -> "Copiado" }
     fun close(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Close"; AppLanguage.ES -> "Cerrar" }
-    fun cancel(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Cancel"; AppLanguage.ES -> "Cancelar" }
     fun copyError(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Copy error"; AppLanguage.ES -> "Copiar error" }
     fun apply(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Apply"; AppLanguage.ES -> "Aplicar" }
     fun xlCandy(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "XL Candy"; AppLanguage.ES -> "Caramelos XL" }
@@ -38,11 +37,8 @@ object Strings {
     fun typeSearch(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Search Pokémon…"; AppLanguage.ES -> "Buscar Pokémon…" }
     fun resistantTo(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Resistant to"; AppLanguage.ES -> "Resistente a" }
     fun weakTo(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Weak to"; AppLanguage.ES -> "Débil contra" }
-    fun immuneTo(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Immune to"; AppLanguage.ES -> "Inmune a" }
-    fun counters(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Counters"; AppLanguage.ES -> "Counters" }
     fun noPokemonSelected(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Search for a Pokémon to see its type info"; AppLanguage.ES -> "Busca un Pokémon para ver sus tipos" }
     fun back(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Back"; AppLanguage.ES -> "Atrás" }
-    fun pokemonNumber(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "No."; AppLanguage.ES -> "N.º" }
     fun unreleased(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Unreleased"; AppLanguage.ES -> "Inédito" }
     fun legendary(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Legendary"; AppLanguage.ES -> "Legendario" }
     fun megaPrimal(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Mega/Primal"; AppLanguage.ES -> "Mega/Primigenio" }
@@ -52,7 +48,6 @@ object Strings {
     fun tagXL(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "XL"; AppLanguage.ES -> "XL" }
     fun tagMega(lang: AppLanguage) = "Mega"
     fun maxCount(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Max 300"; AppLanguage.ES -> "Máx. 300" }
-    fun enterCount(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Enter a number"; AppLanguage.ES -> "Introduce un número" }
     fun enterPositiveCount(lang: AppLanguage) = when (lang) {
         AppLanguage.EN -> "Enter a positive number of Pokémon to display"
         AppLanguage.ES -> "Introduce una cantidad positiva de Pokémon a mostrar"
@@ -80,54 +75,51 @@ object Strings {
         AppLanguage.ES -> "Abre la página de versiones para descargar la nueva versión."
     }
     fun downloading(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Downloading..."; AppLanguage.ES -> "Descargando..." }
-    fun installing(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Installing..."; AppLanguage.ES -> "Instalando..." }
     fun updateFailed(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Download failed"; AppLanguage.ES -> "Fallo al descargar" }
 
+    private val leagueNames: Map<PvPLeague, Pair<String, String>> = mapOf(
+        PvPLeague.GREAT to ("Great" to "Super"),
+        PvPLeague.ULTRA to ("Ultra" to "Ultra"),
+        PvPLeague.MASTER to ("Master" to "Master"),
+        PvPLeague.SUNSHINE to ("Sunshine" to "Luz Solar"),
+        PvPLeague.CATCH to ("Catch" to "Captura"),
+        PvPLeague.COLOR to ("Color" to "Color"),
+        PvPLeague.ELEMENT to ("Element" to "Elemental"),
+        PvPLeague.EVOLUTION to ("Evolution" to "Evolución"),
+        PvPLeague.FANTASY to ("Fantasy" to "Fantasía"),
+        PvPLeague.ULTRA_FANTASY to ("Ultra Fantasy" to "Ultra Fantasía"),
+        PvPLeague.FIGHTING to ("Fighting" to "Lucha"),
+        PvPLeague.FLYING to ("Flying" to "Volador"),
+        PvPLeague.FOSSIL to ("Fossil" to "Fósil"),
+        PvPLeague.HALLOWEEN to ("Halloween" to "Halloween"),
+        PvPLeague.ULTRA_HALLOWEEN to ("Ultra Halloween" to "Ultra Halloween"),
+        PvPLeague.HISUI to ("Hisui" to "Hisui"),
+        PvPLeague.JUNGLE to ("Jungle" to "Jungla"),
+        PvPLeague.KANTO to ("Kanto" to "Kanto"),
+        PvPLeague.LOVE to ("Love" to "Amor"),
+        PvPLeague.MOUNTAIN to ("Mountain" to "Montaña"),
+        PvPLeague.PREMIER to ("Premier" to "Premier"),
+        PvPLeague.ULTRA_PREMIER to ("Ultra Premier" to "Ultra Premier"),
+        PvPLeague.PSYCHIC to ("Psychic" to "Psíquico"),
+        PvPLeague.REMIX to ("Remix" to "Remix"),
+        PvPLeague.ULTRA_REMIX to ("Ultra Remix" to "Ultra Remix"),
+        PvPLeague.RETRO to ("Retro" to "Retro"),
+        PvPLeague.SPRING to ("Spring" to "Primavera"),
+        PvPLeague.SUMMER to ("Summer" to "Verano"),
+        PvPLeague.ULTRA_SUMMER to ("Ultra Summer" to "Ultra Verano"),
+        PvPLeague.WEATHER to ("Weather" to "Clima"),
+        PvPLeague.ULTRA_WEATHER to ("Ultra Weather" to "Ultra Clima"),
+        PvPLeague.WILLPOWER to ("Willpower" to "Voluntad"),
+    )
+
     fun leagueName(league: PvPLeague, lang: AppLanguage) = when (lang) {
-        AppLanguage.EN -> when (league) {
-            PvPLeague.GREAT -> "Great"; PvPLeague.ULTRA -> "Ultra"; PvPLeague.MASTER -> "Master"
-            PvPLeague.SUNSHINE -> "Sunshine"; PvPLeague.CATCH -> "Catch"; PvPLeague.COLOR -> "Color"
-            PvPLeague.ELEMENT -> "Element"; PvPLeague.EVOLUTION -> "Evolution"
-            PvPLeague.FANTASY -> "Fantasy"; PvPLeague.ULTRA_FANTASY -> "Ultra Fantasy"
-            PvPLeague.FIGHTING -> "Fighting"; PvPLeague.FLYING -> "Flying"; PvPLeague.FOSSIL -> "Fossil"
-            PvPLeague.HALLOWEEN -> "Halloween"; PvPLeague.ULTRA_HALLOWEEN -> "Ultra Halloween"
-            PvPLeague.HISUI -> "Hisui"; PvPLeague.JUNGLE -> "Jungle"; PvPLeague.KANTO -> "Kanto"
-            PvPLeague.LOVE -> "Love"; PvPLeague.MOUNTAIN -> "Mountain"
-            PvPLeague.PREMIER -> "Premier"; PvPLeague.ULTRA_PREMIER -> "Ultra Premier"
-            PvPLeague.PSYCHIC -> "Psychic"
-            PvPLeague.REMIX -> "Remix"; PvPLeague.ULTRA_REMIX -> "Ultra Remix"
-            PvPLeague.RETRO -> "Retro"; PvPLeague.SPRING -> "Spring"
-            PvPLeague.SUMMER -> "Summer"; PvPLeague.ULTRA_SUMMER -> "Ultra Summer"
-            PvPLeague.WEATHER -> "Weather"; PvPLeague.ULTRA_WEATHER -> "Ultra Weather"
-            PvPLeague.WILLPOWER -> "Willpower"
-        }
-        AppLanguage.ES -> when (league) {
-            PvPLeague.GREAT -> "Super"; PvPLeague.ULTRA -> "Ultra"; PvPLeague.MASTER -> "Master"
-            PvPLeague.SUNSHINE -> "Luz Solar"; PvPLeague.CATCH -> "Captura"; PvPLeague.COLOR -> "Color"
-            PvPLeague.ELEMENT -> "Elemental"; PvPLeague.EVOLUTION -> "Evolución"
-            PvPLeague.FANTASY -> "Fantasía"; PvPLeague.ULTRA_FANTASY -> "Ultra Fantasía"
-            PvPLeague.FIGHTING -> "Lucha"; PvPLeague.FLYING -> "Volador"; PvPLeague.FOSSIL -> "Fósil"
-            PvPLeague.HALLOWEEN -> "Halloween"; PvPLeague.ULTRA_HALLOWEEN -> "Ultra Halloween"
-            PvPLeague.HISUI -> "Hisui"; PvPLeague.JUNGLE -> "Jungla"; PvPLeague.KANTO -> "Kanto"
-            PvPLeague.LOVE -> "Amor"; PvPLeague.MOUNTAIN -> "Montaña"
-            PvPLeague.PREMIER -> "Premier"; PvPLeague.ULTRA_PREMIER -> "Ultra Premier"
-            PvPLeague.PSYCHIC -> "Psíquico"
-            PvPLeague.REMIX -> "Remix"; PvPLeague.ULTRA_REMIX -> "Ultra Remix"
-            PvPLeague.RETRO -> "Retro"; PvPLeague.SPRING -> "Primavera"
-            PvPLeague.SUMMER -> "Verano"; PvPLeague.ULTRA_SUMMER -> "Ultra Verano"
-            PvPLeague.WEATHER -> "Clima"; PvPLeague.ULTRA_WEATHER -> "Ultra Clima"
-            PvPLeague.WILLPOWER -> "Voluntad"
-        }
+        AppLanguage.EN -> leagueNames[league]!!.first
+        AppLanguage.ES -> leagueNames[league]!!.second
     }
 
     fun errorTitle(screen: String, lang: AppLanguage) = when (lang) {
         AppLanguage.EN -> "$screen Error"
         AppLanguage.ES -> "Error $screen"
-    }
-
-    fun progress(lang: AppLanguage, vararg msgs: String): (Int) -> String {
-        val map = msgs.mapIndexed { i, m -> i to m }.toMap()
-        return { stage -> map[stage] ?: "" }
     }
 
     val pvpProgress: List<Pair<Float, AppLanguage.() -> String>> = listOf(
@@ -142,7 +134,6 @@ object Strings {
     // ── IV Calculator ──────────────────────────────────────────────
     fun ivCalcSection(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "IV Calc"; AppLanguage.ES -> "Calc. IV" }
     fun ivCalculator(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "IV Calculator"; AppLanguage.ES -> "Calculadora IV" }
-    fun ivComingSoon(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Coming soon"; AppLanguage.ES -> "Próximamente" }
     fun ivSelectPokemon(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Select Pokémon…"; AppLanguage.ES -> "Buscar Pokémon…" }
     fun ivCpLabel(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "CP (Combat Points)"; AppLanguage.ES -> "PC (Puntos de Combate)" }
     fun ivAtkLabel(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "ATK IV"; AppLanguage.ES -> "IV Ataque" }
@@ -177,7 +168,6 @@ object Strings {
     fun ivDust(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Dust"; AppLanguage.ES -> "Polvo" }
     fun ivCandyLabel(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Candy"; AppLanguage.ES -> "Caramelos" }
     fun ivXlCandyLabel(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "XL Candy"; AppLanguage.ES -> "Caram. XL" }
-    fun ivGoName(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "GO Name"; AppLanguage.ES -> "Nombre GO" }
 
     // ── Showcase Calculator ─────────────────────────────────────────
     fun showcaseSection(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Showcase"; AppLanguage.ES -> "Exhibición" }
@@ -195,7 +185,6 @@ object Strings {
         AppLanguage.EN -> "Enter valid height, weight, and select a Pokémon first"
         AppLanguage.ES -> "Introduce altura, peso válidos y selecciona un Pokémon"
     }
-    fun showcaseScore(lang: AppLanguage) = "Score"
     fun showcaseMax(lang: AppLanguage) = "/ 1178"
     fun showcaseBreakdown(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Breakdown"; AppLanguage.ES -> "Desglose" }
     fun showcaseIvLabel(lang: AppLanguage) = "IVs"
@@ -215,32 +204,12 @@ object Strings {
     fun pvpTopN(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Top 100"; AppLanguage.ES -> "Top 100" }
     fun pvpOut(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "—"; AppLanguage.ES -> "—" }
     fun pvpLoading(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Loading leagues…"; AppLanguage.ES -> "Cargando ligas…" }
-    fun pvpLoadAll(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Load all cups"; AppLanguage.ES -> "Cargar todas las copas" }
     fun pveRanking(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "PvE Ranking"; AppLanguage.ES -> "Ranking PvE" }
-    fun pveTopN(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Top 200"; AppLanguage.ES -> "Top 200" }
     fun pveNormal(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Normal"; AppLanguage.ES -> "Normal" }
     fun pveShadow(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Shadow"; AppLanguage.ES -> "Oscuro" }
-    fun pveNotRanked(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Not ranked"; AppLanguage.ES -> "No existe" }
     fun pveOutOfClass(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Out of ranking"; AppLanguage.ES -> "Fuera de la clasificación" }
     fun pveLoading(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Loading PvE…"; AppLanguage.ES -> "Cargando PvE…" }
-    fun pveBestMoveset(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Best Moveset"; AppLanguage.ES -> "Mejor Moveset" }
     fun retry(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Retry"; AppLanguage.ES -> "Reintentar" }
-    fun pveInitEngine(lang: AppLanguage) = when (lang) {
-        AppLanguage.EN -> "Initializing PvE engine… (may take up to 60s)"
-        AppLanguage.ES -> "Inicializando motor PvE… (puede tardar hasta 60s)"
-    }
-    fun pveComputing(lang: AppLanguage) = when (lang) {
-        AppLanguage.EN -> "Computing rankings (top 200)…"
-        AppLanguage.ES -> "Calculando rankings (top 200)…"
-    }
-    fun pveTapToLoad(lang: AppLanguage) = when (lang) {
-        AppLanguage.EN -> "Tap to load PvE rankings"
-        AppLanguage.ES -> "Pulsa para cargar ranking PvE"
-    }
-    fun pveLoadButton(lang: AppLanguage) = when (lang) {
-        AppLanguage.EN -> "Load PvE Ranking"
-        AppLanguage.ES -> "Cargar ranking PvE"
-    }
 
     // ── Pokédex type ranking ───────────────────────────────────
     fun pveTypeRanking(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Type Ranking (Top 25)"; AppLanguage.ES -> "Ranking por Tipo (Top 25)" }
