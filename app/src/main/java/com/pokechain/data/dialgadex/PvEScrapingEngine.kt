@@ -128,12 +128,10 @@ class PvEScrapingEngine(private val activity: Activity) {
                     settings_supermega_level = 4;
 
                     // Clear persisted settings so the new supermega level takes effect
-                    view.evaluateJavascript("""
-                        (function() {
-                            localStorage.removeItem('settings_supermega_level');
-                            localStorage.removeItem('settings');
-                        })();
-                    """.trimIndent(), null);
+                    (async function() {
+                        localStorage.removeItem('settings_supermega_level');
+                        localStorage.removeItem('settings');
+                    })();
 
                     var params = {
                         type: "$type", elite: true, mixed: true, offtype: false,
@@ -195,12 +193,10 @@ class PvEScrapingEngine(private val activity: Activity) {
                     settings_supermega_level = 4;
 
                     // Clear persisted settings so the new supermega level takes effect
-                    view.evaluateJavascript("""
-                        (function() {
-                            localStorage.removeItem('settings_supermega_level');
-                            localStorage.removeItem('settings');
-                        })();
-                    """.trimIndent(), null);
+                    (async function() {
+                        localStorage.removeItem('settings_supermega_level');
+                        localStorage.removeItem('settings');
+                    })();
 
                     var params = {
                         type: "Any", elite: true, mixed: true, offtype: true,
