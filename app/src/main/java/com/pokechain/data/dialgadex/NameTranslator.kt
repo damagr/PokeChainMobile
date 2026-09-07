@@ -24,7 +24,9 @@ class NameTranslator(context: Context) {
         val enMoves = enRoot?.jsonObject?.get("moves")?.jsonObject ?: emptyMap()
         val esMoves = esRoot?.jsonObject?.get("moves")?.jsonObject ?: emptyMap()
 
-        esMoveNames = esMoves.mapKeys { it.key }.mapValues { it.value.jsonPrimitive.content }
+        esMoveNames = esMoves.mapKeys { it.key }.mapValues { 
+    it.value.toString().trim() 
+}
 
         moveNameToId = enMoves.entries.associate { (id, name) ->
             name.jsonPrimitive.content.lowercase() to id
