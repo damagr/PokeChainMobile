@@ -113,7 +113,7 @@ class PvEScrapingEngine(private val activity: Activity) {
             val deferred = CompletableDeferred<String>()
             b.pendingDeferred = deferred
 
-            val n = count.coerceAtMost(25)
+            val n = count.coerceAtMost(50)
 
             view.evaluateJavascript("""
             (async function() {

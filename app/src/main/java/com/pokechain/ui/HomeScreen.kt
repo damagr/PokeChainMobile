@@ -4,6 +4,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Cable
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Shield
@@ -45,6 +46,7 @@ fun HomeScreen(
     onLanguageChange: (AppLanguage) -> Unit,
     onChainClick: () -> Unit,
     onTypesClick: () -> Unit,
+    onTypeRankingClick: () -> Unit,
     onIvCalcClick: () -> Unit,
     onShowcaseClick: () -> Unit
 ) {
@@ -119,12 +121,28 @@ fun HomeScreen(
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     HomeCard(
+                        icon = Icons.Default.AutoAwesome,
+                        title = Strings.typeRankingSection(language),
+                        subtitle = when (language) {
+                            AppLanguage.EN -> "Best attackers by type"
+                            AppLanguage.ES -> "Mejores atacantes por tipo"
+                        },
+                        onClick = onTypeRankingClick,
+                        modifier = Modifier.weight(1f)
+                    )
+                    HomeCard(
                         icon = Icons.Default.Star,
                         title = Strings.ivCalcSection(language),
                         subtitle = Strings.ivCheckStats(language),
                         onClick = onIvCalcClick,
                         modifier = Modifier.weight(1f)
                     )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
                     HomeCard(
                         icon = Icons.Default.EmojiEvents,
                         title = Strings.showcaseSection(language),

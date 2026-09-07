@@ -34,6 +34,9 @@ object Strings {
     fun cleanTab(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Clean"; AppLanguage.ES -> "Limpiar" }
     fun chainSection(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Chain"; AppLanguage.ES -> "Cadena" }
     fun typesSection(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Pokédex"; AppLanguage.ES -> "Pokédex" }
+    fun typeRankingSection(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Type Top"; AppLanguage.ES -> "Top por Tipo" }
+    fun typeRankingPickType(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Pick a type…"; AppLanguage.ES -> "Elige un tipo…" }
+    fun typeRankingTier(lang: AppLanguage, tier: String) = when (lang) { AppLanguage.EN -> "Tier $tier"; AppLanguage.ES -> "Grada $tier" }
     fun typeSearch(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Search Pokémon…"; AppLanguage.ES -> "Buscar Pokémon…" }
     fun resistantTo(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Resistant to"; AppLanguage.ES -> "Resistente a" }
     fun weakTo(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Weak to"; AppLanguage.ES -> "Débil contra" }
