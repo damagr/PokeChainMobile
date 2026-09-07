@@ -14,6 +14,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.pokechain.data.dialgadex.NameTranslator
 import com.pokechain.data.dialgadex.PokemonTypeEntry
+import com.pokechain.data.dialgadex.PokemonTypeProvider
 import com.pokechain.data.dialgadex.PvEScrapingEngine
 import com.pokechain.data.models.AppLanguage
 import com.pokechain.data.models.PvERankingEntry
@@ -32,6 +33,7 @@ fun TypeRankingScreen(
     val engine = remember { PvEScrapingEngine(context as android.app.Activity) }
     val scope = rememberCoroutineScope()
     val translator = remember { NameTranslator(context) }
+    val typeProvider = remember { PokemonTypeProvider() }
 
     var showDropdown by remember { mutableStateOf(false) }
     var selectedType by remember { mutableStateOf<PokemonType?>(null) }
@@ -43,6 +45,7 @@ fun TypeRankingScreen(
 
     LaunchedEffect(Unit) {
         engine.init()
+        typeProvider.ensureLoaded()
     }
 
     LaunchedEffect(selectedType, isGlobal, refreshKey) {
@@ -97,7 +100,6 @@ fun TypeRankingScreen(
                 ) {
                     DropdownMenuItem(
                         text = { Text(Strings.typeRankingGlobal(language)) },
-                        leadingIcon = { TypeBadge(type = PokemonType.NORMAL, language = language) },
                         onClick = {
                             isGlobal = true
                             selectedType = null
@@ -171,7 +173,7 @@ fun TypeRankingScreen(
                                     if (entry.shadow) Strings.tagShadow(language) else null,
                                     if (entry.form.startsWith("Mega")) Strings.tagMega(language) else null
                                 ),
-                                spriteUrl = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/home/${entry.id}.png"
+                                spriteUrl = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/home/${typeProvider.resolveSpriteHomeId(entry.id, entry.name, entry.form)}.png"
                             )
                         }
                     }

@@ -125,9 +125,10 @@ class PvEScrapingEngine(private val activity: Activity) {
                     settings_metric = "eDPS";
                     settings_pve_turns = true;
                     settings_newdps = true;
+                    settings_supermega_level = 4;
 
                     var params = {
-                        type: "$type", elite: true, mixed: true, offtype: true,
+                        type: "$type", elite: true, mixed: true, offtype: false,
                         suboptimal: false, level: 40, real_damage: false,
                         shadow: true,
                         mega: true,
@@ -183,6 +184,7 @@ class PvEScrapingEngine(private val activity: Activity) {
                     settings_metric = "eDPS";
                     settings_pve_turns = true;
                     settings_newdps = true;
+                    settings_supermega_level = 4;
 
                     var params = {
                         type: "Any", elite: true, mixed: true, offtype: true,
