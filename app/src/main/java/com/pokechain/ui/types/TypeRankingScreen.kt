@@ -35,6 +35,7 @@ fun TypeRankingScreen(
 
     var showDropdown by remember { mutableStateOf(false) }
     var selectedType by remember { mutableStateOf<PokemonType?>(null) }
+    var isGlobal by remember { mutableStateOf(true) }
     var results by remember { mutableStateOf<List<PvERankingEntry>>(emptyList()) }
     var isLoading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -44,12 +45,13 @@ fun TypeRankingScreen(
         engine.init()
     }
 
-    LaunchedEffect(selectedType, refreshKey) {
-        val type = selectedType ?: return@LaunchedEffect
+    LaunchedEffect(selectedType, isGlobal, refreshKey) {
         isLoading = true
         error = null
         try {
-            val raw = engine.computeByType(type.nameEn, 50)
+            val typeKey = if (isGlobal) "Any" else selectedType?.nameEn
+            if (typeKey == null) return@LaunchedEffect
+            val raw = engine.computeByType(typeKey, 50)
             results = raw.mapIndexed { index, entry -> entry.copy(originalRank = index + 1) }
         } catch (e: Exception) {
             error = e.message
@@ -82,7 +84,7 @@ fun TypeRankingScreen(
                 onExpandedChange = { showDropdown = it }
             ) {
                 OutlinedTextField(
-                    value = selectedType?.displayName(language) ?: "",
+                    value = if (isGlobal) Strings.typeRankingGlobal(language) else selectedType?.displayName(language) ?: "",
                     onValueChange = {},
                     readOnly = true,
                     modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryEditable),
@@ -93,11 +95,21 @@ fun TypeRankingScreen(
                     expanded = showDropdown,
                     onDismissRequest = { showDropdown = false }
                 ) {
+                    DropdownMenuItem(
+                        text = { Text(Strings.typeRankingGlobal(language)) },
+                        leadingIcon = { TypeBadge(type = PokemonType.NORMAL, language = language) },
+                        onClick = {
+                            isGlobal = true
+                            selectedType = null
+                            showDropdown = false
+                        }
+                    )
                     PokemonType.entries.forEach { type ->
                         DropdownMenuItem(
                             text = { Text(type.displayName(language)) },
                             leadingIcon = { TypeBadge(type = type, language = language) },
                             onClick = {
+                                isGlobal = false
                                 selectedType = type
                                 showDropdown = false
                             }
@@ -140,7 +152,7 @@ fun TypeRankingScreen(
                     }
                 }
 
-                selectedType != null -> {
+                isGlobal || selectedType != null -> {
                     LazyColumn(modifier = Modifier.fillMaxSize()) {
                         items(results, key = { it.id to it.form to it.shadow }) { entry ->
                             val moveset = buildString {
@@ -158,7 +170,8 @@ fun TypeRankingScreen(
                                 tags = listOfNotNull(
                                     if (entry.shadow) Strings.tagShadow(language) else null,
                                     if (entry.form.startsWith("Mega")) Strings.tagMega(language) else null
-                                )
+                                ),
+                                spriteUrl = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/home/${entry.id}.png"
                             )
                         }
                     }

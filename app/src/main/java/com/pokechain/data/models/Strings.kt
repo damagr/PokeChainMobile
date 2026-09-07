@@ -35,6 +35,7 @@ object Strings {
     fun chainSection(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Chain"; AppLanguage.ES -> "Cadena" }
     fun typesSection(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Pokédex"; AppLanguage.ES -> "Pokédex" }
     fun typeRankingSection(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Type Top"; AppLanguage.ES -> "Top por Tipo" }
+    fun typeRankingGlobal(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Global"; AppLanguage.ES -> "Global" }
     fun typeRankingPickType(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Pick a type…"; AppLanguage.ES -> "Elige un tipo…" }
     fun typeRankingTier(lang: AppLanguage, tier: String) = when (lang) { AppLanguage.EN -> "Tier $tier"; AppLanguage.ES -> "Grada $tier" }
     fun typeSearch(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Search Pokémon…"; AppLanguage.ES -> "Buscar Pokémon…" }
