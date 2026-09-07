@@ -125,6 +125,15 @@ class PvEScrapingEngine(private val activity: Activity) {
                     settings_metric = "eDPS";
                     settings_pve_turns = true;
                     settings_newdps = true;
+                    settings_supermega_level = 4;
+
+                    // Clear persisted settings so the new supermega level takes effect
+                    view.evaluateJavascript("""
+                        (function() {
+                            localStorage.removeItem('settings_supermega_level');
+                            localStorage.removeItem('settings');
+                        })();
+                    """.trimIndent(), null);
 
                     var params = {
                         type: "$type", elite: true, mixed: true, offtype: false,
@@ -183,6 +192,15 @@ class PvEScrapingEngine(private val activity: Activity) {
                     settings_metric = "eDPS";
                     settings_pve_turns = true;
                     settings_newdps = true;
+                    settings_supermega_level = 4;
+
+                    // Clear persisted settings so the new supermega level takes effect
+                    view.evaluateJavascript("""
+                        (function() {
+                            localStorage.removeItem('settings_supermega_level');
+                            localStorage.removeItem('settings');
+                        })();
+                    """.trimIndent(), null);
 
                     var params = {
                         type: "Any", elite: true, mixed: true, offtype: true,
