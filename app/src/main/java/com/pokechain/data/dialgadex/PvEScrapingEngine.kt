@@ -56,7 +56,7 @@ class PvEScrapingEngine(private val activity: Activity) {
                 layoutParams = FrameLayout.LayoutParams(1, 1)
                 settings.javaScriptEnabled = true
                 settings.domStorageEnabled = true
-                settings.cacheMode = android.webkit.WebSettings.LOAD_CACHE_ELSE_NETWORK
+                settings.cacheMode = android.webkit.WebSettings.LOAD_NO_CACHE
                 addJavascriptInterface(b, "Android")
                 webViewClient = object : WebViewClient() {
                     override fun onPageFinished(view: WebView, url: String) {
@@ -125,7 +125,6 @@ class PvEScrapingEngine(private val activity: Activity) {
                     settings_metric = "eDPS";
                     settings_pve_turns = true;
                     settings_newdps = true;
-                    settings_supermega_level = 4;
 
                     var params = {
                         type: "$type", elite: true, mixed: true, offtype: false,
@@ -184,7 +183,6 @@ class PvEScrapingEngine(private val activity: Activity) {
                     settings_metric = "eDPS";
                     settings_pve_turns = true;
                     settings_newdps = true;
-                    settings_supermega_level = 4;
 
                     var params = {
                         type: "Any", elite: true, mixed: true, offtype: true,
