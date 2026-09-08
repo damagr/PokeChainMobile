@@ -30,4 +30,7 @@
     <string name="loading">Loading…</string>
     <string name="error_network">Network error. Check your connection.</string>
     <string name="filter_title">Filters</string>
+    <string name="preview_next_season">Preview next season?</string>
+    <string name="preview_badge">Preview</string>
+    <string name="preview_unavailable">Preview not available for this league</string>
 </resources>

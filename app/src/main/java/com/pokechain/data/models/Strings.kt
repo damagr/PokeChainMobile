@@ -2,6 +2,7 @@ package com.pokechain.data.models
 
 object Strings {
     fun filters(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Filters"; AppLanguage.ES -> "Filtros" }
+    fun previewNextSeason(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Preview next season?"; AppLanguage.ES -> "¿Previsualizar próxima temporada?" }
     fun topCount(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Results"; AppLanguage.ES -> "Mostrar" }
     fun fromRank(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "From"; AppLanguage.ES -> "Desde" }
     fun toRank(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "To"; AppLanguage.ES -> "Hasta" }
@@ -26,6 +27,8 @@ object Strings {
     fun copy(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Copy"; AppLanguage.ES -> "Copiar" }
     fun copied(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Copied!"; AppLanguage.ES -> "Copiado" }
     fun close(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Close"; AppLanguage.ES -> "Cerrar" }
+    fun yes(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Yes"; AppLanguage.ES -> "Sí" }
+    fun no(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "No"; AppLanguage.ES -> "No" }
     fun copyError(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Copy error"; AppLanguage.ES -> "Copiar error" }
     fun apply(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Apply"; AppLanguage.ES -> "Aplicar" }
     fun xlCandy(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "XL Candy"; AppLanguage.ES -> "Caramelos XL" }
@@ -51,6 +54,7 @@ object Strings {
     fun tagElite(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Elite"; AppLanguage.ES -> "Élite" }
     fun tagXL(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "XL"; AppLanguage.ES -> "XL" }
     fun tagMega(lang: AppLanguage) = "Mega"
+    fun previewBadge(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Preview"; AppLanguage.ES -> "Preview" }
     fun maxCount(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Max 300"; AppLanguage.ES -> "Máx. 300" }
     fun enterPositiveCount(lang: AppLanguage) = when (lang) {
         AppLanguage.EN -> "Enter a positive number of Pokémon to display"

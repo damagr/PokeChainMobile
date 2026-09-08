@@ -6,16 +6,29 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.pokechain.data.dialgadex.NameTranslator
 import com.pokechain.data.models.*
 import com.pokechain.data.pvpoke.*
 import com.pokechain.ui.components.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import android.content.Context
+import android.content.SharedPreferences
+import kotlinx.coroutines.async
+import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withTimeout
+import java.util.regex.Pattern
 
 @Composable
 fun PvPScreen(language: AppLanguage = AppLanguage.ES, advancedMode: Boolean = false) {
@@ -37,6 +50,21 @@ fun PvPScreen(language: AppLanguage = AppLanguage.ES, advancedMode: Boolean = fa
     var cachedIncludeShadow by remember { mutableStateOf(false) }
     var showCountWarning by remember { mutableStateOf(false) }
     var cachedFromRank by remember { mutableStateOf(1) }
+
+    // Preview season state
+    var previewSlug by remember { mutableStateOf<String?>(null) }
+    var isUsingPreview by remember { mutableStateOf(false) }
+    var showPreviewPrompt by remember { mutableStateOf(false) }
+
+    // Scrape preview slug on first load (Option A: lazy in PvPScreen)
+    LaunchedEffect(Unit) {
+        val cached = getCachedPreviewSlug(context)
+        if (cached != null) {
+            previewSlug = cached
+        } else {
+            scope.launch { previewSlug = fetchAndCachePreviewSlug(context) }
+        }
+    }
 
     LaunchedEffect(language) {
         if (cachedBaseDexes.isEmpty()) return@LaunchedEffect
@@ -174,72 +202,79 @@ fun PvPScreen(language: AppLanguage = AppLanguage.ES, advancedMode: Boolean = fa
                         return@Button
                     }
                 }
-                scope.launch {
-                    loading = true
-                    error = null
-                    showErrorDialog = false
-                    val progressStages = Strings.pvpProgress
-                    var stageIdx = 0
-                    fun advanceStage() {
-                        if (stageIdx < progressStages.size) {
-                            val stage = progressStages[stageIdx]
-                            progress = stage.first
-                            progressMessage = stage.second(language)
-                            stageIdx++
-                        }
-                    }
-                    try {
-                        advanceStage(); delay(50)
-                        val api = com.pokechain.data.pvpoke.PvPokeApi
-                        val gameMaster = api.fetchGameMaster()
-
-                        advanceStage(); delay(50)
-                        val rankings = api.fetchRankings(filters.league.cp, filters.league.cup)
-
-                        advanceStage(); delay(50)
-                        val processor = PvPDataProcessor(gameMaster)
-                        val filtered = processor.processRankings(rankings, filters)
-                        results = filtered.filter { it.originalRank >= filters.fromRank }
-
-                        advanceStage(); delay(50)
-                        cachedBaseDexes = filtered.mapNotNull { processor.traceBaseDex(it) }
-                            .sorted()
-                        cachedLeague = filters.league
-                        cachedIncludeShadow = filters.includeShadow
-                        cachedFromRank = filters.fromRank
-
-                        advanceStage(); delay(50)
-                        val names = cachedBaseDexes.distinct().map { translator.getName(it, language) }
-                        val prefix = if (cachedLeague == PvPLeague.MASTER) {
-                            "4*;3*&"
-                        } else {
-                            val cp = cachedLeague.cp
-                            when (language) {
-                                AppLanguage.EN -> "cp-$cp&-1attack&3-defense&3-hp&"
-                                AppLanguage.ES -> "PC-$cp&3-4puntos de salud&3-4defensa&0-1ataque&"
-                            }
-                        }
-                        val shadowTag = if (cachedIncludeShadow && cachedLeague != PvPLeague.MASTER) {
-                            when (language) {
-                                AppLanguage.EN -> "shadow&"
-                                AppLanguage.ES -> "oscuro&"
-                            }
-                        } else ""
-                        val pokemonPart = names.joinToString(";") { "+$it" }
-                        searchString = "$prefix$shadowTag$pokemonPart&!#"
-
-                        advanceStage(); delay(500)
-                    } catch (e: Exception) {
-                        error = "${e::class.simpleName}: ${e.message}\n\n${e.stackTraceToString()}"
-                        showErrorDialog = true
-                    } finally {
-                        loading = false
-                    }
+                // If preview slug available, ask user; otherwise proceed normally
+                if (previewSlug != null) {
+                    showPreviewPrompt = true
+                } else {
+                    startPvPFetch(
+                        context = context,
+                        scope = scope,
+                        filters = filters,
+                        language = language,
+                        translator = translator,
+                        previewSlug = null,
+                        loading = { loading = it },
+                        error = { error = it },
+                        showErrorDialog = { showErrorDialog = it },
+                        results = { results = it },
+                        cachedBaseDexes = { cachedBaseDexes = it },
+                        cachedLeague = { cachedLeague = it },
+                        cachedIncludeShadow = { cachedIncludeShadow = it },
+                        cachedFromRank = { cachedFromRank = it },
+                        searchString = { searchString = it },
+                        loadingState = { loading = it },
+                        progress = { progress = it },
+                        progressMessage = { progressMessage = it },
+                        isUsingPreview = { isUsingPreview = it }
+                    )
                 }
             },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(Strings.generate(language))
+        }
+
+        Spacer(Modifier.height(8.dp))
+
+        // Preview confirmation dialog
+        if (showPreviewPrompt) {
+            AlertDialog(
+                onDismissRequest = { showPreviewPrompt = false },
+                title = { Text(Strings.previewNextSeason(language)) },
+                text = { Text(when (language) {
+                    AppLanguage.EN -> "Use preview data for next season?"
+                    AppLanguage.ES -> "¿Usar datos de la próxima temporada?"
+                }) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showPreviewPrompt = false
+                        startPvPFetch(
+                            context = context,
+                            scope = scope,
+                            filters = filters,
+                            language = language,
+                            translator = translator,
+                            previewSlug = previewSlug,
+                            loading = { loading = it },
+                            error = { error = it },
+                            showErrorDialog = { showErrorDialog = it },
+                            results = { results = it },
+                            cachedBaseDexes = { cachedBaseDexes = it },
+                            cachedLeague = { cachedLeague = it },
+                            cachedIncludeShadow = { cachedIncludeShadow = it },
+                            cachedFromRank = { cachedFromRank = it },
+                            searchString = { searchString = it },
+                            loadingState = { loading = it },
+                            progress = { progress = it },
+                            progressMessage = { progressMessage = it },
+                            isUsingPreview = { isUsingPreview = it }
+                        )
+                    }) { Text(Strings.yes(language)) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showPreviewPrompt = false }) { Text(Strings.no(language)) }
+                }
+            )
         }
 
         Spacer(Modifier.height(8.dp))
@@ -298,7 +333,8 @@ fun PvPScreen(language: AppLanguage = AppLanguage.ES, advancedMode: Boolean = fa
                     tags = listOfNotNull(
                         if (result.isShadow) Strings.tagShadow(language) else null,
                         if (result.needsXL) Strings.tagXL(language) else null,
-                        if (result.eliteMoves.isNotEmpty()) Strings.tagElite(language) else null
+                        if (result.eliteMoves.isNotEmpty()) Strings.tagElite(language) else null,
+                        if (isUsingPreview) Strings.previewBadge(language) else null
                     )
                 )
             }
@@ -330,5 +366,160 @@ fun PvPScreen(language: AppLanguage = AppLanguage.ES, advancedMode: Boolean = fa
                 }
             }
         )
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Preview slug caching helpers (top-level functions)
+// ─────────────────────────────────────────────────────────────────────
+
+fun getCachedPreviewSlug(context: Context): String? {
+    val prefs = context.getSharedPreferences("pvp_preview", Context.MODE_PRIVATE)
+    val slug = prefs.getString("preview_slug", null)
+    val timestamp = prefs.getLong("preview_timestamp", 0)
+    val twelveHours = 12 * 60 * 60 * 1000L
+    return if (slug != null && (System.currentTimeMillis() - timestamp) < twelveHours) slug else null
+}
+
+suspend fun fetchAndCachePreviewSlug(context: Context): String? = withContext(Dispatchers.IO) {
+    try {
+        val client = OkHttpClient.Builder()
+            .connectTimeout(10, TimeUnit.SECONDS)
+            .readTimeout(15, TimeUnit.SECONDS)
+            .build()
+        val request = Request.Builder().url("https://pvpoke.com/").build()
+        val response = client.newCall(request).execute()
+        val html = response.body?.string() ?: return@withContext null
+        val pattern = Pattern.compile("href=\"(/[^\"/]+/rankings/)\"")
+        val matcher = pattern.matcher(html)
+        if (matcher.find()) {
+            val slug = matcher.group(1)?.removePrefix("/")?.removeSuffix("/rankings/")
+            if (slug != null) {
+                val prefs = context.getSharedPreferences("pvp_preview", Context.MODE_PRIVATE)
+                prefs.edit()
+                    .putString("preview_slug", slug)
+                    .putLong("preview_timestamp", System.currentTimeMillis())
+                    .apply()
+                return@withContext slug
+            }
+        }
+        null
+    } catch (e: Exception) {
+        null
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Main PvP fetch logic with optional preview slug
+// ─────────────────────────────────────────────────────────────────────
+
+fun startPvPFetch(
+    context: Context,
+    scope: kotlinx.coroutines.CoroutineScope,
+    filters: PvPFilterParams,
+    language: AppLanguage,
+    translator: NameTranslator,
+    previewSlug: String?,
+    loading: (Boolean) -> Unit,
+    error: (String?) -> Unit,
+    showErrorDialog: (Boolean) -> Unit,
+    results: (List<PvPResult>) -> Unit,
+    cachedBaseDexes: (List<Int>) -> Unit,
+    cachedLeague: (PvPLeague) -> Unit,
+    cachedIncludeShadow: (Boolean) -> Unit,
+    cachedFromRank: (Int) -> Unit,
+    searchString: (String) -> Unit,
+    loadingState: (Boolean) -> Unit,
+    progress: (Float) -> Unit,
+    progressMessage: (String) -> Unit,
+    isUsingPreview: (Boolean) -> Unit
+) {
+    isUsingPreview(previewSlug != null)
+    scope.launch {
+        loadingState(true)
+        error(null)
+        showErrorDialog(false)
+        val progressStages = Strings.pvpProgress
+        var stageIdx = 0
+        fun advanceStage() {
+            if (stageIdx < progressStages.size) {
+                val stage = progressStages[stageIdx]
+                progress(stage.first)
+                progressMessage(stage.second(language))
+                stageIdx++
+            }
+        }
+        try {
+            advanceStage(); delay(50)
+            val gameMaster = PvPokeApi.fetchGameMaster()
+
+            advanceStage(); delay(50)
+            val rankings = PvPokeApi.fetchRankings(filters.league.cp, filters.league.cup, previewSlug)
+
+            advanceStage(); delay(50)
+            val processor = PvPDataProcessor(gameMaster)
+            val filtered = processor.processRankings(rankings, filters)
+            results(filtered.filter { it.originalRank >= filters.fromRank })
+
+            advanceStage(); delay(50)
+            cachedBaseDexes(filtered.mapNotNull { processor.traceBaseDex(it) }.sorted())
+            cachedLeague(filters.league)
+            cachedIncludeShadow(filters.includeShadow)
+            cachedFromRank(filters.fromRank)
+
+            advanceStage(); delay(50)
+            val names = filtered.mapNotNull { processor.traceBaseDex(it) }
+                .distinct()
+                .map { translator.getName(it, language) }
+            val prefix = if (filters.league == PvPLeague.MASTER) {
+                "4*;3*&"
+            } else {
+                val cp = filters.league.cp
+                when (language) {
+                    AppLanguage.EN -> "cp-$cp&-1attack&3-defense&3-hp&"
+                    AppLanguage.ES -> "PC-$cp&3-4puntos de salud&3-4defensa&0-1ataque&"
+                }
+            }
+            val shadowTag = if (filters.includeShadow && filters.league != PvPLeague.MASTER) {
+                when (language) {
+                    AppLanguage.EN -> "shadow&"
+                    AppLanguage.ES -> "oscuro&"
+                }
+            } else ""
+            val pokemonPart = names.joinToString(";") { "+$it" }
+            searchString("$prefix$shadowTag$pokemonPart&!#")
+
+            advanceStage(); delay(500)
+        } catch (e: Exception) {
+            // Fallback to current season if preview fails
+            if (previewSlug != null) {
+                startPvPFetch(
+                    context = context,
+                    scope = scope,
+                    filters = filters,
+                    language = language,
+                    translator = translator,
+                    previewSlug = null,
+                    loading = loading,
+                    error = error,
+                    showErrorDialog = showErrorDialog,
+                    results = results,
+                    cachedBaseDexes = cachedBaseDexes,
+                    cachedLeague = cachedLeague,
+                    cachedIncludeShadow = cachedIncludeShadow,
+                    cachedFromRank = cachedFromRank,
+                    searchString = searchString,
+                    loadingState = loadingState,
+                    progress = progress,
+                    progressMessage = progressMessage,
+                    isUsingPreview = isUsingPreview
+                )
+            } else {
+                error("${e::class.simpleName}: ${e.message}\n\n${e.stackTraceToString()}")
+                showErrorDialog(true)
+            }
+        } finally {
+            loadingState(false)
+        }
     }
 }
