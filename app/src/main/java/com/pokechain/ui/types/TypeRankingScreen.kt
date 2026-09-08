@@ -58,17 +58,15 @@ fun TypeRankingScreen(
             if (typeKey == null) return@LaunchedEffect
             val raw = engine.computeByType(typeKey, 50)
             results = raw.mapIndexed { index, entry -> entry.copy(originalRank = index + 1) }
+            // Reset scroll to top after new results are loaded
+            listState.scrollToItem(0)
         } catch (e: Exception) {
             error = e.message
             results = emptyList()
+            listState.scrollToItem(0)
         } finally {
             isLoading = false
         }
-    }
-
-    // Reset scroll to top when type changes (selectedType or isGlobal)
-    LaunchedEffect(selectedType, isGlobal) {
-        listState.scrollToItem(0)
     }
 
     Scaffold(
