@@ -25,7 +25,7 @@ class NameTranslator(context: Context) {
         val esMoves = esRoot?.jsonObject?.get("moves")?.jsonObject ?: emptyMap()
 
         esMoveNames = esMoves.mapKeys { it.key }.mapValues { 
-    it.value.toString().trim() 
+    it.value.jsonPrimitive.content.trim() 
 }
 
         moveNameToId = enMoves.entries.associate { (id, name) ->
@@ -93,9 +93,9 @@ class NameTranslator(context: Context) {
         val dialgaDexId = moveNameToId[normalized]
         val baseDisplayName = when (language) {
             AppLanguage.ES -> esMoveNames[dialgaDexId] ?: normalized
-            AppLanguage.EN -> normalized
+            AppLanguage.EN -> normalized.split(" ").joinToString(" ") { it.replaceFirstChar { it.uppercase() } }
         }
         // Fallback to original if not found
-        return "${if (dialgaDexId != null) baseDisplayName else moveIdOrName.replace("_", " ")}$suffix"
+        return "${if (dialgaDexId != null) baseDisplayName else moveIdOrName.replace("_", " ").split(" ").joinToString(" ") { it.replaceFirstChar { it.uppercase() } }}$suffix"
     }
 }
