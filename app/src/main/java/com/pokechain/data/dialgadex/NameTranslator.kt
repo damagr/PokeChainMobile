@@ -75,25 +75,27 @@ class NameTranslator(context: Context) {
     }
 
     fun getMoveName(moveIdOrName: String, language: AppLanguage): String {
-        val normalized = moveIdOrName
+        var normalized = moveIdOrName
             .replace("_", " ")
             .lowercase()
             .trim()
-            // Strip supermega suffixes (+, ++, +++, etc.) and other trailing modifiers
-            .replace(Regex("\\s*\\++$"), "")
-            .replace(Regex("\\s*\\*+$"), "")
+
+        // Extract supermega suffix (+, ++, +++, *, **, etc.) to preserve it
+        val suffix = when {
+            normalized.endsWith("+") || normalized.endsWith("*") -> {
+                val match = Regex("(\\++|\\*+)$").find(normalized)?.value ?: ""
+                normalized = normalized.dropLast(match.length)
+                match
+            }
+            else -> ""
+        }
 
         val dialgaDexId = moveNameToId[normalized]
-
-        return when (language) {
-            AppLanguage.ES -> {
-                if (dialgaDexId != null) {
-                    esMoveNames[dialgaDexId] ?: moveIdOrName
-                } else {
-                    moveIdOrName
-                }
-            }
-            AppLanguage.EN -> moveIdOrName
+        val baseDisplayName = when (language) {
+            AppLanguage.ES -> esMoveNames[dialgaDexId] ?: normalized
+            AppLanguage.EN -> normalized
         }
+        // Fallback to original if not found
+        return "${if (dialgaDexId != null) baseDisplayName else moveIdOrName.replace("_", " ")}$suffix"
     }
 }
