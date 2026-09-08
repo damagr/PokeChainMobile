@@ -1,6 +1,5 @@
 package com.pokechain.data.pvpoke
 
-import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -9,11 +8,9 @@ import okhttp3.Request
 import java.util.concurrent.TimeUnit
 
 object PvPokeApi {
-    private const val TAG = "PvP_Debug"
     private const val BASE_URL = "https://pvpoke.com/data"
     private const val GAMEMASTER_URL = "$BASE_URL/gamemaster.min.json"
     private const val RANKINGS_URL = "$BASE_URL/rankings/%s/overall/rankings-%d.json"
-    private const val PREVIEW_RANKINGS_URL = "$BASE_URL/%s/rankings/%s/overall/rankings-%d.json"
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
@@ -29,13 +26,8 @@ object PvPokeApi {
         json.decodeFromString(body)
     }
 
-    suspend fun fetchRankings(cp: Int, cup: String? = null, previewSlug: String? = null): List<PvPRawEntry> = withContext(Dispatchers.IO) {
-        val url = if (previewSlug != null) {
-            PREVIEW_RANKINGS_URL.format(previewSlug, cup ?: "all", cp)
-        } else {
-            RANKINGS_URL.format(cup ?: "all", cp)
-        }
-        Log.d(TAG, "fetchRankings URL: $url | previewSlug: $previewSlug | cp: $cp | cup: $cup")
+    suspend fun fetchRankings(cp: Int, cup: String? = null): List<PvPRawEntry> = withContext(Dispatchers.IO) {
+        val url = RANKINGS_URL.format(cup ?: "all", cp)
         val request = Request.Builder().url(url).build()
         val response = client.newCall(request).execute()
         val body = response.body?.string() ?: throw Exception("Empty response")

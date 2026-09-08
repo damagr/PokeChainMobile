@@ -20,16 +20,6 @@ import com.pokechain.ui.components.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import android.content.Context
-import android.content.SharedPreferences
-import android.util.Log
-import kotlinx.coroutines.async
-import kotlinx.coroutines.withContext
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import java.util.concurrent.TimeUnit
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withTimeout
-import java.util.regex.Pattern
 
 @Composable
 fun PvPScreen(language: AppLanguage = AppLanguage.ES, advancedMode: Boolean = false) {
@@ -51,20 +41,6 @@ fun PvPScreen(language: AppLanguage = AppLanguage.ES, advancedMode: Boolean = fa
     var cachedIncludeShadow by remember { mutableStateOf(false) }
     var showCountWarning by remember { mutableStateOf(false) }
     var cachedFromRank by remember { mutableStateOf(1) }
-
-    // Preview season state
-    var previewSlug by remember { mutableStateOf<String?>(null) }
-    var isUsingPreview by remember { mutableStateOf(false) }
-
-    // Scrape preview slug on first load (Option A: lazy in PvPScreen)
-    LaunchedEffect(Unit) {
-        val cached = getCachedPreviewSlug(context)
-        if (cached != null) {
-            previewSlug = cached
-        } else {
-            scope.launch { previewSlug = fetchAndCachePreviewSlug(context) }
-        }
-    }
 
     LaunchedEffect(language) {
         if (cachedBaseDexes.isEmpty()) return@LaunchedEffect
@@ -202,14 +178,12 @@ fun PvPScreen(language: AppLanguage = AppLanguage.ES, advancedMode: Boolean = fa
                         return@Button
                     }
                 }
-                // Auto-use preview if available, otherwise current season
                 startPvPFetch(
                     context = context,
                     scope = scope,
                     filters = filters,
                     language = language,
                     translator = translator,
-                    previewSlug = previewSlug,
                     loading = { loading = it },
                     error = { error = it },
                     showErrorDialog = { showErrorDialog = it },
@@ -221,8 +195,7 @@ fun PvPScreen(language: AppLanguage = AppLanguage.ES, advancedMode: Boolean = fa
                     searchString = { searchString = it },
                     loadingState = { loading = it },
                     progress = { progress = it },
-                    progressMessage = { progressMessage = it },
-                    isUsingPreview = { isUsingPreview = it }
+                    progressMessage = { progressMessage = it }
                 )
             },
             modifier = Modifier.fillMaxWidth()
@@ -286,8 +259,7 @@ fun PvPScreen(language: AppLanguage = AppLanguage.ES, advancedMode: Boolean = fa
                     tags = listOfNotNull(
                         if (result.isShadow) Strings.tagShadow(language) else null,
                         if (result.needsXL) Strings.tagXL(language) else null,
-                        if (result.eliteMoves.isNotEmpty()) Strings.tagElite(language) else null,
-                        if (isUsingPreview) Strings.previewBadge(language) else null
+                        if (result.eliteMoves.isNotEmpty()) Strings.tagElite(language) else null
                     )
                 )
             }
@@ -323,47 +295,7 @@ fun PvPScreen(language: AppLanguage = AppLanguage.ES, advancedMode: Boolean = fa
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// Preview slug caching helpers (top-level functions)
-// ─────────────────────────────────────────────────────────────────────
-
-fun getCachedPreviewSlug(context: Context): String? {
-    val prefs = context.getSharedPreferences("pvp_preview", Context.MODE_PRIVATE)
-    val slug = prefs.getString("preview_slug", null)
-    val timestamp = prefs.getLong("preview_timestamp", 0)
-    val twelveHours = 12 * 60 * 60 * 1000L
-    return if (slug != null && (System.currentTimeMillis() - timestamp) < twelveHours) slug else null
-}
-
-suspend fun fetchAndCachePreviewSlug(context: Context): String? = withContext(Dispatchers.IO) {
-    try {
-        val client = OkHttpClient.Builder()
-            .connectTimeout(10, TimeUnit.SECONDS)
-            .readTimeout(15, TimeUnit.SECONDS)
-            .build()
-        val request = Request.Builder().url("https://pvpoke.com/").build()
-        val response = client.newCall(request).execute()
-        val html = response.body?.string() ?: return@withContext null
-        val pattern = Pattern.compile("href=\"(/[^\"/]+/rankings/)\"")
-        val matcher = pattern.matcher(html)
-        if (matcher.find()) {
-            val slug = matcher.group(1)?.removePrefix("/")?.removeSuffix("/rankings/")
-            if (slug != null) {
-                val prefs = context.getSharedPreferences("pvp_preview", Context.MODE_PRIVATE)
-                prefs.edit()
-                    .putString("preview_slug", slug)
-                    .putLong("preview_timestamp", System.currentTimeMillis())
-                    .apply()
-                return@withContext slug
-            }
-        }
-        null
-    } catch (e: Exception) {
-        null
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────
-// Main PvP fetch logic with optional preview slug
+// Main PvP fetch logic (current season only)
 // ─────────────────────────────────────────────────────────────────────
 
 fun startPvPFetch(
@@ -372,7 +304,6 @@ fun startPvPFetch(
     filters: PvPFilterParams,
     language: AppLanguage,
     translator: NameTranslator,
-    previewSlug: String?,
     loading: (Boolean) -> Unit,
     error: (String?) -> Unit,
     showErrorDialog: (Boolean) -> Unit,
@@ -384,10 +315,8 @@ fun startPvPFetch(
     searchString: (String) -> Unit,
     loadingState: (Boolean) -> Unit,
     progress: (Float) -> Unit,
-    progressMessage: (String) -> Unit,
-    isUsingPreview: (Boolean) -> Unit
+    progressMessage: (String) -> Unit
 ) {
-    isUsingPreview(previewSlug != null)
     scope.launch {
         loadingState(true)
         error(null)
@@ -407,7 +336,7 @@ fun startPvPFetch(
             val gameMaster = PvPokeApi.fetchGameMaster()
 
             advanceStage(); delay(50)
-            val rankings = PvPokeApi.fetchRankings(filters.league.cp, filters.league.cup, previewSlug)
+            val rankings = PvPokeApi.fetchRankings(filters.league.cp, filters.league.cup)
 
             advanceStage(); delay(50)
             val processor = PvPDataProcessor(gameMaster)
@@ -444,33 +373,8 @@ fun startPvPFetch(
 
             advanceStage(); delay(500)
         } catch (e: Exception) {
-            // Fallback to current season if preview fails
-            if (previewSlug != null) {
-                startPvPFetch(
-                    context = context,
-                    scope = scope,
-                    filters = filters,
-                    language = language,
-                    translator = translator,
-                    previewSlug = null,
-                    loading = loading,
-                    error = error,
-                    showErrorDialog = showErrorDialog,
-                    results = results,
-                    cachedBaseDexes = cachedBaseDexes,
-                    cachedLeague = cachedLeague,
-                    cachedIncludeShadow = cachedIncludeShadow,
-                    cachedFromRank = cachedFromRank,
-                    searchString = searchString,
-                    loadingState = loadingState,
-                    progress = progress,
-                    progressMessage = progressMessage,
-                    isUsingPreview = isUsingPreview
-                )
-            } else {
-                error("${e::class.simpleName}: ${e.message}\n\n${e.stackTraceToString()}")
-                showErrorDialog(true)
-            }
+            error("${e::class.simpleName}: ${e.message}\n\n${e.stackTraceToString()}")
+            showErrorDialog(true)
         } finally {
             loadingState(false)
         }
