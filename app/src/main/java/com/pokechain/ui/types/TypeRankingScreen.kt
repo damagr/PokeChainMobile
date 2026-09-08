@@ -3,6 +3,7 @@ package com.pokechain.ui.types
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
@@ -42,7 +43,7 @@ fun TypeRankingScreen(
     var isLoading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var refreshKey by remember { mutableStateOf(0) }
-    val scrollState = remember(selectedType) { rememberScrollState() }
+    val listState = rememberLazyListState()
 
     LaunchedEffect(Unit) {
         engine.init()
@@ -63,6 +64,11 @@ fun TypeRankingScreen(
         } finally {
             isLoading = false
         }
+    }
+
+    // Reset scroll to top when type changes (selectedType or isGlobal)
+    LaunchedEffect(selectedType, isGlobal) {
+        listState.scrollToItem(0)
     }
 
     Scaffold(
@@ -156,7 +162,7 @@ fun TypeRankingScreen(
                 }
 
                 isGlobal || selectedType != null -> {
-                    LazyColumn(modifier = Modifier.fillMaxSize(), verticalScroll = scrollState) {
+                    LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
                         items(results, key = { it.id to it.form to it.shadow }) { entry ->
                             val moveset = buildString {
                                 append(entry.fm?.let { translator.getMoveName(it, language) } ?: "-")
