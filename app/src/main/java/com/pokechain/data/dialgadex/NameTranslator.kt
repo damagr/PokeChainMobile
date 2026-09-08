@@ -79,6 +79,9 @@ class NameTranslator(context: Context) {
             .replace("_", " ")
             .lowercase()
             .trim()
+            // Strip supermega suffixes (+, ++, +++, etc.) and other trailing modifiers
+            .replace(Regex("\\s*\\++$"), "")
+            .replace(Regex("\\s*\\*+$"), "")
 
         val dialgaDexId = moveNameToId[normalized]
 
