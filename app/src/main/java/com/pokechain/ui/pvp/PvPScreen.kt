@@ -54,7 +54,6 @@ fun PvPScreen(language: AppLanguage = AppLanguage.ES, advancedMode: Boolean = fa
     // Preview season state
     var previewSlug by remember { mutableStateOf<String?>(null) }
     var isUsingPreview by remember { mutableStateOf(false) }
-    var showPreviewPrompt by remember { mutableStateOf(false) }
 
     // Scrape preview slug on first load (Option A: lazy in PvPScreen)
     LaunchedEffect(Unit) {
@@ -202,79 +201,32 @@ fun PvPScreen(language: AppLanguage = AppLanguage.ES, advancedMode: Boolean = fa
                         return@Button
                     }
                 }
-                // If preview slug available, ask user; otherwise proceed normally
-                if (previewSlug != null) {
-                    showPreviewPrompt = true
-                } else {
-                    startPvPFetch(
-                        context = context,
-                        scope = scope,
-                        filters = filters,
-                        language = language,
-                        translator = translator,
-                        previewSlug = null,
-                        loading = { loading = it },
-                        error = { error = it },
-                        showErrorDialog = { showErrorDialog = it },
-                        results = { results = it },
-                        cachedBaseDexes = { cachedBaseDexes = it },
-                        cachedLeague = { cachedLeague = it },
-                        cachedIncludeShadow = { cachedIncludeShadow = it },
-                        cachedFromRank = { cachedFromRank = it },
-                        searchString = { searchString = it },
-                        loadingState = { loading = it },
-                        progress = { progress = it },
-                        progressMessage = { progressMessage = it },
-                        isUsingPreview = { isUsingPreview = it }
-                    )
-                }
+                // Auto-use preview if available, otherwise current season
+                startPvPFetch(
+                    context = context,
+                    scope = scope,
+                    filters = filters,
+                    language = language,
+                    translator = translator,
+                    previewSlug = previewSlug,
+                    loading = { loading = it },
+                    error = { error = it },
+                    showErrorDialog = { showErrorDialog = it },
+                    results = { results = it },
+                    cachedBaseDexes = { cachedBaseDexes = it },
+                    cachedLeague = { cachedLeague = it },
+                    cachedIncludeShadow = { cachedIncludeShadow = it },
+                    cachedFromRank = { cachedFromRank = it },
+                    searchString = { searchString = it },
+                    loadingState = { loading = it },
+                    progress = { progress = it },
+                    progressMessage = { progressMessage = it },
+                    isUsingPreview = { isUsingPreview = it }
+                )
             },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(Strings.generate(language))
-        }
-
-        Spacer(Modifier.height(8.dp))
-
-        // Preview confirmation dialog
-        if (showPreviewPrompt) {
-            AlertDialog(
-                onDismissRequest = { showPreviewPrompt = false },
-                title = { Text(Strings.previewNextSeason(language)) },
-                text = { Text(when (language) {
-                    AppLanguage.EN -> "Use preview data for next season?"
-                    AppLanguage.ES -> "¿Usar datos de la próxima temporada?"
-                }) },
-                confirmButton = {
-                    TextButton(onClick = {
-                        showPreviewPrompt = false
-                        startPvPFetch(
-                            context = context,
-                            scope = scope,
-                            filters = filters,
-                            language = language,
-                            translator = translator,
-                            previewSlug = previewSlug,
-                            loading = { loading = it },
-                            error = { error = it },
-                            showErrorDialog = { showErrorDialog = it },
-                            results = { results = it },
-                            cachedBaseDexes = { cachedBaseDexes = it },
-                            cachedLeague = { cachedLeague = it },
-                            cachedIncludeShadow = { cachedIncludeShadow = it },
-                            cachedFromRank = { cachedFromRank = it },
-                            searchString = { searchString = it },
-                            loadingState = { loading = it },
-                            progress = { progress = it },
-                            progressMessage = { progressMessage = it },
-                            isUsingPreview = { isUsingPreview = it }
-                        )
-                    }) { Text(Strings.yes(language)) }
-                },
-                dismissButton = {
-                    TextButton(onClick = { showPreviewPrompt = false }) { Text(Strings.no(language)) }
-                }
-            )
         }
 
         Spacer(Modifier.height(8.dp))
