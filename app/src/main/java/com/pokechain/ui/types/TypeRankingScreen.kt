@@ -180,7 +180,7 @@ tags = listOfNotNull(
                                      if (entry.shadow) Strings.tagShadow(language) else null,
                                      if (entry.form.startsWith("Mega")) PokemonTypeEntry.translateForm(entry.form, language) else null
                                  ),
-                                spriteUrl = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/home/${typeProvider.resolveSpriteHomeId(entry.id, entry.name, entry.form)}.png"
+                                spriteUrl = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/home/${typeProvider.resolveSpriteIdForRanking(entry.id, entry.name, entry.form, entry.shadow)}.png"
                             )
                         }
                     }

@@ -461,6 +461,48 @@ class PokemonTypeProvider {
         return if (byName != null) homeSpriteIds[byName.speciesId] ?: dex else dex
     }
 
+    /**
+     * Resolves sprite ID for a PvE ranking entry using the same logic as the Pokedex:
+     * finds the matching PokemonTypeEntry by dex and form/shadow, then uses its spriteId
+     * which directly looks up the speciesId in the spriteIds map.
+     */
+    fun resolveSpriteIdForRanking(dex: Int, name: String, form: String, shadow: Boolean): Int {
+        val entries = allEntries ?: return dex
+        
+        // Build expected speciesId suffix from form (dialgadex format -> gamemaster format)
+        val formSuffix = when {
+            form == "Normal" -> ""
+            shadow -> "_shadow"
+            form.startsWith("Mega ") -> {
+                // "Mega X" -> "mega_x", "Mega Y" -> "mega_y", "Mega" -> "mega"
+                val suffix = form.removePrefix("Mega ").lowercase()
+                    .replace(" ", "_")
+                    .replace("x", "x").replace("y", "y")
+                "_${suffix}"
+            }
+            else -> {
+                // Other forms: try to match by translating form to lowercase underscore
+                val suffix = form.lowercase().replace(" ", "_")
+                "_${suffix}"
+            }
+        }
+        
+        // Try exact speciesId match first (e.g., "charizard_mega_x")
+        val baseName = name.lowercase().replace(" ", "")
+        val expectedSpeciesId = "${baseName}${formSuffix}"
+        val exactMatch = entries.firstOrNull { it.speciesId == expectedSpeciesId && it.dex == dex }
+        if (exactMatch != null) return exactMatch.spriteId
+        
+        // Fallback: try to find any entry with same dex whose speciesId contains the form suffix
+        val formMatch = entries.firstOrNull { 
+            it.dex == dex && it.speciesId.endsWith(formSuffix) 
+        }
+        if (formMatch != null) return formMatch.spriteId
+        
+        // Final fallback: use existing token-based resolution
+        return resolveSpriteHomeId(dex, name, form)
+    }
+
     companion object {
         /** PokeAPI home sprite ids for forms/megas/primals (base forms use dex). */
         val homeSpriteIds: Map<String, Int> = mapOf(
