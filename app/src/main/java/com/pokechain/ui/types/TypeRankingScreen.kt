@@ -42,6 +42,7 @@ fun TypeRankingScreen(
     var isLoading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var refreshKey by remember { mutableStateOf(0) }
+    val scrollState = remember(selectedType) { rememberScrollState() }
 
     LaunchedEffect(Unit) {
         engine.init()
@@ -155,7 +156,7 @@ fun TypeRankingScreen(
                 }
 
                 isGlobal || selectedType != null -> {
-                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                    LazyColumn(modifier = Modifier.fillMaxSize(), verticalScroll = scrollState) {
                         items(results, key = { it.id to it.form to it.shadow }) { entry ->
                             val moveset = buildString {
                                 append(entry.fm?.let { translator.getMoveName(it, language) } ?: "-")
@@ -167,11 +168,11 @@ fun TypeRankingScreen(
                             PokemonRow(
                                 rank = entry.originalRank,
                                 name = cleanName(entry, language),
-                                score = "%.2f".format(entry.rat),
+                                score = "${"%.2f".format(entry.rat)} eDPS",
                                 subtitle = entry.tier?.let { "${Strings.typeRankingTier(language, it)} — $moveset" } ?: moveset,
                                 tags = listOfNotNull(
                                     if (entry.shadow) Strings.tagShadow(language) else null,
-                                    if (entry.form.startsWith("Mega")) Strings.tagMega(language) else null
+                                    if (entry.form.startsWith("Mega")) typeProvider.translateForm(entry.form, language) else null
                                 ),
                                 spriteUrl = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/home/${typeProvider.resolveSpriteHomeId(entry.id, entry.name, entry.form)}.png"
                             )
@@ -202,7 +203,7 @@ private fun cleanName(entry: PvERankingEntry, language: AppLanguage): String {
     return when {
         entry.form == "Normal" -> name
         name.startsWith("Mega ") || name.startsWith("Primal ") -> name
-        entry.form.startsWith("Mega") -> "Mega $name"
+        entry.form.startsWith("Mega") -> "${typeProvider.translateForm(entry.form, language) ?? "Mega"} $name"
         else -> {
             val translated = PokemonTypeEntry.translateForm(entry.form, language) ?: entry.form
             "$name ($translated)"
