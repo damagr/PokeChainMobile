@@ -58,7 +58,8 @@ fun TypeRankingScreen(
         try {
             val typeKey = if (isGlobal) "Any" else selectedType?.nameEn
             if (typeKey == null) return@LaunchedEffect
-            val raw = engine.computeByType(typeKey, 50)
+            val count = if (isGlobal) 200 else 50
+            val raw = engine.computeByType(typeKey, count)
             val filtered = if (showMega) raw else raw.filter { !it.form.startsWith("Mega") }
             results = filtered.mapIndexed { index, entry -> entry.copy(originalRank = index + 1) }
             // Reset scroll to top after new results are loaded

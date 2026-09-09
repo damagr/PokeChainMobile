@@ -103,7 +103,8 @@ class PvEScrapingEngine(private val activity: Activity) {
 
     suspend fun computeByType(type: String, count: Int = 25): List<PvERankingEntry> = withContext(Dispatchers.Main) {
         mutex.withLock {
-            val cached = typeCache[type]
+            val cacheKey = "$type:$count"
+            val cached = typeCache[cacheKey]
             if (cached != null && cached.size >= count) return@withLock cached.take(count)
 
             init()
@@ -113,7 +114,7 @@ class PvEScrapingEngine(private val activity: Activity) {
             val deferred = CompletableDeferred<String>()
             b.pendingDeferred = deferred
 
-            val n = count.coerceAtMost(50)
+            val n = count.coerceAtMost(200)
 
             view.evaluateJavascript("""
             (async function() {
@@ -161,7 +162,7 @@ class PvEScrapingEngine(private val activity: Activity) {
             val withRanks = parsed.mapIndexed { index, entry ->
                 entry.copy(originalRank = index + 1)
             }
-            typeCache[type] = withRanks
+            typeCache["$type:$count"] = withRanks
             withRanks
         }
     }
