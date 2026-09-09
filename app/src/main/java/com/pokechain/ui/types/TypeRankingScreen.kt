@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -39,6 +40,7 @@ fun TypeRankingScreen(
     var showDropdown by remember { mutableStateOf(false) }
     var selectedType by remember { mutableStateOf<PokemonType?>(null) }
     var isGlobal by remember { mutableStateOf(true) }
+    var showMega by remember { mutableStateOf(true) }
     var results by remember { mutableStateOf<List<PvERankingEntry>>(emptyList()) }
     var isLoading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -50,14 +52,15 @@ fun TypeRankingScreen(
         typeProvider.ensureLoaded()
     }
 
-    LaunchedEffect(selectedType, isGlobal, refreshKey) {
+    LaunchedEffect(selectedType, isGlobal, showMega, refreshKey) {
         isLoading = true
         error = null
         try {
             val typeKey = if (isGlobal) "Any" else selectedType?.nameEn
             if (typeKey == null) return@LaunchedEffect
             val raw = engine.computeByType(typeKey, 50)
-            results = raw.mapIndexed { index, entry -> entry.copy(originalRank = index + 1) }
+            val filtered = if (showMega) raw else raw.filter { !it.form.startsWith("Mega") }
+            results = filtered.mapIndexed { index, entry -> entry.copy(originalRank = index + 1) }
             // Reset scroll to top after new results are loaded
             listState.scrollToItem(0)
         } catch (e: Exception) {
@@ -71,13 +74,38 @@ fun TypeRankingScreen(
 
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
+            TopAppBar(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = Strings.back(language))
                     }
                 },
-                title = { Text(Strings.typeRankingSection(language)) }
+                title = { 
+                    Text(
+                        text = Strings.typeRankingSection(language),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                },
+                actions = {
+                    Row(
+                        modifier = Modifier
+                            .padding(end = 16.dp)
+                            .align(Alignment.CenterVertically),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = Strings.tagMega(language),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Switch(
+                            checked = showMega,
+                            onCheckedChange = { showMega = !showMega }
+                        )
+                    }
+                }
             )
         }
     ) { padding ->
@@ -169,16 +197,16 @@ fun TypeRankingScreen(
                                 append(entry.cm?.let { translator.getMoveName(it, language) } ?: "-")
                                 if (entry.cmIsElite) append("*")
                             }
-                            PokemonRow(
+PokemonRow(
                                 rank = entry.originalRank,
                                 name = cleanName(entry, language),
-                                score = "${"%.2f".format(entry.rat)} eDPS",
+                                score = "eDPS\n${"%.2f".format(entry.rat)}",
                                 subtitle = entry.tier?.let { "${Strings.typeRankingTier(language, it)} — $moveset" } ?: moveset,
-tags = listOfNotNull(
-                                     if (entry.shadow) Strings.tagShadow(language) else null,
-                                     if (entry.form.startsWith("Mega")) PokemonTypeEntry.translateForm(entry.form, language) else null
-                                 ),
-                                spriteUrl = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/home/${typeProvider.resolveSpriteIdForRanking(entry.id, entry.name, entry.form, entry.shadow)}.png"
+                                tags = listOfNotNull(
+                                    if (entry.shadow) Strings.tagShadow(language) else null,
+                                    if (entry.form.startsWith("Mega")) PokemonTypeEntry.translateForm(entry.form, language) else null
+                                ),
+                                spriteUrl = typeProvider.resolveSpriteUrl(entry.id, entry.name, entry.form, entry.shadow)
                             )
                         }
                     }

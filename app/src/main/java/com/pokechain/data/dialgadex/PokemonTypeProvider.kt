@@ -503,159 +503,209 @@ class PokemonTypeProvider {
         return resolveSpriteHomeId(dex, name, form)
     }
 
+    /**
+     * Resolves a PokeAPI sprite URL for a given Pok\u00e9mon entry.
+     * 
+     * Uses the homeSpriteIds map to get the correct numeric sprite ID for forms/megas.
+     * Falls back to dex number for base forms not in the map.
+     * 
+     * The URL format is:
+     * https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/home/{numericId}.png
+     * 
+     * Map key formats:
+     * - Megas: {name}_mega, {name}_mega_x, {name}_mega_y
+     * - Primals: {name}_primal
+     * - Regional: {name}_alolan, {name}_galarian, {name}_hisuian, {name}_paldean_{variant}
+     * - Special: darmanitan_galarian_standard, darmanitan_galarian_zen
+     * 
+     * @param dex        The Pok\u00e9mon's Pok\u00e9dex number
+     * @param name       The Pok\u00e9mon's name (e.g., "Dragonite", "Charizard")
+     * @param form       The form string (e.g., "Normal", "Mega", "Mega X", "Shadow")
+     * @param shadow     Whether this is a Shadow Pok\u00e9mon
+     * @return The complete sprite URL string
+     */
+    fun resolveSpriteUrl(dex: Int, name: String, form: String, shadow: Boolean): String {
+        // Build the speciesId key to lookup in homeSpriteIds map
+        val baseName = name.lowercase().replace(" ", "")
+        val speciesKey = when {
+            // Shadow base form
+            form == "Normal" && shadow -> "${baseName}_shadow"
+            
+            // Standard Megas
+            form == "Mega" -> "${baseName}_mega"
+            form == "Mega X" -> "${baseName}_mega_x"
+            form == "Mega Y" -> "${baseName}_mega_y"
+            
+            // Primals
+            form == "Primal" -> "${baseName}_primal"
+            
+            // Regional forms - Alolan
+            form == "Alolan" -> "${baseName}_alolan"
+            
+            // Regional forms - Galarian
+            form == "Galarian" -> "${baseName}_galarian"
+            // Special case: Darmanitan Galarian has two forms
+            form == "Galarian Standard" -> "${baseName}_galarian_standard"
+            form == "Galarian Zen" -> "${baseName}_galarian_zen"
+            
+            // Regional forms - Hisuian
+            form == "Hisuian" -> "${baseName}_hisuian"
+            
+            // Regional forms - Paldean (Tauros variants)
+            form == "Paldean Combat" -> "${baseName}_paldean_combat"
+            form == "Paldean Blaze" -> "${baseName}_paldean_blaze"
+            form == "Paldean Aqua" -> "${baseName}_paldean_aqua"
+            form == "Paldean" -> "${baseName}_paldean"
+            
+            // Shadow forms for non-normal forms
+            shadow -> "${baseName}_shadow"
+            
+            // Normal form (no suffix)
+            form == "Normal" -> ""
+            
+            // Other forms: try to translate form to lowercase underscore
+            else -> {
+                val suffix = form.lowercase().replace(" ", "_")
+                "${baseName}_${suffix}"
+            }
+        }
+        
+        // Lookup numeric ID from map, fallback to dex for base forms
+        val spriteId = if (speciesKey.isBlank()) {
+            dex
+        } else {
+            homeSpriteIds[speciesKey] ?: dex
+        }
+        
+        // Construct the PokeAPI sprite URL with numeric ID
+        return "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/home/${spriteId}.png"
+    }
+
     companion object {
-        /** PokeAPI home sprite ids for forms/megas/primals (base forms use dex). */
+        /** PokeAPI home sprite ids for standard Megas, Primals, and Regional forms (base forms use dex).
+         * Source: PokeAPI pokemon.csv - IDs for sprites/pokemon/other/home/{id}.png
+         * Includes: Standard Megas, Primals, Regional forms (Alolan/Galarian/Hisuian/Paldean)
+         * Excludes: Z-variants, G-Max, forme variants (Deoxys, Rotom, etc.), Totem forms */
         val homeSpriteIds: Map<String, Int> = mapOf(
-    "abomasnow_mega" to 10060,
-    "absol_mega" to 10057,
-    "aegislash_blade" to 10026,
-    "aerodactyl_mega" to 10042,
-    "aggron_mega" to 10053,
-    "altaria_mega" to 10067,
-    "ampharos_mega" to 10045,
-    "articuno_galarian" to 10169,
-    "audino_mega" to 10069,
-    "avalugg_hisuian" to 10243,
-    "banette_mega" to 10056,
-    "beedrill_mega" to 10090,
-    "blastoise_mega" to 10036,
-    "blaziken_mega" to 10050,
-    "braviary_hisuian" to 10240,
-    "camerupt_mega" to 10087,
-    "castform_rainy" to 10014,
-    "castform_snowy" to 10015,
-    "castform_sunny" to 10013,
-    "charizard_mega_x" to 10034,
-    "charizard_mega_y" to 10035,
-    "chesnaught_mega" to 10292,
-    "corsola_galarian" to 10173,
-    "cramorant_gorging" to 10183,
-    "cramorant_gulping" to 10182,
-    "darmanitan_zen" to 10017,
-    "darumaka_galarian" to 10176,
-    "decidueye_hisuian" to 10244,
-    "delphox_mega" to 10293,
-    "deoxys_attack" to 10001,
-    "deoxys_defense" to 10002,
-    "deoxys_speed" to 10003,
-    "dialga_origin" to 10245,
-    "diancie_mega" to 10075,
-    "diglett_alolan" to 10105,
-    "dragonite_mega" to 10281,
-    "dugtrio_alolan" to 10106,
-    "electrode_hisuian" to 10232,
-    "enamorus_therian" to 10249,
-    "eternatus_eternamax" to 10190,
-    "exeggutor_alolan" to 10114,
-    "falinks_mega" to 10303,
-    "farfetchd_galarian" to 10166,
-    "gallade_mega" to 10068,
-    "garchomp_mega" to 10058,
-    "gardevoir_mega" to 10051,
-    "gengar_mega" to 10038,
-    "giratina_origin" to 10007,
-    "glalie_mega" to 10074,
-    "golem_alolan" to 10111,
-    "gourgeist_large" to 10031,
-    "gourgeist_small" to 10030,
-    "gourgeist_super" to 10032,
-    "graveler_alolan" to 10110,
-    "greninja_mega" to 10294,
-    "grimer_alolan" to 10112,
-    "groudon_primal" to 10078,
-    "growlithe_hisuian" to 10229,
-    "gyarados_mega" to 10041,
-    "heracross_mega" to 10047,
-    "hoopa_unbound" to 10086,
-    "houndoom_mega" to 10048,
-    "kangaskhan_mega" to 10039,
-    "keldeo_resolute" to 10024,
-    "kyogre_primal" to 10077,
-    "kyurem_black" to 10022,
-    "kyurem_white" to 10023,
-    "landorus_therian" to 10021,
-    "latias_mega" to 10062,
-    "latios_mega" to 10063,
-    "lilligant_hisuian" to 10237,
-    "linoone_galarian" to 10175,
-    "lopunny_mega" to 10088,
-    "lucario_mega" to 10059,
-    "lycanroc_dusk" to 10152,
-    "malamar_mega" to 10297,
-    "manectric_mega" to 10055,
-    "marowak_alolan" to 10115,
-    "mawile_mega" to 10052,
-    "medicham_mega" to 10054,
-    "meloetta_pirouette" to 10018,
-    "metagross_mega" to 10076,
-    "mewtwo_mega_x" to 10043,
-    "mewtwo_mega_y" to 10044,
-    "mimikyu_busted" to 10143,
-    "moltres_galarian" to 10171,
-    "mr_mime_galarian" to 10168,
-    "muk_alolan" to 10113,
-    "necrozma_ultra" to 10157,
-    "ninetales_alolan" to 10104,
-    "oricorio_pau" to 10124,
-    "oricorio_pom_pom" to 10123,
-    "oricorio_sensu" to 10125,
-    "palafin_hero" to 10256,
-    "palkia_origin" to 10246,
-    "pidgeot_mega" to 10073,
-    "pinsir_mega" to 10040,
-    "pumpkaboo_large" to 10028,
-    "pumpkaboo_small" to 10027,
-    "pumpkaboo_super" to 10029,
-    "qwilfish_hisuian" to 10234,
-    "raichu_alolan" to 10100,
-    "raichu_mega_x" to 10304,
-    "raichu_mega_y" to 10305,
-    "rapidash_galarian" to 10163,
-    "rattata_alolan" to 10091,
-    "raticate_alolan" to 10092,
-    "rayquaza_mega" to 10079,
-    "rotom_fan" to 10011,
-    "rotom_frost" to 10010,
-    "rotom_heat" to 10008,
-    "rotom_mow" to 10012,
-    "rotom_wash" to 10009,
-    "sableye_mega" to 10066,
-    "salamence_mega" to 10089,
-    "samurott_hisuian" to 10236,
-    "sandshrew_alolan" to 10101,
-    "sandslash_alolan" to 10102,
-    "sceptile_mega" to 10065,
-    "scizor_mega" to 10046,
-    "sharpedo_mega" to 10070,
-    "shaymin_sky" to 10006,
-    "skarmory_mega" to 10284,
-    "slowbro_galarian" to 10165,
-    "slowbro_mega" to 10071,
-    "slowking_galarian" to 10172,
-    "slowpoke_galarian" to 10164,
-    "sneasel_hisuian" to 10235,
-    "starmie_mega" to 10280,
-    "steelix_mega" to 10072,
-    "stunfisk_galarian" to 10180,
-    "swampert_mega" to 10064,
-    "thundurus_therian" to 10020,
-    "tornadus_therian" to 10019,
-    "toxtricity_low_key" to 10184,
-    "typhlosion_hisuian" to 10233,
-    "tyranitar_mega" to 10049,
-    "urshifu_rapid_strike" to 10191,
-    "venusaur_mega" to 10033,
-    "victreebel_mega" to 10279,
-    "voltorb_hisuian" to 10231,
-    "vulpix_alolan" to 10103,
-    "weezing_galarian" to 10167,
-    "wishiwashi_school" to 10127,
-    "yamask_galarian" to 10179,
-    "zapdos_galarian" to 10170,
-    "zigzagoon_galarian" to 10174,
-    "zorua_hisuian" to 10238,
-    "zygarde_10" to 10181,
-    "zygarde_complete" to 10120,
+            "abomasnow_mega" to 10060,
+            "absol_mega" to 10057,
+            "aerodactyl_mega" to 10042,
+            "aggron_mega" to 10053,
+            "alakazam_mega" to 10037,
+            "altaria_mega" to 10067,
+            "ampharos_mega" to 10045,
+            "arcanine_hisuian" to 10230,
+            "articuno_galarian" to 10169,
+            "audino_mega" to 10069,
+            "avalugg_hisuian" to 10243,
+            "banette_mega" to 10056,
+            "beedrill_mega" to 10090,
+            "blastoise_mega" to 10036,
+            "blaziken_mega" to 10050,
+            "braviary_hisuian" to 10240,
+            "camerupt_mega" to 10087,
+            "charizard_mega_x" to 10034,
+            "charizard_mega_y" to 10035,
+            "chesnaught_mega" to 10292,
+            "corsola_galarian" to 10173,
+            "darmanitan_galarian_standard" to 10177,
+            "darmanitan_galarian_zen" to 10178,
+            "darumaka_galarian" to 10176,
+            "decidueye_hisuian" to 10244,
+            "delphox_mega" to 10293,
+            "diancie_mega" to 10075,
+            "diglett_alolan" to 10105,
+            "dragonite_mega" to 10281,
+            "dugtrio_alolan" to 10106,
+            "electrode_hisuian" to 10232,
+            "exeggutor_alolan" to 10114,
+            "falinks_mega" to 10303,
+            "farfetchd_galarian" to 10166,
+            "gallade_mega" to 10068,
+            "garchomp_mega" to 10058,
+            "gardevoir_mega" to 10051,
+            "gengar_mega" to 10038,
+            "geodude_alolan" to 10109,
+            "glalie_mega" to 10074,
+            "golem_alolan" to 10111,
+            "goodra_hisuian" to 10242,
+            "graveler_alolan" to 10110,
+            "greninja_mega" to 10294,
+            "grimer_alolan" to 10112,
+            "groudon_primal" to 10078,
+            "growlithe_hisuian" to 10229,
+            "gyarados_mega" to 10041,
+            "heracross_mega" to 10047,
+            "houndoom_mega" to 10048,
+            "kangaskhan_mega" to 10039,
+            "kyogre_primal" to 10077,
+            "latias_mega" to 10062,
+            "latios_mega" to 10063,
+            "lilligant_hisuian" to 10237,
+            "linoone_galarian" to 10175,
+            "lopunny_mega" to 10088,
+            "lucario_mega" to 10059,
+            "malamar_mega" to 10297,
+            "manectric_mega" to 10055,
+            "marowak_alolan" to 10115,
+            "mawile_mega" to 10052,
+            "medicham_mega" to 10054,
+            "meowth_alolan" to 10107,
+            "meowth_galarian" to 10161,
+            "metagross_mega" to 10076,
+            "mewtwo_mega_x" to 10043,
+            "mewtwo_mega_y" to 10044,
+            "moltres_galarian" to 10171,
+            "mr_mime_galarian" to 10168,
+            "muk_alolan" to 10113,
+            "ninetales_alolan" to 10104,
+            "persian_alolan" to 10108,
+            "pidgeot_mega" to 10073,
+            "pinsir_mega" to 10040,
+            "ponyta_galarian" to 10162,
+            "qwilfish_hisuian" to 10234,
+            "raichu_alolan" to 10100,
+            "raichu_mega_x" to 10304,
+            "raichu_mega_y" to 10305,
+            "rapidash_galarian" to 10163,
+            "rattata_alolan" to 10091,
+            "raticate_alolan" to 10092,
+            "rayquaza_mega" to 10079,
+            "sableye_mega" to 10066,
+            "salamence_mega" to 10089,
+            "samurott_hisuian" to 10236,
+            "sandshrew_alolan" to 10101,
+            "sandslash_alolan" to 10102,
+            "sceptile_mega" to 10065,
+            "scizor_mega" to 10046,
+            "sharpedo_mega" to 10070,
+            "skarmory_mega" to 10284,
+            "sliggoo_hisuian" to 10241,
+            "slowbro_galarian" to 10165,
+            "slowbro_mega" to 10071,
+            "slowking_galarian" to 10172,
+            "slowpoke_galarian" to 10164,
+            "sneasel_hisuian" to 10235,
+            "starmie_mega" to 10280,
+            "steelix_mega" to 10072,
+            "stunfisk_galarian" to 10180,
+            "swampert_mega" to 10064,
+            "tauros_paldean_aqua" to 10252,
+            "tauros_paldean_blaze" to 10251,
+            "tauros_paldean_combat" to 10250,
+            "typhlosion_hisuian" to 10233,
+            "tyranitar_mega" to 10049,
+            "venusaur_mega" to 10033,
+            "victreebel_mega" to 10279,
+            "voltorb_hisuian" to 10231,
+            "vulpix_alolan" to 10103,
+            "weezing_galarian" to 10167,
+            "wooper_paldean" to 10253,
+            "yamask_galarian" to 10179,
+            "zapdos_galarian" to 10170,
+            "zigzagoon_galarian" to 10174,
+            "zorua_hisuian" to 10238,
+            "zoroark_hisuian" to 10239,
         )
     }
 }

@@ -22,6 +22,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.pokechain.data.dialgadex.NameTranslator
 import com.pokechain.data.dialgadex.PokemonTypeEntry
 import com.pokechain.data.dialgadex.PokemonTypeProvider
@@ -281,7 +282,8 @@ fun TypesScreen(
                                 }
                             }
                         },
-                        pveEngine = pveEngine
+                        pveEngine = pveEngine,
+                        typeProvider = typeProvider
                     )
                     }
                 }
@@ -306,6 +308,7 @@ fun TypesScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun PokemonTypeDetail(
     entry: PokemonTypeEntry,
@@ -315,14 +318,33 @@ private fun PokemonTypeDetail(
     pveError: String?,
     pveLoaded: Boolean,
     onFetchPvE: () -> Unit,
-    pveEngine: PvEScrapingEngine
+    pveEngine: PvEScrapingEngine,
+    typeProvider: PokemonTypeProvider
 ) {
     val context = LocalContext.current
     val translator = remember { NameTranslator(context) }
     val displayName = remember(entry.speciesId, language) {
         entry.displayName(language, translator)
     }
-
+    
+    // Extract form and shadow from speciesId for sprite resolution
+    val (form, shadow) = remember(entry.speciesId) {
+        val id = entry.speciesId
+        val isShadow = id.endsWith("_shadow")
+        val baseId = if (isShadow) id.removeSuffix("_shadow") else id
+        val formStr = if (baseId == baseId.lowercase().replace("_", "")) "Normal" else {
+            val parts = baseId.split("_")
+            if (parts.size >= 2) {
+                val formPart = parts.drop(1).joinToString("_")
+                    .replace("_x", " X")
+                    .replace("_y", " Y")
+                    .replace("_", " ")
+                formPart
+            } else "Normal"
+        }
+        formStr to isShadow
+    }
+    
     val (resistances, weaknesses) = remember(entry.types) {
         TypeChart.getEffectiveness(entry.types)
     }
@@ -403,7 +425,10 @@ private fun PokemonTypeDetail(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 AsyncImage(
-                    model = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/home/${entry.spriteId}.png",
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(typeProvider.resolveSpriteUrl(entry.dex, entry.name, form, shadow))
+                        .crossfade(true)
+                        .build(),
                     contentDescription = displayName,
                     modifier = Modifier
                         .size(68.dp)

@@ -7,9 +7,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 
 @Composable
 fun PokemonRow(
@@ -30,7 +35,10 @@ fun PokemonRow(
         ) {
             if (spriteUrl != null) {
                 AsyncImage(
-                    model = spriteUrl,
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(spriteUrl)
+                        .crossfade(true)
+                        .build(),
                     contentDescription = name,
                     modifier = Modifier
                         .size(40.dp)
@@ -69,7 +77,9 @@ fun PokemonRow(
             Text(
                 text = score,
                 style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(start = 8.dp)
+                modifier = Modifier.padding(start = 8.dp),
+                maxLines = 2,
+                textAlign = TextAlign.Center
             )
         }
     }
