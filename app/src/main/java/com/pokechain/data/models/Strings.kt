@@ -193,6 +193,7 @@ object Strings {
     fun showcaseBreakdown(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Breakdown"; AppLanguage.ES -> "Desglose" }
     fun showcaseIvLabel(lang: AppLanguage) = "IVs"
     fun showcaseXxlBonus(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "XXL Bonus"; AppLanguage.ES -> "Bonus XXL" }
+    fun cleanXXL(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "XXL"; AppLanguage.ES -> "XXL" }
     fun showcaseRatio(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "× base height"; AppLanguage.ES -> "× altura base" }
     fun showcaseNoData(lang: AppLanguage) = when (lang) {
         AppLanguage.EN -> "No size data for this Pokémon"

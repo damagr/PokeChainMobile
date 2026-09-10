@@ -30,6 +30,7 @@ private val cleanAttributes = listOf(
     CleanAttribute("Singular", "Mythical", "singular", "mythical"),
     CleanAttribute("Ultraente", "Ultra Beast", "ultraente", "ultrabeast"),
     CleanAttribute("Gigamax", "Gigantamax", "gigamax", "gigantamax"),
+    CleanAttribute("XXL", "XXL", "xxl", "xxl"),
 )
 
 @Composable
@@ -49,7 +50,8 @@ fun CleanScreen(language: AppLanguage = AppLanguage.ES) {
                 )
             }
         }
-        if (terms.isNotEmpty()) terms.joinToString("&") { "!$it" } + "&!#" else ""
+        // Siempre incluir !# (filtro etiqueta) como base
+        if (terms.isNotEmpty()) terms.joinToString("&") { "!$it" } + "&!#" else "&!#"
     }
 
     fun generate() {
