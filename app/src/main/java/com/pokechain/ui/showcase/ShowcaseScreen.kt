@@ -249,7 +249,7 @@ fun ShowcaseScreen(
             OutlinedTextField(
                 value = heightText,
                 onValueChange = {
-                    heightText = it
+                    heightText = it.replace(',', '.')
                     hasCalculated = false
                 },
                 modifier = Modifier.fillMaxWidth(),
@@ -263,7 +263,7 @@ fun ShowcaseScreen(
             OutlinedTextField(
                 value = weightText,
                 onValueChange = {
-                    weightText = it
+                    weightText = it.replace(',', '.')
                     hasCalculated = false
                 },
                 modifier = Modifier.fillMaxWidth(),
