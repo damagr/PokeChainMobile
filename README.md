@@ -23,6 +23,7 @@ Aplicación complementaria para Pokémon GO con generador de cadenas de búsqued
 - **Cadena PvE** — Rankings de atacantes de incursión de [dialgadex.com](https://dialgadex.com) por tipo. Filtros: Inéditos, Oscuro, Oscuro (casual), Legendarios, Mega/Primal. Usa WebView + scraping JS.
 - **Limpiar** — Genera cadenas de filtro por 11 atributos (4★, 3★, variocolor, suerte, favoritos, disfraz, fondo lugar, legendario, singular, ultraente, gigamax).
 - **Tipos** — Buscador de Pokémon con tabla de tipos (debilidades/fortalezas), rankings PvP en las 32 ligas, ranking PvE global (top 300) y por tipo (top 25). Sprites oficiales desde PokeAPI.
+- **Top por Max** — Rankings de Combates Max (Dinamax/Gigantamax) por tipo, top 10 de cada tipo desde [db.pokemongohub.net](https://db.pokemongohub.net/best/dynamax-attackers-per-type). Sprites oficiales de las formas Max.
 - **Calculadora IV** — Encuentra el nivel exacto a partir de CP + IVs. Muestra % de perfección, proyección de CP hasta nivel 50, tabla de costes (polvo/caramelos/caramelos XL) y genera nombre formateado para GO.
 - **Calculadora de Exhibición** — Calcula la puntuación de PokéStop Showcase (máx. 1178). Medallas XXL/XXS, desglose por altura/peso/IVs y tier de trofeo.
 - **Auto-actualizador** — Revisa GitHub Releases en busca de nuevos APKs y los instala con un solo toque.
@@ -82,6 +83,7 @@ Companion app for Pokémon GO with search string generator, pokédex, IV calcula
 - **PvE Chain** — Raid attacker rankings from [dialgadex.com](https://dialgadex.com) by type. Filters: Unreleased, Shadow, Shadow (casual), Legendary, Mega/Primal. Uses WebView + JS scraping.
 - **Clean** — Generates filter strings by 11 attributes (4★, 3★, Shiny, Lucky, Favorite, Costume, Location background, Legendary, Mythical, Ultra Beast, Gigantamax).
 - **Types** — Pokémon lookup with type chart (weakness/resistance), PvP rankings across 32 leagues, global PvE ranking (top 300) and per-type PvE ranking (top 25). Official sprites from PokeAPI.
+- **Max Top** — Max Battles (Dynamax/Gigantamax) rankings by type, top 10 per type from [db.pokemongohub.net](https://db.pokemongohub.net/best/dynamax-attackers-per-type). Official sprites for Max forms.
 - **IV Calculator** — Finds exact level from CP + IVs. Shows perfection %, CP projection up to level 50, power-up cost table (dust/candy/XL candy) and generates a formatted GO name.
 - **Showcase Calculator** — Computes PokéStop Showcase score (max 1178). XXL/XXS badges, height/weight/IV breakdown and trophy tier.
 - **Auto-updater** — Checks GitHub Releases for new APKs and installs them with one tap.
