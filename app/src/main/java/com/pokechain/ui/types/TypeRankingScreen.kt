@@ -62,11 +62,6 @@ fun TypeRankingScreen(
             val raw = engine.computeByType(typeKey, count)
             val filtered = if (showMega) raw else raw.filter { !it.form.startsWith("Mega") }
             results = filtered.mapIndexed { index, entry -> entry.copy(originalRank = index + 1) }
-            // DEBUG (temporal): log de valores reales name/form para Mewtwo(150), Lucario(448), Kyogre(382), Groudon(383)
-            results.filter { it.id in setOf(150, 448, 382, 383) }.forEach {
-                android.util.Log.d("PokeDebug", "id=${it.id} name='${it.name}' form='${it.form}' shadow=${it.shadow}")
-            }
-            android.util.Log.d("PokeDebug", "forms distinct=${results.map { it.form }.distinct()}")
             // Reset scroll to top after new results are loaded
             listState.scrollToItem(0)
         } catch (e: Exception) {

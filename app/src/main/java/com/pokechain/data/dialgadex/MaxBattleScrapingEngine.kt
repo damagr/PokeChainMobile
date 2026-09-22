@@ -96,7 +96,7 @@ class MaxBattleScrapingEngine {
         }
     }
 
-    private fun parseHtml(html: String): List<PvERankingEntry> {
+    internal fun parseHtml(html: String): List<PvERankingEntry> {
         val doc: Document = Jsoup.parse(html)
         val entries = mutableListOf<PvERankingEntry>()
 
@@ -165,7 +165,7 @@ class MaxBattleScrapingEngine {
 
         var dex = 0
         var srcFormHint: String? = null
-        Regex("""thumb/(\d+)(?:_([a-z0-9]+))?\.webp""").find(spriteSrc)?.let { m ->
+        Regex("""thumb/(\d+)(?:_([a-z0-9_]+))?\.webp""").find(spriteSrc)?.let { m ->
             dex = m.groupValues[1].toIntOrNull() ?: 0
             srcFormHint = m.groupValues[2].takeIf { it.isNotBlank() }
         }
