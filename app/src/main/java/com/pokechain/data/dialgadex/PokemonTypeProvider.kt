@@ -583,7 +583,24 @@ class PokemonTypeProvider {
         // Construct the PokeAPI sprite URL with numeric ID
         return "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/home/${spriteId}.png"
     }
-    
+
+    /**
+     * Resuelve el sprite para formas de Combates Max (Dynamax/Gigantamax) usando
+     * los sprites oficiales de PokemongoHub (PokeAPI no tiene formas dynamax/gmax).
+     *
+     * Formato: https://db.pokemongohub.net/images/official/thumb/{dex:03d}_{suffix}.webp
+     *   - Gigantamax -> {dex:03d}_gmax.webp   (p.ej. 006_gmax.webp)
+     *   - Dynamax    -> {dex:03d}_dynamax.webp (p.ej. 555_dynamax.webp)
+     *   - Otras formas (Crowned Sword/Shield, Eternamax...) -> fallback a PokeAPI home
+     */
+    fun resolveSpriteUrlForMax(dex: Int, name: String, form: String): String {
+        return when (form) {
+            "Gigantamax" -> "https://db.pokemongohub.net/images/official/thumb/${"%03d".format(dex)}_gmax.webp"
+            "Dynamax" -> "https://db.pokemongohub.net/images/official/thumb/${"%03d".format(dex)}_dynamax.webp"
+            else -> resolveSpriteUrl(dex, name, form, false)
+        }
+    }
+
     /**
      * Extracts base Pokemon name and normalized form from API data.
      * Handles inconsistencies where variant info is in name instead of form field.

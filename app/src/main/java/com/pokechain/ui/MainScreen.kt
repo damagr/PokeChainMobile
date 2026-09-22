@@ -15,6 +15,7 @@ import com.pokechain.data.version.VersionCheckResult
 import com.pokechain.data.version.VersionChecker
 import com.pokechain.ui.iv.IvScreen
 import com.pokechain.ui.showcase.ShowcaseScreen
+import com.pokechain.ui.types.MaxRankingScreen
 import com.pokechain.ui.types.TypeRankingScreen
 import com.pokechain.ui.types.TypesScreen
 import kotlinx.coroutines.Dispatchers
@@ -25,7 +26,7 @@ import okhttp3.Request
 import java.io.File
 import java.util.concurrent.TimeUnit
 
-private enum class Screen { HOME, CHAIN, TYPES, TYPE_RANKING, IV_CALC, SHOWCASE }
+private enum class Screen { HOME, CHAIN, TYPES, TYPE_RANKING, MAX_RANKING, IV_CALC, SHOWCASE }
 
 @Composable
 fun MainScreen() {
@@ -68,6 +69,7 @@ fun MainScreen() {
                 onChainClick = { currentScreen = Screen.CHAIN },
                 onTypesClick = { currentScreen = Screen.TYPES },
                 onTypeRankingClick = { currentScreen = Screen.TYPE_RANKING },
+                onMaxRankingClick = { currentScreen = Screen.MAX_RANKING },
                 onIvCalcClick = { currentScreen = Screen.IV_CALC },
                 onShowcaseClick = { currentScreen = Screen.SHOWCASE }
             )
@@ -86,6 +88,12 @@ fun MainScreen() {
         }
         Screen.TYPE_RANKING -> {
             TypeRankingScreen(
+                language = language,
+                onBack = { currentScreen = Screen.HOME }
+            )
+        }
+        Screen.MAX_RANKING -> {
+            MaxRankingScreen(
                 language = language,
                 onBack = { currentScreen = Screen.HOME }
             )

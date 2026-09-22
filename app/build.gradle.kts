@@ -80,6 +80,9 @@ dependencies {
     // Networking
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
+    // HTML Parsing
+    implementation("org.jsoup:jsoup:1.18.3")
+
     // Image loading
     implementation("io.coil-kt:coil-compose:2.7.0")
 

@@ -51,6 +51,8 @@ object Strings {
     fun tagElite(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Elite"; AppLanguage.ES -> "Élite" }
     fun tagXL(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "XL"; AppLanguage.ES -> "XL" }
     fun tagMega(lang: AppLanguage) = "Mega"
+    fun tagGmax(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "G-Max"; AppLanguage.ES -> "G-Max" }
+    fun tagPrimal(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Primal"; AppLanguage.ES -> "Primigenio" }
     fun maxCount(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Max 300"; AppLanguage.ES -> "Máx. 300" }
     fun enterPositiveCount(lang: AppLanguage) = when (lang) {
         AppLanguage.EN -> "Enter a positive number of Pokémon to display"
@@ -228,6 +230,13 @@ object Strings {
         AppLanguage.EN -> "Not in type top 25"
         AppLanguage.ES -> "Fuera del top 25 del tipo"
     }
+
+    // ── Max Ranking (Max Battles) ──────────────────────────────
+    fun maxRankingSection(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Max Top"; AppLanguage.ES -> "Top por Max" }
+    fun maxRankingSubtitle(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Dynamax & Gigantamax"; AppLanguage.ES -> "Dinamax y Gigamax" }
+    fun maxRankingPickType(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Pick a type…"; AppLanguage.ES -> "Elige un tipo…" }
+    fun maxRankingTitle(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Best Max Battle Attackers by Type"; AppLanguage.ES -> "Mejores Atacantes de Combates Max por Tipo" }
+    fun maxRankingLoading(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Loading Max Battles…"; AppLanguage.ES -> "Cargando Combates Max…" }
 
     val pveProgress: List<Pair<Float, AppLanguage.() -> String>> = listOf(
         0.1f to { when (this) { AppLanguage.EN -> "Downloading game data..."; AppLanguage.ES -> "Descargando datos del juego..." } },

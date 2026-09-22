@@ -836,6 +836,8 @@ private fun PveRankingCard(
                                 val label = when {
                                     isShadow -> Strings.pveShadow(language)
                                     entry.form == "Normal" -> Strings.pveNormal(language)
+                                    // dialgadex da form='Mega' también para Primal → distinguir por nombre
+                                    entry.name.startsWith("Primal", ignoreCase = true) -> Strings.tagPrimal(language)
                                     else -> PokemonTypeEntry.translateForm(entry.form, language) ?: entry.form
                                 }
                                 val rankColor = if (isShadow)
@@ -963,6 +965,8 @@ private fun PveTypeRankingCard(
                             val label = when {
                                 isShadow -> Strings.pveShadow(language)
                                 entry.form == "Normal" -> Strings.pveNormal(language)
+                                // dialgadex da form='Mega' también para Primal → distinguir por nombre
+                                entry.name.startsWith("Primal", ignoreCase = true) -> Strings.tagPrimal(language)
                                 else -> PokemonTypeEntry.translateForm(entry.form, language) ?: entry.form
                             }
                             val rankColor = if (isShadow)

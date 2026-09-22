@@ -6,7 +6,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -14,33 +13,28 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.pokechain.data.dialgadex.MaxBattleScrapingEngine
 import com.pokechain.data.dialgadex.NameTranslator
-import com.pokechain.data.dialgadex.PokemonTypeEntry
 import com.pokechain.data.dialgadex.PokemonTypeProvider
-import com.pokechain.data.dialgadex.PvEScrapingEngine
 import com.pokechain.data.models.AppLanguage
 import com.pokechain.data.models.PvERankingEntry
 import com.pokechain.data.models.PokemonType
 import com.pokechain.data.models.Strings
 import com.pokechain.ui.components.PokemonRow
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TypeRankingScreen(
+fun MaxRankingScreen(
     language: AppLanguage,
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
-    val engine = remember { PvEScrapingEngine(context as android.app.Activity) }
-    val scope = rememberCoroutineScope()
+    val engine = remember { MaxBattleScrapingEngine() }
     val translator = remember { NameTranslator(context) }
     val typeProvider = remember { PokemonTypeProvider() }
 
     var showDropdown by remember { mutableStateOf(false) }
     var selectedType by remember { mutableStateOf<PokemonType?>(null) }
-    var isGlobal by remember { mutableStateOf(true) }
-    var showMega by remember { mutableStateOf(true) }
     var results by remember { mutableStateOf<List<PvERankingEntry>>(emptyList()) }
     var isLoading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -48,26 +42,15 @@ fun TypeRankingScreen(
     val listState = rememberLazyListState()
 
     LaunchedEffect(Unit) {
-        engine.init()
         typeProvider.ensureLoaded()
     }
 
-    LaunchedEffect(selectedType, isGlobal, showMega, refreshKey) {
+    LaunchedEffect(selectedType, refreshKey) {
+        val type = selectedType ?: return@LaunchedEffect
         isLoading = true
         error = null
         try {
-            val typeKey = if (isGlobal) "Any" else selectedType?.nameEn
-            if (typeKey == null) return@LaunchedEffect
-            val count = if (isGlobal) 200 else 50
-            val raw = engine.computeByType(typeKey, count)
-            val filtered = if (showMega) raw else raw.filter { !it.form.startsWith("Mega") }
-            results = filtered.mapIndexed { index, entry -> entry.copy(originalRank = index + 1) }
-            // DEBUG (temporal): log de valores reales name/form para Mewtwo(150), Lucario(448), Kyogre(382), Groudon(383)
-            results.filter { it.id in setOf(150, 448, 382, 383) }.forEach {
-                android.util.Log.d("PokeDebug", "id=${it.id} name='${it.name}' form='${it.form}' shadow=${it.shadow}")
-            }
-            android.util.Log.d("PokeDebug", "forms distinct=${results.map { it.form }.distinct()}")
-            // Reset scroll to top after new results are loaded
+            results = engine.computeMaxByType(type.nameEn.lowercase(), 10)
             listState.scrollToItem(0)
         } catch (e: Exception) {
             error = e.message
@@ -86,31 +69,12 @@ fun TypeRankingScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = Strings.back(language))
                     }
                 },
-                title = { 
+                title = {
                     Text(
-                        text = Strings.typeRankingSection(language),
+                        text = Strings.maxRankingSection(language),
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth()
                     )
-                },
-                actions = {
-                    Row(
-                        modifier = Modifier
-                            .padding(end = 16.dp)
-                            .align(Alignment.CenterVertically),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = Strings.tagMega(language),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Spacer(Modifier.width(4.dp))
-                        Switch(
-                            checked = showMega,
-                            onCheckedChange = { showMega = !showMega }
-                        )
-                    }
                 }
             )
         }
@@ -126,31 +90,22 @@ fun TypeRankingScreen(
                 onExpandedChange = { showDropdown = it }
             ) {
                 OutlinedTextField(
-                    value = if (isGlobal) Strings.typeRankingGlobal(language) else selectedType?.displayName(language) ?: "",
+                    value = selectedType?.displayName(language) ?: "",
                     onValueChange = {},
                     readOnly = true,
                     modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryEditable),
-                    placeholder = { Text(Strings.typeRankingPickType(language)) },
+                    placeholder = { Text(Strings.maxRankingPickType(language)) },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showDropdown) }
                 )
                 ExposedDropdownMenu(
                     expanded = showDropdown,
                     onDismissRequest = { showDropdown = false }
                 ) {
-                    DropdownMenuItem(
-                        text = { Text(Strings.typeRankingGlobal(language)) },
-                        onClick = {
-                            isGlobal = true
-                            selectedType = null
-                            showDropdown = false
-                        }
-                    )
                     PokemonType.entries.forEach { type ->
                         DropdownMenuItem(
                             text = { Text(type.displayName(language)) },
                             leadingIcon = { TypeBadge(type = type, language = language) },
                             onClick = {
-                                isGlobal = false
                                 selectedType = type
                                 showDropdown = false
                             }
@@ -171,7 +126,7 @@ fun TypeRankingScreen(
                             CircularProgressIndicator()
                             Spacer(Modifier.height(8.dp))
                             Text(
-                                text = Strings.pveLoading(language),
+                                text = Strings.maxRankingLoading(language),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -193,31 +148,23 @@ fun TypeRankingScreen(
                     }
                 }
 
-                isGlobal || selectedType != null -> {
+                selectedType != null -> {
                     LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
-                        items(results, key = { it.id to it.form to it.shadow }) { entry ->
+                        items(results, key = { it.originalRank to it.name to it.form }) { entry ->
                             val moveset = buildString {
                                 append(entry.fm?.let { translator.getMoveName(it, language) } ?: "-")
-                                if (entry.fmIsElite) append("*")
                                 append(" / ")
                                 append(entry.cm?.let { translator.getMoveName(it, language) } ?: "-")
-                                if (entry.cmIsElite) append("*")
                             }
-PokemonRow(
+                            PokemonRow(
                                 rank = entry.originalRank,
-                                name = cleanName(entry, language),
-                                score = "eDPS\n${"%.2f".format(entry.rat)}",
-                                subtitle = entry.tier?.let { "${Strings.typeRankingTier(language, it)} — $moveset" } ?: moveset,
-                                tags = listOfNotNull(
-                                    if (entry.shadow) Strings.tagShadow(language) else null,
-                                    when {
-                                        // dialgadex da form='Mega' también para Primal → distinguir por nombre
-                                        entry.name.startsWith("Primal", ignoreCase = true) -> Strings.tagPrimal(language)
-                                        entry.form.lowercase().startsWith("mega") -> Strings.tagMega(language)
-                                        else -> null
-                                    }
-                                ),
-                                spriteUrl = typeProvider.resolveSpriteUrl(entry.id, entry.name, entry.form, entry.shadow)
+                                name = cleanMaxName(entry),
+                                score = "Max Damage\n${"%.1f".format(entry.rat)}",
+                                subtitle = moveset,
+tags = listOfNotNull(
+                                if (entry.form == "Gigantamax") Strings.tagGmax(language) else null
+                            ),
+                                spriteUrl = typeProvider.resolveSpriteUrlForMax(entry.id, entry.name, entry.form)
                             )
                         }
                     }
@@ -229,7 +176,7 @@ PokemonRow(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = Strings.typeRankingPickType(language),
+                            text = Strings.maxRankingPickType(language),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center
@@ -241,33 +188,12 @@ PokemonRow(
     }
 }
 
-private fun cleanName(entry: PvERankingEntry, language: AppLanguage): String {
-    val name = entry.name
-    // dialgadex devuelve form en formatos mixtos: CamelCase ("MegaY", "MegaZ", "Mega") y
-    // speciesId suffix ("primal", "crowned_sword", "gmax", "dynamax", etc.)
-    // Nota: dialgadex da form='Mega' también para Primal, pero el name ya incluye "Primal ".
-    val normalizedForm = when (entry.form.lowercase()) {
-        "mega_x", "megay" -> "Mega Y"
-        "mega_y" -> "Mega Y"
-        "megaz" -> "Mega Z"
-        "mega" -> "Mega"
-        "primal" -> "Primal"
-        "gmax" -> "Gigantamax"
-        "dynamax" -> "Dynamax"
-        "crowned_sword" -> "Crowned Sword"
-        "crowned_shield" -> "Crowned Shield"
-        "eternamax" -> "Eternamax"
-        else -> entry.form
-    }
-    return when {
-        normalizedForm == "Normal" -> name
-        // El name de dialgadex ya trae el nombre completo para Megas/Primal
-        name.startsWith("Mega ") || name.startsWith("Primal ") -> name
-        normalizedForm.startsWith("Mega") -> "${PokemonTypeEntry.translateForm(normalizedForm, language) ?: normalizedForm} $name"
-        normalizedForm == "Primal" -> "${PokemonTypeEntry.translateForm(normalizedForm, language) ?: "Primal"} $name"
-        else -> {
-            val translated = PokemonTypeEntry.translateForm(normalizedForm, language) ?: normalizedForm
-            "$name ($translated)"
-        }
+private fun cleanMaxName(entry: PvERankingEntry): String {
+    return when (entry.form) {
+        "Dynamax" -> "Dynamax ${entry.name}"
+        "Gigantamax" -> "Gigantamax ${entry.name}"
+        "Crowned Sword", "Crowned Shield" -> "${entry.name} (${entry.form})"
+        "Eternamax" -> "Eternamax ${entry.name}"
+        else -> entry.name
     }
 }

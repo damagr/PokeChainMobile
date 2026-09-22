@@ -30,4 +30,9 @@
     <string name="loading">Cargando…</string>
     <string name="error_network">Error de red. Revisa tu conexión.</string>
     <string name="filter_title">Filtros</string>
+    <string name="max_ranking_section">Top por Max</string>
+    <string name="max_ranking_subtitle">Dinamax y Gigamax</string>
+    <string name="max_ranking_pick_type">Elige un tipo…</string>
+    <string name="max_ranking_title">Mejores Atacantes de Combates Max por Tipo</string>
+    <string name="max_ranking_loading">Cargando Combates Max…</string>
 </resources>

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Cable
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Shield
@@ -47,6 +48,7 @@ fun HomeScreen(
     onChainClick: () -> Unit,
     onTypesClick: () -> Unit,
     onTypeRankingClick: () -> Unit,
+    onMaxRankingClick: () -> Unit,
     onIvCalcClick: () -> Unit,
     onShowcaseClick: () -> Unit
 ) {
@@ -131,10 +133,10 @@ fun HomeScreen(
                         modifier = Modifier.weight(1f)
                     )
                     HomeCard(
-                        icon = Icons.Default.Star,
-                        title = Strings.ivCalcSection(language),
-                        subtitle = Strings.ivCheckStats(language),
-                        onClick = onIvCalcClick,
+                        icon = Icons.Default.Bolt,
+                        title = Strings.maxRankingSection(language),
+                        subtitle = Strings.maxRankingSubtitle(language),
+                        onClick = onMaxRankingClick,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -143,6 +145,13 @@ fun HomeScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
+                    HomeCard(
+                        icon = Icons.Default.Star,
+                        title = Strings.ivCalcSection(language),
+                        subtitle = Strings.ivCheckStats(language),
+                        onClick = onIvCalcClick,
+                        modifier = Modifier.weight(1f)
+                    )
                     HomeCard(
                         icon = Icons.Default.EmojiEvents,
                         title = Strings.showcaseSection(language),
