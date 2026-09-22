@@ -53,9 +53,7 @@ class VersionChecker {
 
                 val current = currentVersion.removePrefix("v")
 
-                val latestRelease = releases
-                    .filter { !it.prerelease && it.tagName.isNotBlank() }
-                    .maxByOrNull { compareVersions(it.tagName.removePrefix("v"), "0") }
+                val latestRelease = selectLatest(releases)
 
                 if (latestRelease == null) {
                     return@withContext VersionCheckResult.UpToDate
@@ -77,6 +75,12 @@ class VersionChecker {
         }
     }
 
+    /**
+     * Comparador por pares de versiones ("1.9.0" vs "1.8.14").
+     * NOTA: no usar como key de maxByOrNull contra una constante — devolvería
+     * el mismo signo para todas las versiones del mismo major y daría la
+     * primera de la lista, no la más alta (bug histórico corregido).
+     */
     internal fun compareVersions(v1: String, v2: String): Int {
         val parts1 = v1.split("-")[0].split(".").map { it.toIntOrNull() ?: 0 }
         val parts2 = v2.split("-")[0].split(".").map { it.toIntOrNull() ?: 0 }
@@ -89,6 +93,28 @@ class VersionChecker {
         return 0
     }
 }
+
+/**
+ * Clave de ordenación por versión como Long: 1.9.0 → 1_009_000, 1.8.14 → 1_008_014.
+ * Long es Comparable → usable como key de maxByOrNull.
+ * [1,9,0] > [1,8,14] correcto aunque el patch de 1.8.14 sea mayor.
+ */
+internal fun versionKey(tagName: String): Long {
+    val parts = tagName.removePrefix("v").split("-")[0].split(".").map { it.toIntOrNull() ?: 0 }
+    val major = parts.getOrElse(0) { 0 }
+    val minor = parts.getOrElse(1) { 0 }
+    val patch = parts.getOrElse(2) { 0 }
+    return major * 1_000_000L + minor * 1_000L + patch
+}
+
+/**
+ * Selecciona la release estable (no prerelease) con la versión más alta,
+ * independiente del orden en que GitHub devuelva la lista.
+ */
+internal fun selectLatest(releases: List<GitHubRelease>): GitHubRelease? =
+    releases
+        .filter { !it.prerelease && it.tagName.isNotBlank() }
+        .maxByOrNull { versionKey(it.tagName) }
 
 sealed interface VersionCheckResult {
     data class UpdateAvailable(
