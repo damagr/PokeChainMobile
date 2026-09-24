@@ -151,20 +151,18 @@ fun MaxRankingScreen(
                 selectedType != null -> {
                     LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
                         items(results, key = { it.originalRank to it.name to it.form }) { entry ->
-                            val moveset = buildString {
-                                append(entry.fm?.let { translator.getMoveName(it, language) } ?: "-")
-                                append(" / ")
-                                append(entry.cm?.let { translator.getMoveName(it, language) } ?: "-")
-                            }
+                            // Dittobase no muestra el fast move: subtitle = solo el Max Move
+                            val moveset = entry.cm?.let { translator.getMoveName(it, language) } ?: "-"
                             PokemonRow(
                                 rank = entry.originalRank,
                                 name = cleanMaxName(entry),
                                 score = "Max Damage\n${"%.1f".format(entry.rat)}",
                                 subtitle = moveset,
-tags = listOfNotNull(
-                                if (entry.form == "Gigantamax") Strings.tagGmax(language) else null
-                            ),
-                                spriteUrl = typeProvider.resolveSpriteUrlForMax(entry.id, entry.name, entry.form)
+                                tags = listOfNotNull(
+                                    if (entry.form == "Gigantamax") Strings.tagGmax(language) else null
+                                ),
+                                spriteUrl = entry.spriteUrl
+                                    ?: typeProvider.resolveSpriteUrlForMax(entry.id, entry.name, entry.form)
                             )
                         }
                     }
