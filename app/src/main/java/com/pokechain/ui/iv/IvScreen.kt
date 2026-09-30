@@ -521,42 +521,35 @@ private fun IvResultCard(
                 }
             }
 
-            // ── Cost table ────────────────────────────────────────
-            if (cost.dust > 0) {
-                Spacer(Modifier.height(8.dp))
+            // ── Shadow checkbox: siempre visible en la card ───────
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = buildString {
+                        append(Strings.ivShadowCostTitle(language))
+                        if (isShadow) append(" — ${Strings.shadowLabel(language)}")
+                    },
+                    style = MaterialTheme.typography.labelMedium,
+                    color = if (isShadow) MaterialTheme.colorScheme.error
+                           else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Checkbox(
+                    checked = isShadow,
+                    onCheckedChange = { isShadow = it }
+                )
+            }
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = buildString {
-                            append(Strings.ivCost(language))
-                            append(" (${formatLevel(result.level)} → ${formatLevel(targetLevel)})")
-                            if (isShadow) append(" — ${Strings.shadowLabel(language)}")
-                        },
-                        style = MaterialTheme.typography.labelMedium,
-                        color = if (isShadow) MaterialTheme.colorScheme.error
-                               else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    // Checkbox Oscuro: sustituye los costes por los de Pokémon Oscuros
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(2.dp)
-                    ) {
-                        Text(
-                            text = Strings.shadowLabel(language),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = if (isShadow) MaterialTheme.colorScheme.error
-                                   else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Checkbox(
-                            checked = isShadow,
-                            onCheckedChange = { isShadow = it }
-                        )
-                    }
-                }
+            // ── Cost table (chips, solo si hay coste) ─────────────
+            if (cost.dust > 0) {
+                Text(
+                    text = "${Strings.ivCost(language)} (${formatLevel(result.level)} → ${formatLevel(targetLevel)}):",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = if (isShadow) MaterialTheme.colorScheme.error
+                           else MaterialTheme.colorScheme.onSurfaceVariant
+                )
 
                 Spacer(Modifier.height(4.dp))
 

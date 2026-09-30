@@ -171,6 +171,10 @@ object Strings {
     fun ivProjectedCp(lang: AppLanguage) = "PC"
     fun ivProjectedHp(lang: AppLanguage) = "PS"
     fun ivCost(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Cost"; AppLanguage.ES -> "Coste" }
+    fun ivShadowCostTitle(lang: AppLanguage) = when (lang) {
+        AppLanguage.EN -> "Shadow Pokémon costs"
+        AppLanguage.ES -> "Costes Pokémon Oscuro"
+    }
     fun ivDust(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Dust"; AppLanguage.ES -> "Polvo" }
     fun ivCandyLabel(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Candy"; AppLanguage.ES -> "Caramelos" }
     fun ivXlCandyLabel(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "XL Candy"; AppLanguage.ES -> "Caram. XL" }
