@@ -29,6 +29,7 @@ import com.pokechain.data.iv.IvCalculator
 import com.pokechain.data.iv.IvResult
 import com.pokechain.data.models.AppLanguage
 import com.pokechain.data.models.BaseStats
+import com.pokechain.data.models.PokemonType
 import com.pokechain.data.models.Strings
 import kotlin.math.roundToInt
 
@@ -528,13 +529,9 @@ private fun IvResultCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = buildString {
-                        append(Strings.ivShadowCostTitle(language))
-                        if (isShadow) append(" — ${Strings.shadowLabel(language)}")
-                    },
+                    text = Strings.ivShadowCostTitle(language),
                     style = MaterialTheme.typography.labelMedium,
-                    color = if (isShadow) MaterialTheme.colorScheme.error
-                           else MaterialTheme.colorScheme.onSurfaceVariant
+                    color = PokemonType.POISON.color
                 )
                 Checkbox(
                     checked = isShadow,
@@ -547,7 +544,7 @@ private fun IvResultCard(
                 Text(
                     text = "${Strings.ivCost(language)} (${formatLevel(result.level)} → ${formatLevel(targetLevel)}):",
                     style = MaterialTheme.typography.labelMedium,
-                    color = if (isShadow) MaterialTheme.colorScheme.error
+                    color = if (isShadow) PokemonType.POISON.color
                            else MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
