@@ -389,6 +389,9 @@ private fun IvResultCard(
     val minLevel = result.level
     var targetLevel by remember { mutableStateOf(minLevel) }
 
+    // ── Shadow cost state ────────────────────────────────────────
+    var isShadow by remember { mutableStateOf(false) }
+
     // Ensure target stays in bounds when result.level changes
     LaunchedEffect(minLevel) {
         if (targetLevel < minLevel) targetLevel = minLevel
@@ -398,8 +401,8 @@ private fun IvResultCard(
         if (baseStats == null) null
         else IvCalculator.calculateAtLevel(baseStats.atk, baseStats.def, baseStats.hp, atkIv, defIv, staIv, targetLevel)
     }
-    val cost = remember(result.level, targetLevel) {
-        IvCalculator.getPowerUpCost(result.level, targetLevel)
+    val cost = remember(result.level, targetLevel, isShadow) {
+        IvCalculator.getPowerUpCost(result.level, targetLevel, isShadow)
     }
 
     Card(modifier = Modifier.fillMaxWidth()) {
@@ -522,11 +525,38 @@ private fun IvResultCard(
             if (cost.dust > 0) {
                 Spacer(Modifier.height(8.dp))
 
-                Text(
-                    text = "${Strings.ivCost(language)} (${formatLevel(result.level)} → ${formatLevel(targetLevel)}):",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = buildString {
+                            append(Strings.ivCost(language))
+                            append(" (${formatLevel(result.level)} → ${formatLevel(targetLevel)})")
+                            if (isShadow) append(" — ${Strings.shadowLabel(language)}")
+                        },
+                        style = MaterialTheme.typography.labelMedium,
+                        color = if (isShadow) MaterialTheme.colorScheme.error
+                               else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    // Checkbox Oscuro: sustituye los costes por los de Pokémon Oscuros
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        Text(
+                            text = Strings.shadowLabel(language),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (isShadow) MaterialTheme.colorScheme.error
+                                   else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Checkbox(
+                            checked = isShadow,
+                            onCheckedChange = { isShadow = it }
+                        )
+                    }
+                }
 
                 Spacer(Modifier.height(4.dp))
 

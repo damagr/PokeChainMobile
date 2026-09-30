@@ -147,4 +147,84 @@ class IvCalculatorTest {
         assertTrue(cost.candy > 0)
         assertEquals(0, cost.xlCandy) // below 40 → no XL
     }
+
+    // ── Normal table fix (Pokexperto): caramelo 4 desde el nivel 26.0 ──
+
+    @Test
+    fun `powerUp at 25_5 costs 3 candy but at 26_0 costs 4`() {
+        // Pokexperto: total caramelos 25.5 = 90 (3), 26.0 = 94 (4)
+        assertEquals(3, IvCalculator.getPowerUpCost(25.0, 25.5).candy)
+        assertEquals(4, IvCalculator.getPowerUpCost(26.0, 26.5).candy)
+    }
+
+    // ── Shadow (Oscuro) cost table — Pokexperto valores literales ──
+
+    @Test
+    fun `shadow powerUp one step from lvl 1 to 1_5 costs 241 dust 2 candy`() {
+        // Polvo Oscuro NO es 1.2× exacto: 241 (no 240)
+        val cost = IvCalculator.getPowerUpCost(1.0, 1.5, isShadow = true)
+        assertEquals(241, cost.dust)
+        assertEquals(2, cost.candy)
+        assertEquals(0, cost.xlCandy)
+    }
+
+    @Test
+    fun `shadow powerUp at 26_0 costs 4800 dust 5 candy`() {
+        // Un paso (26.0 → 26.5): Pokexperto Oscuro en 26.0 = 4800 polvo / 5 caramelos
+        val cost = IvCalculator.getPowerUpCost(26.0, 26.5, isShadow = true)
+        assertEquals(4800, cost.dust)
+        assertEquals(5, cost.candy)
+    }
+
+    @Test
+    fun `shadow powerUp from 39_5 to 40_5 crosses XL boundary`() {
+        // 39.5 → 40.0: 12000 dust, 18 candy (Oscuro, últimos caramelos normales)
+        // 40.0 → 40.5: 12000 dust, 0 candy, 12 XL (Oscuro XL)
+        val cost = IvCalculator.getPowerUpCost(39.5, 40.5, isShadow = true)
+        assertEquals(24000, cost.dust)
+        assertEquals(18, cost.candy)
+        assertEquals(12, cost.xlCandy)
+    }
+
+    @Test
+    fun `shadow full climb 1 to 10_5 matches pokexperto total 13212`() {
+        // Pokexperto columna Oscuro: total acumulado en el nivel 10.0 = 13212.
+        // Convención pokexperto: el total en X incluye el paso DESDE X,
+        // por lo que equivale a getPowerUpCost(1.0, X + 0.5).
+        val cost = IvCalculator.getPowerUpCost(1.0, 10.5, isShadow = true)
+        assertEquals(13212, cost.dust)
+        assertEquals(38, cost.candy)
+        assertEquals(0, cost.xlCandy)
+    }
+
+    @Test
+    fun `shadow full climb 1 to 40 matches pokexperto total 324028`() {
+        // Pokexperto columna Oscuro: total acumulado en el nivel 39.5 = 324028
+        // (+28 sobre el 1.2× exacto por los redondeos)
+        val cost = IvCalculator.getPowerUpCost(1.0, 40.0, isShadow = true)
+        assertEquals(324028, cost.dust)
+        assertEquals(0, cost.xlCandy)
+    }
+
+    @Test
+    fun `shadow full climb 40 to 50 matches pokexperto XL total 360`() {
+        // Pokexperto columna Oscuro: total XL final en 49.5 = 360
+        val cost = IvCalculator.getPowerUpCost(40.0, 50.0, isShadow = true)
+        assertEquals(360, cost.xlCandy)
+        assertEquals(0, cost.candy)
+    }
+
+    @Test
+    fun `shadow XL at 49 costs 18000 dust 24 xl`() {
+        val cost = IvCalculator.getPowerUpCost(49.0, 49.5, isShadow = true)
+        assertEquals(18000, cost.dust)
+        assertEquals(24, cost.xlCandy)
+    }
+
+    @Test
+    fun `shadow cost defaults to normal when isShadow is false`() {
+        val shadowOff = IvCalculator.getPowerUpCost(1.0, 1.5, isShadow = false)
+        val normal = IvCalculator.getPowerUpCost(1.0, 1.5)
+        assertEquals(normal, shadowOff)
+    }
 }

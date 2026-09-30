@@ -260,8 +260,10 @@ object IvCalculator {
             lvl < 21.0 -> Triple(2500, 2,  0)
             lvl < 23.0 -> Triple(3000, 3,  0)
             lvl < 25.0 -> Triple(3500, 3,  0)
-            lvl < 27.0 -> Triple(4000, 3,  0)
-            lvl < 29.0 -> Triple(4500, 3,  0)
+            lvl < 26.0 -> Triple(4000, 3,  0)
+            // Caramelo 4 desde el nivel 26.0 (Pokexperto: total 90 → 94)
+            lvl < 27.0 -> Triple(4000, 4,  0)
+            lvl < 29.0 -> Triple(4500, 4,  0)
             lvl < 31.0 -> Triple(5000, 4,  0)
             lvl < 33.0 -> Triple(6000, 6,  0)
             lvl < 35.0 -> Triple(7000, 8,  0)
@@ -284,10 +286,60 @@ object IvCalculator {
     }
 
     /**
+     * Power-up cost per half-level (0.5 increment) para Pokémon Oscuros (Shadow).
+     * Returns (dust, candy, xlCandy).
+     * Data sourced from Pokexperto (valores LITERALES — el polvo Oscuro NO es
+     * exactamente 1.2× el Normal: hay +1 de redondeo en bandas concretas,
+     * p.ej. 241 vs 240, 481, 961, 1561, 1921, 3601, 7201, 13201, 14401, 15601).
+     */
+    private fun shadowCostPerPowerUp(fromLevel: Double): Triple<Int, Int, Int> {
+        val lvl = fromLevel
+        return when {
+            // ── Caramelos normales (1.0 – 39.5) ─────────────────
+            lvl < 3.0  -> Triple(241,   2,  0)
+            lvl < 5.0  -> Triple(481,   2,  0)
+            lvl < 7.0  -> Triple(720,   2,  0)
+            lvl < 9.0  -> Triple(961,   2,  0)
+            lvl < 11.0 -> Triple(1200,  2,  0)
+            lvl < 13.0 -> Triple(1561,  3,  0)
+            lvl < 15.0 -> Triple(1921,  3,  0)
+            lvl < 17.0 -> Triple(2280,  3,  0)
+            lvl < 19.0 -> Triple(2640,  3,  0)
+            lvl < 21.0 -> Triple(3000,  3,  0)
+            lvl < 23.0 -> Triple(3601,  4,  0)
+            lvl < 25.0 -> Triple(4200,  4,  0)
+            lvl < 26.0 -> Triple(4800,  4,  0)
+            lvl < 27.0 -> Triple(4800,  5,  0)
+            lvl < 29.0 -> Triple(5400,  5,  0)
+            lvl < 31.0 -> Triple(6000,  5,  0)
+            lvl < 33.0 -> Triple(7201,  8,  0)
+            lvl < 35.0 -> Triple(8400, 10,  0)
+            lvl < 37.0 -> Triple(9600, 12,  0)
+            lvl < 39.0 -> Triple(10800, 15, 0)
+            lvl < 40.0 -> Triple(12000, 18, 0)
+            // ── Caramelos XL (40.0 – 50.0) ─────────────────────
+            lvl < 41.0 -> Triple(12000, 0, 12)
+            lvl < 42.0 -> Triple(13201, 0, 12)
+            lvl < 43.0 -> Triple(13201, 0, 15)
+            lvl < 44.0 -> Triple(14401, 0, 15)
+            lvl < 45.0 -> Triple(14401, 0, 18)
+            lvl < 46.0 -> Triple(15601, 0, 18)
+            lvl < 47.0 -> Triple(15601, 0, 21)
+            lvl < 48.0 -> Triple(16800, 0, 21)
+            lvl < 49.0 -> Triple(16800, 0, 24)
+            lvl < 50.0 -> Triple(18000, 0, 24)
+            else       -> Triple(0, 0, 0)
+        }
+    }
+
+    /**
      * Calculates total dust, candy, and XL candy required to power up
      * from [fromLevel] to [toLevel] (inclusive of each 0.5 step).
+     *
+     * @param isShadow true para costes de Pokémon Oscuros (recargo del 20%,
+     *                 con valores literales de Pokexperto)
      */
-    fun getPowerUpCost(fromLevel: Double, toLevel: Double): PowerUpCost {
+    fun getPowerUpCost(fromLevel: Double, toLevel: Double, isShadow: Boolean = false): PowerUpCost {
         if (toLevel <= fromLevel) return PowerUpCost(0, 0, 0)
 
         var dust = 0
@@ -296,7 +348,7 @@ object IvCalculator {
         var current = fromLevel
 
         while (current < toLevel) {
-            val (d, c, xl) = costPerPowerUp(current)
+            val (d, c, xl) = if (isShadow) shadowCostPerPowerUp(current) else costPerPowerUp(current)
             dust += d
             candy += c
             xlCandy += xl
