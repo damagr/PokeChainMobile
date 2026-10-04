@@ -47,11 +47,11 @@ fun TypesScreen(
     language: AppLanguage,
     onBack: () -> Unit,
     engine: PvEScrapingEngine,
+    typeProvider: PokemonTypeProvider,
     initialRankingEntry: PvERankingEntry? = null
 ) {
     val context = LocalContext.current
     val translator = remember { NameTranslator(context) }
-    val typeProvider = remember { PokemonTypeProvider() }
 
     var textFieldValue by remember { mutableStateOf(TextFieldValue("")) }
     var showDropdown by remember { mutableStateOf(false) }
@@ -86,8 +86,14 @@ fun TypesScreen(
     }
 
     // ── Resolver la entrada inicial (llegada desde un ranking) ────
-    LaunchedEffect(initialRankingEntry, typeProvider.isLoaded) {
+    // Polling: independiente de la recomposición — espera a que el GameMaster cargue
+    LaunchedEffect(initialRankingEntry) {
         val req = initialRankingEntry ?: return@LaunchedEffect
+        var waited = 0
+        while (!typeProvider.isLoaded && waited < 300) { // 300 × 200ms = 60s máx
+            kotlinx.coroutines.delay(200)
+            waited++
+        }
         if (!typeProvider.isLoaded) return@LaunchedEffect
         val resolved = typeProvider.resolveEntryForRanking(req.id, req.name, req.form, req.shadow)
         if (resolved != null) {
@@ -801,22 +807,23 @@ private fun PveRankingCard(
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(12.dp)) {
-            // Title row: label + top-1 moveset (when loaded)
+            // Ataque elegible (Nivel 1, arriba): si el mejor moveset usa un supermega "+",
+            // el elegible es otra línea; si no, es el mismo
             val bestEntry = if (pveLoaded) {
                 pveRankingCache.filter { it.id == targetDex }.minByOrNull { it.originalRank }
             } else null
-            val headerMoveset = bestEntry?.let { e ->
+            val isSupermega = bestEntry?.cm?.endsWith("+") == true
+            val topEntry = if (isSupermega) choosableEntry else bestEntry
+            val headerMoveset = topEntry?.let { e ->
                 val fm = e.fm?.let { translator.getMoveName(it, language) } ?: "-"
                 val cm = e.cm?.let { translator.getMoveName(it, language) } ?: "-"
                 "$fm${if (e.fmIsElite) "*" else ""} / $cm${if (e.cmIsElite) "*" else ""}"
             }
-            // Moveset elegible (Nivel 1): solo si el predefinido (Nivel 4) es un supermega "+"
-            val choosableMoveset = if (bestEntry?.cm?.endsWith("+") == true) {
-                choosableEntry?.let { e ->
-                    val fm = e.fm?.let { translator.getMoveName(it, language) } ?: "-"
-                    val cm = e.cm?.let { translator.getMoveName(it, language) } ?: "-"
-                    "$fm${if (e.fmIsElite) "*" else ""} / $cm${if (e.cmIsElite) "*" else ""}"
-                }
+            // Abajo: el ataque de la mega (Nivel 4, predefinido) — solo si es un supermega "+"
+            val megaMoveset = if (isSupermega) bestEntry?.let { e ->
+                val fm = e.fm?.let { translator.getMoveName(it, language) } ?: "-"
+                val cm = e.cm?.let { translator.getMoveName(it, language) } ?: "-"
+                "$fm${if (e.fmIsElite) "*" else ""} / $cm${if (e.cmIsElite) "*" else ""}"
             } else null
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -837,21 +844,21 @@ private fun PveRankingCard(
                     )
                 }
             }
-            if (choosableMoveset != null) {
+            if (megaMoveset != null) {
                 Spacer(Modifier.height(2.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "${Strings.pveSuperMega1(language)}:",
+                        text = "${Strings.pveMega4(language)}:",
                         style = MaterialTheme.typography.bodySmall,
                         color = Color.White.copy(alpha = 0.8f),
                         maxLines = 1
                     )
                     Spacer(Modifier.width(6.dp))
                     Text(
-                        text = choosableMoveset,
+                        text = megaMoveset,
                         style = MaterialTheme.typography.bodySmall,
                         color = Color.White.copy(alpha = 0.8f),
                         maxLines = 1
@@ -973,20 +980,21 @@ private fun PveTypeRankingCard(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = type.color.copy(alpha = 0.08f))
     ) {
-        // Top-1 moveset from best-ranked match
+        // Ataque elegible (Nivel 1, arriba): si el mejor moveset usa un supermega "+",
+        // el elegible es otra línea; si no, es el mismo
         val bestEntry = rankingCache.filter { it.id == targetDex }.minByOrNull { it.originalRank }
-        val headerMoveset = bestEntry?.let { e ->
+        val isSupermega = bestEntry?.cm?.endsWith("+") == true
+        val topEntry = if (isSupermega) bestChoosableMoveset(subCache, targetDex) else bestEntry
+        val headerMoveset = topEntry?.let { e ->
             val fm = e.fm?.let { translator.getMoveName(it, language) } ?: "-"
             val cm = e.cm?.let { translator.getMoveName(it, language) } ?: "-"
             "$fm${if (e.fmIsElite) "*" else ""} / $cm${if (e.cmIsElite) "*" else ""}"
         }
-        // Moveset elegible (Nivel 1): solo si el ataque predefinido (Nivel 4) es un supermega "+"
-        val choosableMoveset = if (bestEntry?.cm?.endsWith("+") == true) {
-            bestChoosableMoveset(subCache, targetDex)?.let { e ->
-                val fm = e.fm?.let { translator.getMoveName(it, language) } ?: "-"
-                val cm = e.cm?.let { translator.getMoveName(it, language) } ?: "-"
-                "$fm${if (e.fmIsElite) "*" else ""} / $cm${if (e.cmIsElite) "*" else ""}"
-            }
+        // Abajo: el ataque de la mega (Nivel 4, predefinido) — solo si es un supermega "+"
+        val megaMoveset = if (isSupermega) bestEntry?.let { e ->
+            val fm = e.fm?.let { translator.getMoveName(it, language) } ?: "-"
+            val cm = e.cm?.let { translator.getMoveName(it, language) } ?: "-"
+            "$fm${if (e.fmIsElite) "*" else ""} / $cm${if (e.cmIsElite) "*" else ""}"
         } else null
         Column(modifier = Modifier.padding(10.dp)) {
             Row(
@@ -1004,21 +1012,21 @@ private fun PveTypeRankingCard(
                     )
                 }
             }
-            if (choosableMoveset != null) {
+            if (megaMoveset != null) {
                 Spacer(Modifier.height(2.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "${Strings.pveSuperMega1(language)}:",
+                        text = "${Strings.pveMega4(language)}:",
                         style = MaterialTheme.typography.bodySmall,
                         color = Color.White.copy(alpha = 0.8f),
                         maxLines = 1
                     )
                     Spacer(Modifier.width(6.dp))
                     Text(
-                        text = choosableMoveset,
+                        text = megaMoveset,
                         style = MaterialTheme.typography.bodySmall,
                         color = Color.White.copy(alpha = 0.8f),
                         maxLines = 1

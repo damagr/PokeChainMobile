@@ -235,8 +235,7 @@ object Strings {
         AppLanguage.ES -> "Fuera del top 25 del tipo"
     }
     // ── Supermega charged attacks (PvE cards) ──────────────────
-    fun pveSuperMega4(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Level 4"; AppLanguage.ES -> "Nivel 4" }
-    fun pveSuperMega1(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Level 1"; AppLanguage.ES -> "Nivel 1" }
+    fun pveMega4(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Mega level 4"; AppLanguage.ES -> "Mega nivel 4" }
 
     // ── Max Ranking (Max Battles) ──────────────────────────────
     fun maxRankingSection(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Max Top"; AppLanguage.ES -> "Top por Max" }

@@ -10,6 +10,7 @@ import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.pokechain.data.dialgadex.PokemonTypeProvider
 import com.pokechain.data.dialgadex.PvEScrapingEngine
 import com.pokechain.data.models.AppLanguage
 import com.pokechain.data.models.PvERankingEntry
@@ -47,6 +48,8 @@ fun MainScreen() {
 
     // ── Motor PvE compartido: su cache persiste entre pantallas ────
     val pveEngine = remember { PvEScrapingEngine(context as android.app.Activity) }
+    // Provider del GameMaster compartido: se descarga UNA vez (persiste entre pantallas)
+    val pveTypeProvider = remember { PokemonTypeProvider() }
 
     // ── Holder de estado: conserva el estado de las pantallas al navegar ──
     val saveableStateHolder = rememberSaveableStateHolder()
@@ -111,6 +114,7 @@ fun MainScreen() {
                 language = language,
                 onBack = { leaveTypes() },
                 engine = pveEngine,
+                typeProvider = pveTypeProvider,
                 initialRankingEntry = pokedexEntryRequest
             )
         }
@@ -120,6 +124,7 @@ fun MainScreen() {
                     language = language,
                     onBack = { currentScreen = Screen.HOME },
                     engine = pveEngine,
+                    typeProvider = pveTypeProvider,
                     onPokemonClick = { entry ->
                         pokedexEntryRequest = entry
                         pokedexCameFrom = Screen.TYPE_RANKING
