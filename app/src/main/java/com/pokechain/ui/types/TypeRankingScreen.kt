@@ -9,6 +9,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -29,18 +30,19 @@ import kotlinx.coroutines.launch
 @Composable
 fun TypeRankingScreen(
     language: AppLanguage,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    engine: PvEScrapingEngine,
+    onPokemonClick: (PvERankingEntry) -> Unit = {}
 ) {
     val context = LocalContext.current
-    val engine = remember { PvEScrapingEngine(context as android.app.Activity) }
     val scope = rememberCoroutineScope()
     val translator = remember { NameTranslator(context) }
     val typeProvider = remember { PokemonTypeProvider() }
 
-    var showDropdown by remember { mutableStateOf(false) }
-    var selectedType by remember { mutableStateOf<PokemonType?>(null) }
-    var isGlobal by remember { mutableStateOf(true) }
-    var showMega by remember { mutableStateOf(true) }
+    var showDropdown by rememberSaveable { mutableStateOf(false) }
+    var selectedType by rememberSaveable { mutableStateOf<PokemonType?>(null) }
+    var isGlobal by rememberSaveable { mutableStateOf(true) }
+    var showMega by rememberSaveable { mutableStateOf(true) }
     var results by remember { mutableStateOf<List<PvERankingEntry>>(emptyList()) }
     var isLoading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -212,7 +214,8 @@ PokemonRow(
                                         else -> null
                                     }
                                 ),
-                                spriteUrl = typeProvider.resolveSpriteUrl(entry.id, entry.name, entry.form, entry.shadow)
+                                spriteUrl = typeProvider.resolveSpriteUrl(entry.id, entry.name, entry.form, entry.shadow),
+                                onClick = { onPokemonClick(entry) }
                             )
                         }
                     }

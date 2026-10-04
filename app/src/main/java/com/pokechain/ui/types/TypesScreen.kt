@@ -45,7 +45,9 @@ import kotlinx.coroutines.launch
 @Composable
 fun TypesScreen(
     language: AppLanguage,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    engine: PvEScrapingEngine,
+    initialRankingEntry: PvERankingEntry? = null
 ) {
     val context = LocalContext.current
     val translator = remember { NameTranslator(context) }
@@ -58,7 +60,7 @@ fun TypesScreen(
     var typeLoadError by remember { mutableStateOf<String?>(null) }
 
     // ── PvE state: engine + cache shared across Pokémon lookups ─────
-    val pveEngine = remember { PvEScrapingEngine(context as android.app.Activity) }
+    val pveEngine = engine
     val scope = rememberCoroutineScope()
     var pveRankingCache by remember { mutableStateOf<List<PvERankingEntry>>(emptyList()) }
     var isPveLoading by remember { mutableStateOf(true) }
@@ -81,6 +83,18 @@ fun TypesScreen(
     // ── Pre-calentar motor PvE en segundo plano ───────────────────
     LaunchedEffect(Unit) {
         pveEngine.init()
+    }
+
+    // ── Resolver la entrada inicial (llegada desde un ranking) ────
+    LaunchedEffect(initialRankingEntry, typeProvider.isLoaded) {
+        val req = initialRankingEntry ?: return@LaunchedEffect
+        if (!typeProvider.isLoaded) return@LaunchedEffect
+        val resolved = typeProvider.resolveEntryForRanking(req.id, req.name, req.form, req.shadow)
+        if (resolved != null) {
+            selectedEntry = resolved
+            val name = resolved.displayName(language, translator)
+            textFieldValue = TextFieldValue(name, selection = TextRange(name.length))
+        }
     }
 
     // ── Auto-fetch PvE al seleccionar Pokémon ────────────────────
@@ -359,6 +373,8 @@ private fun PokemonTypeDetail(
 
     // ── Type ranking state ─────────────────────────────────────
     val typeRankingCache = remember { mutableStateMapOf<String, List<PvERankingEntry>>() }
+    // Sub-cache con movimientos subóptimos (para extraer el mejor ataque elegible sin "+")
+    val typeSubCache = remember { mutableStateMapOf<String, List<PvERankingEntry>>() }
     val typeLoadingMap = remember { mutableStateMapOf<String, Boolean>() }
     val typeErrorMap = remember { mutableStateMapOf<String, String?>() }
 
@@ -406,6 +422,9 @@ private fun PokemonTypeDetail(
             try {
                 val results = pveEngine.computeByType(typeKey, 25)
                 typeRankingCache[typeKey] = results
+                // Búsqueda subóptima para extraer el mejor ataque elegible (sin "+")
+                val subResults = pveEngine.computeByType(typeKey, 25, suboptimal = true)
+                typeSubCache[typeKey] = subResults
             } catch (e: Exception) {
                 typeErrorMap[typeKey] = e.message
             } finally {
@@ -487,6 +506,10 @@ private fun PokemonTypeDetail(
             targetDex = entry.dex,
             targetSpeciesId = entry.speciesId,
             pveRankingCache = pveRankingCache,
+            choosableEntry = bestChoosableMoveset(
+                entry.types.mapNotNull { typeSubCache[it.nameEn] }.flatten(),
+                entry.dex
+            ),
             isPveLoading = isPveLoading,
             pveError = pveError,
             pveLoaded = pveLoaded,
@@ -510,6 +533,7 @@ private fun PokemonTypeDetail(
                         type = type,
                         targetDex = entry.dex,
                         rankingCache = typeRankingCache[typeKey] ?: emptyList(),
+                        subCache = typeSubCache[typeKey] ?: emptyList(),
                         isLoading = typeLoadingMap[typeKey] == true,
                         error = typeErrorMap[typeKey],
                         language = language,
@@ -687,6 +711,22 @@ private fun PvpRankingsCard(
     }
 }
 
+// ── Helper: best choosable moveset (pure, testable) ────────────────
+
+/**
+ * Devuelve el mejor moveset elegible para un Pokémon: el de mejor posición
+ * cuyo ataque cargado NO termina en "+" (el supermega predefinido no es
+ * elegible por el jugador). Pensado para resultados con movimientos
+ * subóptimos activados. Pure, testable.
+ */
+internal fun bestChoosableMoveset(
+    suboptimal: List<PvERankingEntry>,
+    targetDex: Int
+): PvERankingEntry? =
+    suboptimal
+        .filter { it.id == targetDex && !(it.cm?.endsWith("+") ?: true) }
+        .minByOrNull { it.originalRank }
+
 // ── Helper: build form ranks from raw ranking entries (pure, testable) ──
 
 internal fun buildFormRanks(
@@ -751,6 +791,7 @@ private fun PveRankingCard(
     targetDex: Int,
     targetSpeciesId: String,
     pveRankingCache: List<PvERankingEntry>,
+    choosableEntry: PvERankingEntry?,
     isPveLoading: Boolean,
     pveError: String?,
     pveLoaded: Boolean,
@@ -769,6 +810,14 @@ private fun PveRankingCard(
                 val cm = e.cm?.let { translator.getMoveName(it, language) } ?: "-"
                 "$fm${if (e.fmIsElite) "*" else ""} / $cm${if (e.cmIsElite) "*" else ""}"
             }
+            // Moveset elegible (Nivel 1): solo si el predefinido (Nivel 4) es un supermega "+"
+            val choosableMoveset = if (bestEntry?.cm?.endsWith("+") == true) {
+                choosableEntry?.let { e ->
+                    val fm = e.fm?.let { translator.getMoveName(it, language) } ?: "-"
+                    val cm = e.cm?.let { translator.getMoveName(it, language) } ?: "-"
+                    "$fm${if (e.fmIsElite) "*" else ""} / $cm${if (e.cmIsElite) "*" else ""}"
+                }
+            } else null
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -784,6 +833,27 @@ private fun PveRankingCard(
                         text = headerMoveset,
                         style = MaterialTheme.typography.bodySmall,
                         color = Color.White,
+                        maxLines = 1
+                    )
+                }
+            }
+            if (choosableMoveset != null) {
+                Spacer(Modifier.height(2.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "${Strings.pveSuperMega1(language)}:",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White.copy(alpha = 0.8f),
+                        maxLines = 1
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = choosableMoveset,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White.copy(alpha = 0.8f),
                         maxLines = 1
                     )
                 }
@@ -893,6 +963,7 @@ private fun PveTypeRankingCard(
     type: PokemonType,
     targetDex: Int,
     rankingCache: List<PvERankingEntry>,
+    subCache: List<PvERankingEntry>,
     isLoading: Boolean,
     error: String?,
     language: AppLanguage,
@@ -909,6 +980,14 @@ private fun PveTypeRankingCard(
             val cm = e.cm?.let { translator.getMoveName(it, language) } ?: "-"
             "$fm${if (e.fmIsElite) "*" else ""} / $cm${if (e.cmIsElite) "*" else ""}"
         }
+        // Moveset elegible (Nivel 1): solo si el ataque predefinido (Nivel 4) es un supermega "+"
+        val choosableMoveset = if (bestEntry?.cm?.endsWith("+") == true) {
+            bestChoosableMoveset(subCache, targetDex)?.let { e ->
+                val fm = e.fm?.let { translator.getMoveName(it, language) } ?: "-"
+                val cm = e.cm?.let { translator.getMoveName(it, language) } ?: "-"
+                "$fm${if (e.fmIsElite) "*" else ""} / $cm${if (e.cmIsElite) "*" else ""}"
+            }
+        } else null
         Column(modifier = Modifier.padding(10.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -921,6 +1000,27 @@ private fun PveTypeRankingCard(
                         text = headerMoveset,
                         style = MaterialTheme.typography.bodySmall,
                         color = Color.White,
+                        maxLines = 1
+                    )
+                }
+            }
+            if (choosableMoveset != null) {
+                Spacer(Modifier.height(2.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "${Strings.pveSuperMega1(language)}:",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White.copy(alpha = 0.8f),
+                        maxLines = 1
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = choosableMoveset,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White.copy(alpha = 0.8f),
                         maxLines = 1
                     )
                 }

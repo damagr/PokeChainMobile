@@ -23,9 +23,12 @@ fun PokemonRow(
     score: String,
     subtitle: String? = null,
     tags: List<String> = emptyList(),
-    spriteUrl: String? = null
+    spriteUrl: String? = null,
+    onClick: (() -> Unit)? = null
 ) {
     Card(
+        onClick = onClick ?: {},
+        enabled = onClick != null,
         modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
     ) {
         Row(

@@ -602,6 +602,47 @@ class PokemonTypeProvider {
     }
 
     /**
+     * Resuelve el PokemonTypeEntry correspondiente a una entrada de ranking
+     * (dialgadex/dittobase) por dex + nombre + forma + shadow.
+     *
+     * Reutiliza extractBaseNameAndForm para normalizar variantes en el nombre
+     * ("Mega X"/"Mega Y" en name, prefijos "Primal "/"Crowned"...).
+     *
+     * Estrategia: 1) speciesId exacto (baseName + sufijo + _shadow),
+     * 2) mismo dex cuyo speciesId acaba en el sufijo, 3) fallback por nombre.
+     */
+    fun resolveEntryForRanking(dex: Int, name: String, form: String, shadow: Boolean): PokemonTypeEntry? {
+        val entries = allEntries ?: return null
+        val (cleanName, normalizedForm) = extractBaseNameAndForm(name, form)
+        val baseName = cleanName.lowercase().replace(" ", "")
+
+        val suffix = when (normalizedForm) {
+            "Mega" -> "_mega"
+            "Mega X" -> "_mega_x"
+            "Mega Y" -> "_mega_y"
+            "MegaY" -> "_mega_y"
+            "MegaZ" -> "_mega"
+            "Primal" -> "_primal"
+            "Normal" -> ""
+            else -> "_" + normalizedForm.lowercase().replace(" ", "_")
+        }
+        val shadowSuffix = if (shadow) "_shadow" else ""
+
+        // 1) Coincidencia exacta de speciesId
+        entries.firstOrNull { it.dex == dex && it.speciesId == "${baseName}${suffix}${shadowSuffix}" }
+            ?.let { return it }
+
+        // 2) Mismo dex cuyo speciesId acaba en el sufijo (+ _shadow)
+        if (suffix.isNotEmpty() || shadow) {
+            entries.firstOrNull { it.dex == dex && it.speciesId.endsWith("${suffix}${shadowSuffix}") }
+                ?.let { return it }
+        }
+
+        // 3) Fallback: mismo dex cuyo speciesId empieza por el nombre base
+        return entries.firstOrNull { it.dex == dex && it.speciesId.startsWith(baseName) }
+    }
+
+    /**
      * Extracts base Pokemon name and normalized form from API data.
      * Handles inconsistencies where variant info is in name instead of form field.
      * Returns (cleanName, normalizedForm).

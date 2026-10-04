@@ -101,9 +101,9 @@ class PvEScrapingEngine(private val activity: Activity) {
 
     fun getCachedByType(type: String): List<PvERankingEntry> = typeCache[type] ?: emptyList()
 
-    suspend fun computeByType(type: String, count: Int = 25): List<PvERankingEntry> = withContext(Dispatchers.Main) {
+    suspend fun computeByType(type: String, count: Int = 25, suboptimal: Boolean = false): List<PvERankingEntry> = withContext(Dispatchers.Main) {
         mutex.withLock {
-            val cacheKey = "$type:$count"
+            val cacheKey = "$type:$count:${if (suboptimal) "sub" else "std"}"
             val cached = typeCache[cacheKey]
             if (cached != null && cached.size >= count) return@withLock cached.take(count)
 
@@ -136,7 +136,7 @@ class PvEScrapingEngine(private val activity: Activity) {
 
                     var params = {
                         type: "$type", elite: true, mixed: true, offtype: false,
-                        suboptimal: false, level: 40, real_damage: false,
+                        suboptimal: $suboptimal, level: 40, real_damage: false,
                         shadow: true,
                         mega: true,
                         legendary: true,
@@ -162,7 +162,7 @@ class PvEScrapingEngine(private val activity: Activity) {
             val withRanks = parsed.mapIndexed { index, entry ->
                 entry.copy(originalRank = index + 1)
             }
-            typeCache["$type:$count"] = withRanks
+            typeCache[cacheKey] = withRanks
             withRanks
         }
     }

@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -26,15 +27,16 @@ import com.pokechain.ui.components.PokemonRow
 @Composable
 fun MaxRankingScreen(
     language: AppLanguage,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onPokemonClick: (PvERankingEntry) -> Unit = {}
 ) {
     val context = LocalContext.current
     val engine = remember { MaxBattleScrapingEngine() }
     val translator = remember { NameTranslator(context) }
     val typeProvider = remember { PokemonTypeProvider() }
 
-    var showDropdown by remember { mutableStateOf(false) }
-    var selectedType by remember { mutableStateOf<PokemonType?>(null) }
+    var showDropdown by rememberSaveable { mutableStateOf(false) }
+    var selectedType by rememberSaveable { mutableStateOf<PokemonType?>(null) }
     var results by remember { mutableStateOf<List<PvERankingEntry>>(emptyList()) }
     var isLoading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -162,7 +164,8 @@ fun MaxRankingScreen(
                                     if (entry.form == "Gigantamax") Strings.tagGmax(language) else null
                                 ),
                                 spriteUrl = entry.spriteUrl
-                                    ?: typeProvider.resolveSpriteUrlForMax(entry.id, entry.name, entry.form)
+                                    ?: typeProvider.resolveSpriteUrlForMax(entry.id, entry.name, entry.form),
+                                onClick = { onPokemonClick(entry) }
                             )
                         }
                     }

@@ -6,10 +6,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.pokechain.data.dialgadex.PvEScrapingEngine
 import com.pokechain.data.models.AppLanguage
+import com.pokechain.data.models.PvERankingEntry
 import com.pokechain.data.models.Strings
 import com.pokechain.data.version.VersionCheckResult
 import com.pokechain.data.version.VersionChecker
@@ -42,6 +45,22 @@ fun MainScreen() {
     var downloadError by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
+    // ── Motor PvE compartido: su cache persiste entre pantallas ────
+    val pveEngine = remember { PvEScrapingEngine(context as android.app.Activity) }
+
+    // ── Holder de estado: conserva el estado de las pantallas al navegar ──
+    val saveableStateHolder = rememberSaveableStateHolder()
+
+    // ── Navegación ranking → Pokédex ──────────────────────────────
+    var pokedexEntryRequest by remember { mutableStateOf<PvERankingEntry?>(null) }
+    var pokedexCameFrom by remember { mutableStateOf<Screen?>(null) }
+
+    fun leaveTypes() {
+        pokedexEntryRequest = null
+        pokedexCameFrom?.let { currentScreen = it } ?: run { currentScreen = Screen.HOME }
+        pokedexCameFrom = null
+    }
+
     LaunchedEffect(Unit) {
         scope.launch {
             val checker = VersionChecker()
@@ -58,7 +77,12 @@ fun MainScreen() {
 
     // ponytail: mandatory predictive back on API 36+
     BackHandler(enabled = currentScreen != Screen.HOME) {
-        currentScreen = Screen.HOME
+        if (currentScreen == Screen.TYPES && pokedexCameFrom != null) leaveTypes()
+        else {
+            pokedexEntryRequest = null
+            pokedexCameFrom = null
+            currentScreen = Screen.HOME
+        }
     }
 
     when (currentScreen) {
@@ -75,40 +99,63 @@ fun MainScreen() {
             )
         }
         Screen.CHAIN -> {
-            ChainScreen(
-                language = language,
-                onBack = { currentScreen = Screen.HOME }
-            )
+            saveableStateHolder.SaveableStateProvider("chain") {
+                ChainScreen(
+                    language = language,
+                    onBack = { currentScreen = Screen.HOME }
+                )
+            }
         }
         Screen.TYPES -> {
             TypesScreen(
                 language = language,
-                onBack = { currentScreen = Screen.HOME }
+                onBack = { leaveTypes() },
+                engine = pveEngine,
+                initialRankingEntry = pokedexEntryRequest
             )
         }
         Screen.TYPE_RANKING -> {
-            TypeRankingScreen(
-                language = language,
-                onBack = { currentScreen = Screen.HOME }
-            )
+            saveableStateHolder.SaveableStateProvider("type_ranking") {
+                TypeRankingScreen(
+                    language = language,
+                    onBack = { currentScreen = Screen.HOME },
+                    engine = pveEngine,
+                    onPokemonClick = { entry ->
+                        pokedexEntryRequest = entry
+                        pokedexCameFrom = Screen.TYPE_RANKING
+                        currentScreen = Screen.TYPES
+                    }
+                )
+            }
         }
         Screen.MAX_RANKING -> {
-            MaxRankingScreen(
-                language = language,
-                onBack = { currentScreen = Screen.HOME }
-            )
+            saveableStateHolder.SaveableStateProvider("max_ranking") {
+                MaxRankingScreen(
+                    language = language,
+                    onBack = { currentScreen = Screen.HOME },
+                    onPokemonClick = { entry ->
+                        pokedexEntryRequest = entry
+                        pokedexCameFrom = Screen.MAX_RANKING
+                        currentScreen = Screen.TYPES
+                    }
+                )
+            }
         }
         Screen.IV_CALC -> {
-            IvScreen(
-                language = language,
-                onBack = { currentScreen = Screen.HOME }
-            )
+            saveableStateHolder.SaveableStateProvider("iv_calc") {
+                IvScreen(
+                    language = language,
+                    onBack = { currentScreen = Screen.HOME }
+                )
+            }
         }
         Screen.SHOWCASE -> {
-            ShowcaseScreen(
-                language = language,
-                onBack = { currentScreen = Screen.HOME }
-            )
+            saveableStateHolder.SaveableStateProvider("showcase") {
+                ShowcaseScreen(
+                    language = language,
+                    onBack = { currentScreen = Screen.HOME }
+                )
+            }
         }
     }
 
