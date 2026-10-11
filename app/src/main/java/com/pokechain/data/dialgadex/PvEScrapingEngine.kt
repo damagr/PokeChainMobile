@@ -9,6 +9,7 @@ import android.widget.FrameLayout
 import com.pokechain.data.models.PvERankingEntry
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -115,8 +116,12 @@ class PvEScrapingEngine(private val activity: Activity) {
     suspend fun computeByType(type: String, count: Int = 25, suboptimal: Boolean = false): List<PvERankingEntry> = withContext(Dispatchers.Main) {
         mutex.withLock {
             val cacheKey = "$type:$count:${if (suboptimal) "sub" else "std"}"
-            val cached = typeCache[cacheKey]
-            // Cache hit aunque haya menos resultados que count (dialgadex puede devolver menos)
+            val mode = if (suboptimal) ":sub" else ":std"
+            // Reutilizar cualquier cache previo del mismo tipo+modo con suficientes
+            // resultados (superset): evita fragmentar la cache por count
+            val cached = typeCache.entries
+                .firstOrNull { (k, v) -> k.startsWith("$type:") && k.endsWith(mode) && v.size >= count }
+                ?.value
             if (cached != null && cached.isNotEmpty()) return@withLock cached.take(count)
 
             init()
@@ -163,7 +168,15 @@ class PvEScrapingEngine(private val activity: Activity) {
             })();
         """.trimIndent(), null)
 
-            val raw = withTimeout(120_000) { deferred.await() }
+            val raw = try {
+                withTimeout(120_000) { deferred.await() }
+            } catch (e: TimeoutCancellationException) {
+                // WebView muerta o colgada tras un init exitoso: destruir y permitir
+                // re-init en la siguiente llamada (antes: timeout de 120s para siempre)
+                destroy()
+                readyDeferred = null
+                ""
+            }
 
             val parsed = when {
                 raw == "TIMEOUT" || raw.startsWith("ERROR:") -> emptyList()
@@ -229,7 +242,14 @@ class PvEScrapingEngine(private val activity: Activity) {
             })();
         """.trimIndent(), null)
 
-        val raw = withTimeout(120_000) { deferred.await() }
+        val raw = try {
+            withTimeout(120_000) { deferred.await() }
+        } catch (e: TimeoutCancellationException) {
+            // WebView muerta o colgada: destruir y permitir re-init en la siguiente llamada
+            destroy()
+            readyDeferred = null
+            ""
+        }
 
                 val parsed = when {
             raw == "TIMEOUT" || raw.startsWith("ERROR:") -> emptyList()
