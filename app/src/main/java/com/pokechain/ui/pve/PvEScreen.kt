@@ -142,13 +142,13 @@ fun PvEScreen(language: AppLanguage = AppLanguage.ES, advancedMode: Boolean = fa
                 searchString = buildSearchString(names, language, filters.includeShadow, filters.casualShadow)
 
                 advanceStage(); delay(50)
-                val filteredMsg = if (skippedUnreleased > 0) " (${skippedUnreleased} filtrados)" else ""
-                resultMessage = "Resultados: ${sliced.size} Pokémon$filteredMsg, cadena de ${searchString.length} caracteres"
+                val filteredMsg = if (skippedUnreleased > 0) " (${skippedUnreleased} ${Strings.pveFiltered(language)})" else ""
+                resultMessage = "${Strings.pveResults(language, sliced.size, searchString.length)}$filteredMsg"
                 showResultMessage = true
             } catch (e: Exception) {
                 error = "${e::class.simpleName}: ${e.message}\n\n${e.stackTraceToString()}"
                 showErrorDialog = true
-                resultMessage = "Error: ${e::class.simpleName}: ${e.message}"
+                resultMessage = "${Strings.errorTitle("PvE", language)}: ${e::class.simpleName}: ${e.message}"
                 showResultMessage = true
             } finally {
                 delay(500)

@@ -7,12 +7,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 
@@ -26,11 +24,9 @@ fun PokemonRow(
     spriteUrl: String? = null,
     onClick: (() -> Unit)? = null
 ) {
-    Card(
-        onClick = onClick ?: {},
-        enabled = onClick != null,
-        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
-    ) {
+    val cardModifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
+    // Card clicable solo si hay onClick; si no, Card normal (sin colores disabled/fade)
+    val cardContent: @Composable () -> Unit = {
         Row(
             modifier = Modifier.padding(12.dp).fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -69,10 +65,17 @@ fun PokemonRow(
                     Spacer(Modifier.height(4.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         tags.forEach { tag ->
-                            SuggestionChip(
-                                onClick = {},
-                                label = { Text(tag, style = MaterialTheme.typography.labelSmall) }
-                            )
+                            // Badge no interactivo: no absorbe el tap de la Card clicable
+                            Surface(
+                                shape = MaterialTheme.shapes.small,
+                                color = MaterialTheme.colorScheme.secondaryContainer
+                            ) {
+                                Text(
+                                    text = tag,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                )
+                            }
                         }
                     }
                 }
@@ -85,5 +88,10 @@ fun PokemonRow(
                 textAlign = TextAlign.Center
             )
         }
+    }
+    if (onClick != null) {
+        Card(onClick = onClick, modifier = cardModifier) { cardContent() }
+    } else {
+        Card(modifier = cardModifier) { cardContent() }
     }
 }

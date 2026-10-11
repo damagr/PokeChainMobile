@@ -43,7 +43,8 @@ fun TypeRankingScreen(
     var selectedType by rememberSaveable { mutableStateOf<PokemonType?>(null) }
     var isGlobal by rememberSaveable { mutableStateOf(true) }
     var showMega by rememberSaveable { mutableStateOf(true) }
-    var results by remember { mutableStateOf<List<PvERankingEntry>>(emptyList()) }
+    var rawResults by remember { mutableStateOf<List<PvERankingEntry>>(emptyList()) }
+    var lastFetchKey by rememberSaveable { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var refreshKey by remember { mutableStateOf(0) }
@@ -54,25 +55,32 @@ fun TypeRankingScreen(
         typeProvider.ensureLoaded()
     }
 
-    LaunchedEffect(selectedType, isGlobal, showMega, refreshKey) {
+    LaunchedEffect(selectedType, isGlobal, refreshKey) {
         isLoading = true
         error = null
         try {
             val typeKey = if (isGlobal) "Any" else selectedType?.nameEn
             if (typeKey == null) return@LaunchedEffect
             val count = if (isGlobal) 200 else 50
-            val raw = engine.computeByType(typeKey, count)
-            val filtered = if (showMega) raw else raw.filter { !it.form.startsWith("Mega") }
-            results = filtered.mapIndexed { index, entry -> entry.copy(originalRank = index + 1) }
-            // Reset scroll to top after new results are loaded
-            listState.scrollToItem(0)
+            rawResults = engine.computeByType(typeKey, count)
+            // Scroll solo si cambió la consulta (un refetch de reentrada con cache la conserva)
+            if (lastFetchKey != typeKey) {
+                listState.scrollToItem(0)
+                lastFetchKey = typeKey
+            }
         } catch (e: Exception) {
             error = e.message
-            results = emptyList()
+            rawResults = emptyList()
             listState.scrollToItem(0)
         } finally {
             isLoading = false
         }
+    }
+
+    // Filtrado derivado en cliente: alternar Mega no relanza el scrape ni resetea el scroll
+    val results = remember(rawResults, showMega) {
+        val filtered = if (showMega) rawResults else rawResults.filter { !it.form.startsWith("Mega") }
+        filtered.mapIndexed { index, entry -> entry.copy(originalRank = index + 1) }
     }
 
     Scaffold(

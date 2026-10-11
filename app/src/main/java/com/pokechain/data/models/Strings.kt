@@ -27,7 +27,6 @@ object Strings {
     fun copied(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Copied!"; AppLanguage.ES -> "Copiado" }
     fun close(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Close"; AppLanguage.ES -> "Cerrar" }
     fun copyError(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Copy error"; AppLanguage.ES -> "Copiar error" }
-    fun apply(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Apply"; AppLanguage.ES -> "Aplicar" }
     fun xlCandy(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "XL Candy"; AppLanguage.ES -> "Caramelos XL" }
     fun shadowLabel(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Shadow"; AppLanguage.ES -> "Oscuro" }
     fun eliteMove(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Elite Move"; AppLanguage.ES -> "Mov. Élite" }
@@ -168,8 +167,8 @@ object Strings {
     // ── CP Projection ─────────────────────────────────────────────
     fun ivProjection(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "CP Projection"; AppLanguage.ES -> "Proyección de PC" }
     fun ivTargetLevel(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Target Level"; AppLanguage.ES -> "Nivel objetivo" }
-    fun ivProjectedCp(lang: AppLanguage) = "PC"
-    fun ivProjectedHp(lang: AppLanguage) = "PS"
+    fun ivProjectedCp(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "CP"; AppLanguage.ES -> "PC" }
+    fun ivProjectedHp(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "HP"; AppLanguage.ES -> "PS" }
     fun ivCost(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Cost"; AppLanguage.ES -> "Coste" }
     fun ivShadowCostTitle(lang: AppLanguage) = when (lang) {
         AppLanguage.EN -> "Shadow costs"
@@ -199,7 +198,6 @@ object Strings {
     fun showcaseBreakdown(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Breakdown"; AppLanguage.ES -> "Desglose" }
     fun showcaseIvLabel(lang: AppLanguage) = "IVs"
     fun showcaseXxlBonus(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "XXL Bonus"; AppLanguage.ES -> "Bonus XXL" }
-    fun cleanXXL(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "XXL"; AppLanguage.ES -> "XXL" }
     fun showcaseRatio(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "× base height"; AppLanguage.ES -> "× altura base" }
     fun showcaseNoData(lang: AppLanguage) = when (lang) {
         AppLanguage.EN -> "No size data for this Pokémon"
@@ -220,16 +218,15 @@ object Strings {
     fun pveShadow(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Shadow"; AppLanguage.ES -> "Oscuro" }
     fun pveOutOfClass(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Out of ranking"; AppLanguage.ES -> "Fuera de la clasificación" }
     fun pveLoading(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Loading PvE…"; AppLanguage.ES -> "Cargando PvE…" }
+    fun pveResults(lang: AppLanguage, count: Int, chars: Int) = when (lang) {
+        AppLanguage.EN -> "Results: $count Pokémon, string of $chars characters"
+        AppLanguage.ES -> "Resultados: $count Pokémon, cadena de $chars caracteres"
+    }
+    fun pveFiltered(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "filtered"; AppLanguage.ES -> "filtrados" }
     fun retry(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Retry"; AppLanguage.ES -> "Reintentar" }
 
     // ── Pokédex type ranking ───────────────────────────────────
     fun pveTypeRanking(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Type Ranking (Top 25)"; AppLanguage.ES -> "Ranking por Tipo (Top 25)" }
-    fun pveTypeTop25(lang: AppLanguage) = "Top 25"
-    fun pveTypeLoad(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Load"; AppLanguage.ES -> "Cargar" }
-    fun pveTypeTapToLoad(lang: AppLanguage) = when (lang) {
-        AppLanguage.EN -> "Tap to load"
-        AppLanguage.ES -> "Pulsa para cargar"
-    }
     fun pveTypeOutOfRanking(lang: AppLanguage) = when (lang) {
         AppLanguage.EN -> "Not in type top 25"
         AppLanguage.ES -> "Fuera del top 25 del tipo"

@@ -47,12 +47,13 @@ class PvEScrapingEngine(private val activity: Activity) {
         readyDeferred?.let { it.await(); return@withContext }
         val pageReady = CompletableDeferred<Unit>()
         readyDeferred = pageReady
+        var wv: WebView? = null
         try {
             val b = EngineBridge()
             val deferred = CompletableDeferred<Boolean>()
             bridge = b
 
-            val wv = WebView(activity).apply {
+            wv = WebView(activity).apply {
                 layoutParams = FrameLayout.LayoutParams(1, 1)
                 settings.javaScriptEnabled = true
                 settings.domStorageEnabled = true
@@ -74,19 +75,29 @@ class PvEScrapingEngine(private val activity: Activity) {
             webView = wv
             pageReady.complete(Unit)
         } catch (e: Exception) {
-            // Init failed — allow a retry on next call
+            // Cleanup: retirar y destruir el WebView huérfano (evita apilar WebViews en reintentos)
+            wv?.let { orphan ->
+                try {
+                    (orphan.parent as? ViewGroup)?.removeView(orphan)
+                    orphan.destroy()
+                } catch (_: Exception) {}
+            }
+            // Despertar a los awaiters concurrentes en vez de colgarlos para siempre
+            pageReady.completeExceptionally(e)
             readyDeferred = null
             throw e
         }
     }
 
     private fun pollReady(view: WebView, deferred: CompletableDeferred<Boolean>) {
+        if (deferred.isCompleted) return
         view.evaluateJavascript("""
             (function() {
                 return typeof GetStrongestOfOneType === 'function' &&
                     typeof jb_pkm !== 'undefined' && jb_pkm.length > 0;
             })();
         """.trimIndent()) { result ->
+            if (deferred.isCompleted) return@evaluateJavascript
             if (result == "true") {
                 deferred.complete(true)
             } else {
@@ -105,7 +116,8 @@ class PvEScrapingEngine(private val activity: Activity) {
         mutex.withLock {
             val cacheKey = "$type:$count:${if (suboptimal) "sub" else "std"}"
             val cached = typeCache[cacheKey]
-            if (cached != null && cached.size >= count) return@withLock cached.take(count)
+            // Cache hit aunque haya menos resultados que count (dialgadex puede devolver menos)
+            if (cached != null && cached.isNotEmpty()) return@withLock cached.take(count)
 
             init()
             val view = webView ?: return@withLock emptyList()
@@ -162,7 +174,8 @@ class PvEScrapingEngine(private val activity: Activity) {
             val withRanks = parsed.mapIndexed { index, entry ->
                 entry.copy(originalRank = index + 1)
             }
-            typeCache[cacheKey] = withRanks
+            // No cachear vacío: un fallo transitorio de dialgadex no debe petrificarse
+            if (withRanks.isNotEmpty()) typeCache[cacheKey] = withRanks
             withRanks
         }
     }

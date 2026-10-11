@@ -10,6 +10,7 @@ import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.pokechain.data.dialgadex.MaxBattleScrapingEngine
 import com.pokechain.data.dialgadex.PokemonTypeProvider
 import com.pokechain.data.dialgadex.PvEScrapingEngine
 import com.pokechain.data.models.AppLanguage
@@ -48,8 +49,15 @@ fun MainScreen() {
 
     // ── Motor PvE compartido: su cache persiste entre pantallas ────
     val pveEngine = remember { PvEScrapingEngine(context as android.app.Activity) }
+    // Motor de Combates Max compartido (HTTP, sin WebView): cache persiste entre pantallas
+    val maxEngine = remember { MaxBattleScrapingEngine() }
     // Provider del GameMaster compartido: se descarga UNA vez (persiste entre pantallas)
     val pveTypeProvider = remember { PokemonTypeProvider() }
+
+    // Liberar la WebView del engine al salir de composición (recreación de Activity, cierre)
+    DisposableEffect(Unit) {
+        onDispose { pveEngine.destroy() }
+    }
 
     // ── Holder de estado: conserva el estado de las pantallas al navegar ──
     val saveableStateHolder = rememberSaveableStateHolder()
@@ -138,6 +146,8 @@ fun MainScreen() {
                 MaxRankingScreen(
                     language = language,
                     onBack = { currentScreen = Screen.HOME },
+                    engine = maxEngine,
+                    typeProvider = pveTypeProvider,
                     onPokemonClick = { entry ->
                         pokedexEntryRequest = entry
                         pokedexCameFrom = Screen.MAX_RANKING

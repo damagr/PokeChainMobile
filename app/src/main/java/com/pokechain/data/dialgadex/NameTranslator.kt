@@ -23,13 +23,18 @@ class NameTranslator(context: Context) {
 
         val enMoves = enRoot?.jsonObject?.get("moves")?.jsonObject ?: emptyMap()
         val esMoves = esRoot?.jsonObject?.get("moves")?.jsonObject ?: emptyMap()
+        // special_moves (Weather Ball, Aura Wheel, Techno Blast) nunca se cargaban
+        val enSpecial = enRoot?.jsonObject?.get("special_moves")?.jsonObject ?: emptyMap()
+        val esSpecial = esRoot?.jsonObject?.get("special_moves")?.jsonObject ?: emptyMap()
 
-        esMoveNames = esMoves.mapKeys { it.key }.mapValues { 
-    it.value.jsonPrimitive.content.trim() 
-}
+        esMoveNames = (esMoves + esSpecial).mapValues {
+            it.value.jsonPrimitive.content.trim()
+        }
 
-        moveNameToId = enMoves.entries.associate { (id, name) ->
-            name.jsonPrimitive.content.lowercase() to id
+        // Normalizar guiones a espacios en las claves: dialgadex envía "x_scissor"
+        // y el JSON trae "X-Scissor" -> sin esto, los movimientos con guion no se traducen
+        moveNameToId = (enMoves + enSpecial).entries.associate { (id, name) ->
+            name.jsonPrimitive.content.lowercase().replace("-", " ") to id
         }
     }
 
@@ -75,8 +80,10 @@ class NameTranslator(context: Context) {
     }
 
     fun getMoveName(moveIdOrName: String, language: AppLanguage): String {
+        // Normalizar guiones también: "mud-slap" del JSON casa con "mud_slap" de dialgadex
         var normalized = moveIdOrName
             .replace("_", " ")
+            .replace("-", " ")
             .lowercase()
             .trim()
 
@@ -95,7 +102,7 @@ class NameTranslator(context: Context) {
             AppLanguage.ES -> esMoveNames[dialgaDexId] ?: normalized
             AppLanguage.EN -> normalized.split(" ").joinToString(" ") { it.replaceFirstChar { it.uppercase() } }
         }
-        // Fallback to original if not found
-        return "${if (dialgaDexId != null) baseDisplayName else moveIdOrName.replace("_", " ").split(" ").joinToString(" ") { it.replaceFirstChar { it.uppercase() } }}$suffix"
+        // Fallback: usar normalized (SIN sufijo) para no duplicarlo al concatenar
+        return "${if (dialgaDexId != null) baseDisplayName else normalized.split(" ").joinToString(" ") { it.replaceFirstChar { it.uppercase() } }}$suffix"
     }
 }

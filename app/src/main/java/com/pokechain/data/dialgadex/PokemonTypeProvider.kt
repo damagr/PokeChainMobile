@@ -3,6 +3,7 @@ package com.pokechain.data.dialgadex
 import com.pokechain.data.models.AppLanguage
 import com.pokechain.data.models.BaseStats
 import com.pokechain.data.models.PokemonType
+import com.pokechain.data.pvpoke.GameMasterResponse
 import com.pokechain.data.pvpoke.PvPokeApi
 
 data class PokemonTypeEntry(
@@ -339,6 +340,11 @@ class PokemonTypeProvider {
     private var allEntries: List<PokemonTypeEntry>? = null
     @Volatile
     private var isLoading = false
+    @Volatile
+    private var rawGameMaster: GameMasterResponse? = null
+
+    /** GameMaster crudo ya descargado (reutilizable por el detalle PvP), si está cargado. */
+    val gameMasterResponse: GameMasterResponse? get() = rawGameMaster
 
     val isLoaded: Boolean get() = allEntries != null
 
@@ -355,6 +361,7 @@ class PokemonTypeProvider {
         isLoading = true
         try {
             val gm = PvPokeApi.fetchGameMaster()
+            rawGameMaster = gm
             allEntries = gm.pokemon.map {
                 PokemonTypeEntry(
                     speciesId = it.speciesId,
@@ -609,12 +616,19 @@ class PokemonTypeProvider {
      * ("Mega X"/"Mega Y" en name, prefijos "Primal "/"Crowned"...).
      *
      * Estrategia: 1) speciesId exacto (baseName + sufijo + _shadow),
-     * 2) mismo dex cuyo speciesId acaba en el sufijo, 3) fallback por nombre.
+     * 2) mismo dex cuyo speciesId acaba en el sufijo, 3) nombre normalizado
+     * (sin puntuación/acentos — "Mr. Mime"↔"mr_mime", "Ho-Oh"↔"ho_oh"),
+     * 4) fallback por dex.
+     *
+     * Nota: el GameMaster (pvpoke) no tiene formas Gigantamax/Dynamax →
+     * esas formas resuelven a la ficha de la especie base.
      */
     fun resolveEntryForRanking(dex: Int, name: String, form: String, shadow: Boolean): PokemonTypeEntry? {
         val entries = allEntries ?: return null
         val (cleanName, normalizedForm) = extractBaseNameAndForm(name, form)
-        val baseName = cleanName.lowercase().replace(" ", "")
+        // Palabras que marcan forma base en Dittobase ("Darmanitan Standard", "Keldeo Ordinary"...)
+        val baseCleanName = cleanName.replace(Regex("\\b(Standard|Ordinary|Hero|Confined|Incarnate)\\b"), "").trim()
+        val baseName = baseCleanName.lowercase().replace(" ", "")
 
         val suffix = when (normalizedForm) {
             "Mega" -> "_mega"
@@ -623,6 +637,8 @@ class PokemonTypeProvider {
             "MegaY" -> "_mega_y"
             "MegaZ" -> "_mega"
             "Primal" -> "_primal"
+            // El GM no tiene formas gmax/dynamax → ficha de la especie base
+            "Gigantamax", "Dynamax" -> ""
             "Normal" -> ""
             else -> "_" + normalizedForm.lowercase().replace(" ", "_")
         }
@@ -638,9 +654,27 @@ class PokemonTypeProvider {
                 ?.let { return it }
         }
 
-        // 3) Fallback: mismo dex cuyo speciesId empieza por el nombre base
-        return entries.firstOrNull { it.dex == dex && it.speciesId.startsWith(baseName) }
+        // 3) Nombre normalizado (sin puntuación ni acentos) — multi-palabra y especiales
+        val norm = { s: String ->
+            java.text.Normalizer.normalize(s, java.text.Normalizer.Form.NFD)
+                .replace(Regex("\\p{M}+"), "")
+                .lowercase()
+                .filter { it.isLetterOrDigit() }
+        }
+        val normQuery = norm(baseCleanName)
+        if (normQuery.isNotBlank()) {
+            entries.firstOrNull { it.dex == dex && matchesShadowState(it.speciesId, shadow) && norm(it.speciesId.removeSuffix("_shadow")) == normQuery }
+                ?.let { return it }
+        }
+
+        // 4) Fallback: mismo dex (primera entrada — suele ser la forma base)
+        return entries.firstOrNull { it.dex == dex && matchesShadowState(it.speciesId, shadow) }
+            ?: entries.firstOrNull { it.dex == dex }
     }
+
+    /** Para shadow exige sufijo _shadow; para no-shadow lo excluye. */
+    private fun matchesShadowState(speciesId: String, shadow: Boolean): Boolean =
+        if (shadow) speciesId.endsWith("_shadow") else !speciesId.endsWith("_shadow")
 
     /**
      * Extracts base Pokemon name and normalized form from API data.

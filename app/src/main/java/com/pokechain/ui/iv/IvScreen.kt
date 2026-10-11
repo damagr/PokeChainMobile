@@ -261,7 +261,7 @@ fun IvScreen(
                 OutlinedTextField(
                     value = atkIvText,
                     onValueChange = { newValue ->
-                        if (newValue.isEmpty() || (newValue.all { it.isDigit() } && newValue.toInt() in 0..15)) {
+                        if (newValue.isEmpty() || (newValue.all { it.isDigit() } && newValue.toIntOrNull() in 0..15)) {
                             atkIvText = newValue
                             hasCalculated = false
                         }
@@ -274,7 +274,7 @@ fun IvScreen(
                 OutlinedTextField(
                     value = defIvText,
                     onValueChange = { newValue ->
-                        if (newValue.isEmpty() || (newValue.all { it.isDigit() } && newValue.toInt() in 0..15)) {
+                        if (newValue.isEmpty() || (newValue.all { it.isDigit() } && newValue.toIntOrNull() in 0..15)) {
                             defIvText = newValue
                             hasCalculated = false
                         }
@@ -287,7 +287,7 @@ fun IvScreen(
                 OutlinedTextField(
                     value = staIvText,
                     onValueChange = { newValue ->
-                        if (newValue.isEmpty() || (newValue.all { it.isDigit() } && newValue.toInt() in 0..15)) {
+                        if (newValue.isEmpty() || (newValue.all { it.isDigit() } && newValue.toIntOrNull() in 0..15)) {
                             staIvText = newValue
                             hasCalculated = false
                         }
@@ -386,8 +386,11 @@ private fun IvResultCard(
     }
 
     // ── Projection state ──────────────────────────────────────────
-    val maxLevel = 50.0
+    // Máx de la tabla CPM (51.0 = best buddy); evita minLevel > maxLevel
+    // cuando findLevel devuelve niveles 50.5/51.0 (crash de rango invertido)
+    val maxLevel = 51.0
     val minLevel = result.level
+    val hasRange = maxLevel > minLevel
     var targetLevel by remember { mutableStateOf(minLevel) }
 
     // ── Shadow cost state ────────────────────────────────────────
@@ -462,32 +465,34 @@ private fun IvResultCard(
 
             Spacer(Modifier.height(6.dp))
 
-            // Target level slider
+            // Target level slider (solo si hay rango; nivel 51 = rango degenerado)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text(
-                    text = formatLevel(minLevel),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Slider(
-                    value = targetLevel.toFloat(),
-                    onValueChange = {
-                        // Step by 0.5: round to nearest 0.5
-                        val stepped = (it * 2).roundToInt() / 2.0
-                        targetLevel = stepped.coerceIn(minLevel, maxLevel)
-                    },
-                    valueRange = minLevel.toFloat()..maxLevel.toFloat(),
-                    modifier = Modifier.weight(1f)
-                )
-                Text(
-                    text = formatLevel(maxLevel),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                if (hasRange) {
+                    Text(
+                        text = formatLevel(minLevel),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Slider(
+                        value = targetLevel.toFloat(),
+                        onValueChange = {
+                            // Step by 0.5: round to nearest 0.5
+                            val stepped = (it * 2).roundToInt() / 2.0
+                            targetLevel = stepped.coerceIn(minLevel, maxLevel)
+                        },
+                        valueRange = minLevel.toFloat()..maxLevel.toFloat(),
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        text = formatLevel(maxLevel),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
 
             // Selected target level
@@ -535,7 +540,8 @@ private fun IvResultCard(
                 )
                 Checkbox(
                     checked = isShadow,
-                    onCheckedChange = { isShadow = it }
+                    onCheckedChange = { isShadow = it },
+                    enabled = cost.dust > 0
                 )
             }
 

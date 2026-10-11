@@ -28,12 +28,12 @@ import com.pokechain.ui.components.PokemonRow
 fun MaxRankingScreen(
     language: AppLanguage,
     onBack: () -> Unit,
+    engine: MaxBattleScrapingEngine,
+    typeProvider: PokemonTypeProvider,
     onPokemonClick: (PvERankingEntry) -> Unit = {}
 ) {
     val context = LocalContext.current
-    val engine = remember { MaxBattleScrapingEngine() }
     val translator = remember { NameTranslator(context) }
-    val typeProvider = remember { PokemonTypeProvider() }
 
     var showDropdown by rememberSaveable { mutableStateOf(false) }
     var selectedType by rememberSaveable { mutableStateOf<PokemonType?>(null) }

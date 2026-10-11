@@ -19,6 +19,10 @@ object PvPokeApi {
 
     private val json = Json { ignoreUnknownKeys = true }
 
+    // Cache de rankings: los mismos ficheros sirven para cualquier Pokémon seleccionado
+    // (la clave identifica copa+liga). Se vacía al reiniciar el proceso.
+    private val rankingsCache = java.util.concurrent.ConcurrentHashMap<String, List<PvPRawEntry>>()
+
     suspend fun fetchGameMaster(): GameMasterResponse = withContext(Dispatchers.IO) {
         val request = Request.Builder().url(GAMEMASTER_URL).build()
         val response = client.newCall(request).execute()
@@ -27,10 +31,14 @@ object PvPokeApi {
     }
 
     suspend fun fetchRankings(cp: Int, cup: String? = null): List<PvPRawEntry> = withContext(Dispatchers.IO) {
+        val key = "${cup ?: "all"}-$cp"
+        rankingsCache[key]?.let { return@withContext it }
         val url = RANKINGS_URL.format(cup ?: "all", cp)
         val request = Request.Builder().url(url).build()
         val response = client.newCall(request).execute()
         val body = response.body?.string() ?: throw Exception("Empty response")
-        json.decodeFromString(body)
+        val parsed: List<PvPRawEntry> = json.decodeFromString(body)
+        rankingsCache[key] = parsed
+        parsed
     }
 }

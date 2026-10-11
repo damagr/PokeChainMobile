@@ -110,6 +110,8 @@ class MaxBattleScrapingEngine {
             }
 
             val results = fetchAndParseType(type)
+            // No cachear vacío: un 404/captcha transitorio no debe petrificar el ranking
+            if (results.isEmpty()) return@withLock emptyList()
             val withRanks = results.take(count).mapIndexed { index, entry ->
                 entry.copy(originalRank = index + 1)
             }
@@ -125,6 +127,8 @@ class MaxBattleScrapingEngine {
             .build()
 
         client.newCall(request).execute().use { response ->
+            // 404/500/captcha: devolver vacío SIN cachear (ver computeMaxByType)
+            if (!response.isSuccessful) return emptyList()
             val html = response.body?.string() ?: return emptyList()
             return parseHtml(html)
         }

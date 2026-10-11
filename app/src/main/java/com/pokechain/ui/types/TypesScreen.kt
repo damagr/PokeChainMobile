@@ -96,7 +96,8 @@ fun TypesScreen(
         }
         if (!typeProvider.isLoaded) return@LaunchedEffect
         val resolved = typeProvider.resolveEntryForRanking(req.id, req.name, req.form, req.shadow)
-        if (resolved != null) {
+        // Guard de carrera: si el usuario ya seleccionó otro Pokémon durante la espera, no pisar
+        if (resolved != null && selectedEntry == null) {
             selectedEntry = resolved
             val name = resolved.displayName(language, translator)
             textFieldValue = TextFieldValue(name, selection = TextRange(name.length))
@@ -389,7 +390,8 @@ private fun PokemonTypeDetail(
         isPvpLoading = true
         pvpError = null
         try {
-            val gm = PvPokeApi.fetchGameMaster()
+            // Reutilizar el GameMaster del provider compartido si ya está descargado
+            val gm = typeProvider.gameMasterResponse ?: PvPokeApi.fetchGameMaster()
             val targetDex = entry.dex
             val allLeagues = PvPLeague.entries
 
@@ -839,7 +841,7 @@ private fun PveRankingCard(
                     Text(
                         text = headerMoveset,
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1
                     )
                 }
@@ -853,14 +855,14 @@ private fun PveRankingCard(
                     Text(
                         text = "${Strings.pveMega4(language)}:",
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color.White.copy(alpha = 0.8f),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                         maxLines = 1
                     )
                     Spacer(Modifier.width(6.dp))
                     Text(
                         text = megaMoveset,
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color.White.copy(alpha = 0.8f),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                         maxLines = 1
                     )
                 }
@@ -1007,7 +1009,7 @@ private fun PveTypeRankingCard(
                     Text(
                         text = headerMoveset,
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1
                     )
                 }
@@ -1021,14 +1023,14 @@ private fun PveTypeRankingCard(
                     Text(
                         text = "${Strings.pveMega4(language)}:",
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color.White.copy(alpha = 0.8f),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                         maxLines = 1
                     )
                     Spacer(Modifier.width(6.dp))
                     Text(
                         text = megaMoveset,
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color.White.copy(alpha = 0.8f),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                         maxLines = 1
                     )
                 }
