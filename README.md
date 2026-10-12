@@ -14,9 +14,7 @@ Aplicación complementaria para Pokémon GO con generador de cadenas de búsqued
 | Sección | |
 |---------|---|
 | [Instalación](#instalación) | [Guía de uso](#guía-de-uso) |
-| [Notas y preguntas frecuentes](#notas-y-preguntas-frecuentes) | [Características](#características) |
-| [Compilar (desarrolladores)](#compilar) | [¿iPhone?](#iphone) |
-| **English guide:** [below](#english) | |
+| [Notas y preguntas frecuentes](#notas-y-preguntas-frecuentes) | [¿iPhone?](#iphone) |
 
 ---
 
@@ -123,50 +121,7 @@ Se adapta automáticamente al modo oscuro del sistema.
 
 ---
 
-## Características (resumen técnico)
-
-- **Cadena PvP** — Rankings de [pvpoke.com](https://pvpoke.com) para 32 ligas y copas. Filtros: Caramelos XL, Oscuro, Mov. Élite.
-- **Cadena PvE** — Rankings de atacantes de incursión de [dialgadex.com](https://dialgadex.com) por tipo. Usa WebView + scraping JS.
-- **Limpiar** — Cadenas de filtro por 11 atributos.
-- **Pokédex (Tipos)** — Tabla de tipos, rankings PvP (32 ligas), PvE global y por tipo. Sprites oficiales desde PokeAPI.
-- **Top por Tipo** — Mejores atacantes por tipo (eDPS) con navegación a la Pokédex.
-- **Top por Max** — Combates Max por tipo desde [dittobase.com](https://www.dittobase.com/pokemon-go/best-attackers/max-battles).
-- **Calculadora IV** — Nivel exacto, perfección, proyección y costes (normales y oscuros).
-- **Calculadora de Exhibición** — Puntuación de PokéStop Showcase (máx. 1178).
-- **Auto-actualizador**, **bilingüe ES/EN**, **modo avanzado oculto**, **tema oscuro**.
-
-## Stack tecnológico
-
-| Categoría    | Tecnología |
-|--------------|------------|
-| Lenguaje     | Kotlin |
-| UI           | Jetpack Compose + Material 3 |
-| Red          | OkHttp 4 + Kotlinx Serialization |
-| Imágenes     | Coil |
-| Concurrencia | Kotlinx Coroutines |
-| Compile SDK  | 37 (Android 17) |
-| Min SDK      | 26 (Android 8.0) |
-| Target SDK   | 37 (Android 17) |
-
-## Compilar
-
-1. Clona el repositorio:
-   ```bash
-   git clone https://github.com/Damagr/PokeChainMobile.git
-   ```
-2. Abre en Android Studio **o** compila desde terminal:
-   ```bash
-   ./gradlew assembleDebug
-   ```
-3. El APK estará en `app/build/outputs/apk/debug/`.
-
-> Requiere JDK 17 y Android SDK 37.
-
-## Licencia
-
-[MIT](LICENSE)
-
-### ¿iPhone?
+## ¿iPhone?
 
 PokeChain es solo para Android. Si usas iPhone, puedes ejecutarlo en tu PC con el emulador oficial de Google:
 
@@ -174,6 +129,12 @@ PokeChain es solo para Android. Si usas iPhone, puedes ejecutarlo en tu PC con e
 2. Abre el Device Manager y crea un dispositivo virtual (ej. Pixel 6 con Android 14+)
 3. Inicia el emulador y descarga el APK desde [GitHub Releases](https://github.com/Damagr/PokeChainMobile/releases)
 4. Arrastra el APK a la ventana del emulador — se instala automáticamente
+
+---
+
+## Licencia
+
+[MIT](LICENSE)
 
 ---
 
@@ -188,9 +149,9 @@ Companion app for Pokémon GO with search string generator, pokédex, attacker r
 | Section | |
 |---------|---|
 | [Installation](#installation-1) | [User guide](#user-guide) |
-| [Notes & FAQ](#notes--faq) | [Features](#features-1) |
-| [Build (developers)](#build-1) | [iPhone?](#iphone-2) |
-| **Guía en español:** [aquí](#instalación) | |
+| [Notes & FAQ](#notes--faq) | [iPhone?](#iphone-2) |
+
+---
 
 ## Installation
 
@@ -199,6 +160,8 @@ Companion app for Pokémon GO with search string generator, pokédex, attacker r
 3. Tap Install and open PokeChain.
 
 **Updates:** the app checks GitHub Releases on launch and notifies you when a new version is available — it downloads and installs with one tap.
+
+---
 
 ## User guide
 
@@ -266,6 +229,8 @@ The card also generates a copyable **formatted name** (e.g. `Mewtwo⁹³`) for r
 
 Enter the Pokémon's height and weight (and IVs optionally) → the **PokéStop Showcase score** (max 1178), XXL/XXS badges, height/weight/IV breakdown and trophy tier.
 
+---
+
 ## Notes & FAQ
 
 **Does it need internet?**
@@ -289,50 +254,9 @@ Tap the Fuecoco icon 5 times within 1.5 seconds to unlock the from/to rank range
 **Dark theme**
 Automatically adapts to the system dark mode.
 
-## Features (technical summary)
+---
 
-- **PvP Chain** — Rankings from [pvpoke.com](https://pvpoke.com) for 32 leagues and cups. Filters: XL Candy, Shadow, Elite Move.
-- **PvE Chain** — Raid attacker rankings from [dialgadex.com](https://dialgadex.com) by type. Uses WebView + JS scraping.
-- **Clean** — Filter strings by 11 attributes.
-- **Pokédex (Types)** — Type chart, PvP rankings (32 leagues), global and per-type PvE. Official sprites from PokeAPI.
-- **Type Top** — Best attackers by type (eDPS) with navigation to the Pokédex.
-- **Max Top** — Max Battles by type from [dittobase.com](https://www.dittobase.com/pokemon-go/best-attackers/max-battles).
-- **IV Calculator** — Exact level, perfection, projection and costs (normal and shadow).
-- **Showcase Calculator** — PokéStop Showcase score (max 1178).
-- **Auto-updater**, **bilingual ES/EN**, **hidden advanced mode**, **dark theme**.
-
-## Tech Stack
-
-| Category     | Technology |
-|--------------|------------|
-| Language     | Kotlin |
-| UI           | Jetpack Compose + Material 3 |
-| Networking   | OkHttp 4 + Kotlinx Serialization |
-| Images       | Coil |
-| Concurrency  | Kotlinx Coroutines |
-| Compile SDK  | 37 (Android 17) |
-| Min SDK      | 26 (Android 8.0) |
-| Target SDK   | 37 (Android 17) |
-
-## Build
-
-1. Clone the repo:
-   ```bash
-   git clone https://github.com/Damagr/PokeChainMobile.git
-   ```
-2. Open in Android Studio **or** build from CLI:
-   ```bash
-   ./gradlew assembleDebug
-   ```
-3. The APK will be at `app/build/outputs/apk/debug/`.
-
-> Requires JDK 17 and Android SDK 37.
-
-## License
-
-[MIT](LICENSE)
-
-### iPhone?
+## iPhone?
 
 PokeChain is Android-only. If you're on iPhone, you can run it on your PC using Google's official emulator:
 
@@ -340,3 +264,9 @@ PokeChain is Android-only. If you're on iPhone, you can run it on your PC using 
 2. Open Device Manager and create a virtual device (e.g. Pixel 6 with Android 14+)
 3. Launch the emulator and download the APK from [GitHub Releases](https://github.com/Damagr/PokeChainMobile/releases)
 4. Drag the APK onto the emulator window — it installs automatically
+
+---
+
+## License
+
+[MIT](LICENSE)
