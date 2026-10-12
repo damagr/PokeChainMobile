@@ -3,33 +3,137 @@
 
 # PokeChain
 
-Aplicación complementaria para Pokémon GO con generador de cadenas de búsqueda, pokédex, calculadora IV, calculadora de exhibiciones y más.
+Aplicación complementaria para Pokémon GO con generador de cadenas de búsqueda, pokédex, rankings de atacantes (PvE y Combates Max), calculadora IV, calculadora de exhibiciones y más.
 
-## Índice / Index
-
-| Español | English |
-|---------|---------|
-| [Características](#características) | [Features](#features) |
-| [Stack tecnológico](#stack-tecnológico) | [Tech Stack](#tech-stack) |
-| [Compilar](#compilar) | [Build](#build) |
-| [Licencia](#licencia) | [License](#license) |
-| [¿iPhone?](#iphone) | [iPhone?](#iphone-1) |
+> **Requisito:** Android 8.0 o superior y **conexión a internet** — los rankings y datos se descargan en vivo de [dialgadex.com](https://dialgadex.com), [pvpoke.com](https://pvpoke.com) y [dittobase.com](https://www.dittobase.com).
 
 ---
 
-## Características
+## Índice
 
-- **Cadena PvP** — Rankings de [pvpoke.com](https://pvpoke.com) para 32 ligas y copas (Superball, Ultraball, Master y 29 copas). Filtros: Caramelos XL, Oscuro, Mov. Élite. Genera cadena de búsqueda lista para pegar en Pokémon GO.
-- **Cadena PvE** — Rankings de atacantes de incursión de [dialgadex.com](https://dialgadex.com) por tipo. Filtros: Inéditos, Oscuro, Oscuro (casual), Legendarios, Mega/Primal. Usa WebView + scraping JS.
-- **Limpiar** — Genera cadenas de filtro por 11 atributos (4★, 3★, variocolor, suerte, favoritos, disfraz, fondo lugar, legendario, singular, ultraente, gigamax).
-- **Tipos** — Buscador de Pokémon con tabla de tipos (debilidades/fortalezas), rankings PvP en las 32 ligas, ranking PvE global (top 300) y por tipo (top 25). Sprites oficiales desde PokeAPI.
-- **Top por Max** — Rankings de Combates Max (Dinamax/Gigantamax) por tipo, top 10 de cada tipo desde [db.pokemongohub.net](https://db.pokemongohub.net/best/dynamax-attackers-per-type). Sprites oficiales de las formas Max.
-- **Calculadora IV** — Encuentra el nivel exacto a partir de CP + IVs. Muestra % de perfección, proyección de CP hasta nivel 50, tabla de costes (polvo/caramelos/caramelos XL) y genera nombre formateado para GO.
-- **Calculadora de Exhibición** — Calcula la puntuación de PokéStop Showcase (máx. 1178). Medallas XXL/XXS, desglose por altura/peso/IVs y tier de trofeo.
-- **Auto-actualizador** — Revisa GitHub Releases en busca de nuevos APKs y los instala con un solo toque.
-- **Bilingüe** — Traducción completa al español e inglés (nombres de Pokémon, movimientos, ligas y formularios incluidos).
-- **Modo avanzado oculto** — Toca el icono de Fuecoco 5 veces en menos de 1.5 segundos para desbloquear rango desde/hasta en PvP y PvE.
-- **Tema oscuro** — Se adapta automáticamente al modo oscuro del sistema.
+| Sección | |
+|---------|---|
+| [Instalación](#instalación) | [Guía de uso](#guía-de-uso) |
+| [Notas y preguntas frecuentes](#notas-y-preguntas-frecuentes) | [Características](#características) |
+| [Compilar (desarrolladores)](#compilar) | [¿iPhone?](#iphone) |
+| **English guide:** [below](#english) | |
+
+---
+
+## Instalación
+
+1. Ve a [Releases](https://github.com/Damagr/PokeChainMobile/releases) y descarga el `app-release.apk` de la última versión.
+2. Abre el APK descargado. Android pedirá permiso para instalar aplicaciones de origen desconocido → acéptalo para esta app.
+3. Pulsa Instalar y abre PokeChain.
+
+**Actualizaciones:** la propia app comprueba GitHub Releases al abrirla y te avisa cuando hay una versión nueva — se descarga e instala con un toque.
+
+---
+
+## Guía de uso
+
+### Cambio de idioma
+
+En la pantalla principal, arriba: selector **ES / EN**. Toda la app, incluidos los nombres de Pokémon, movimientos, ligas y formas, se traduce al instante.
+
+### Cadena (PvP y PvE)
+
+Genera **cadenas de búsqueda** listas para pegar en el cuadro de búsqueda de Pokémon GO.
+
+**Cadena PvP:**
+1. Pestaña **PvP**.
+2. Elige liga o copa (Superball, Ultraball, Master y 29 copas temáticas).
+3. Introduce el PC mínimo y pulsa **Generar**.
+4. Copia la cadena y pégala en Pokémon GO.
+
+Filtros: **Caramelos XL**, **Oscuro** y **Movimiento élite**.
+
+**Cadena PvE:**
+1. Pestaña **PvE**.
+2. Elige tipo y filtros (inéditos, oscuro, oscuro casual, legendarios, mega/primigenio).
+3. **Generar** → cadena con los mejores atacantes para ese tipo.
+
+> La primera vez tarda un poco más: se descargan los datos de cálculo de dialgadex.
+
+### Limpiar
+
+Marca los atributos que quieres conservar (4★, 3★, variocolor, suerte, favoritos, disfraz, fondo de lugar, legendario, singular, ultraente, gigamax) → **Generar** → copia la cadena de limpieza.
+
+### Pokédex (Tipos)
+
+Busca un Pokémon por nombre o número para ver su **ficha**:
+
+- Sprite oficial, tipos, **resistencias** y **debilidades**.
+- **Rankings PvP** en las 32 ligas y copas (posición del Pokémon y sus formas, incluida la oscura).
+- **Ranking PvE** global (top 300) y **por tipo** (top 25) con su mejor moveset.
+- **Ataques:** arriba se muestra el **ataque cargado que tú eliges** (nivel normal); debajo, **"Mega nivel 4"** con el ataque supermega predefinido — el que lleva el signo **+** en la cadena de búsqueda de dialgadex.
+
+### Top por Tipo
+
+1. Elige **Global** o un **tipo**.
+2. Lista de los mejores atacantes por eDPS (con etiquetas de Oscuro, Mega y Primigenio).
+3. Interruptor **Mega** para incluir o excluir megas.
+4. **Toca una tarjeta** → se abre la **ficha del Pokémon en la Pokédex**. Con **atrás** vuelves al ranking con tu tipo y resultados intactos.
+
+### Top por Max
+
+1. Elige un **tipo**.
+2. Top 10 de atacantes para **Combates Max** (solo formas **Dinamax** y **Gigantamax**), ordenados por daño del movimiento Max, con su ataque rápido y su movimiento Max.
+3. **Toca una tarjeta** → ficha en la Pokédex.
+
+Datos de [dittobase.com](https://www.dittobase.com/pokemon-go/best-attackers/max-battles).
+
+### Calculadora IV
+
+1. Busca el Pokémon e introduce su **PC** actual y sus **IVs** (ataque, defensa, salud) → **Calcular**.
+2. Verás el **nivel exacto**, el **% de perfección** y los **PS estimados** (puede haber varios niveles que den el mismo PC).
+3. **Proyección:** mueve el slider hasta el nivel objetivo (hasta **51** con Mejor Amigo) → PC y PS proyectados y **coste** en polvo, caramelos y caramelos XL.
+4. Marca **Costes Oscuro** si el Pokémon es **Oscuro**: los costes se sustituyen por los de un oscuro (+20% de recargo).
+
+La tarjeta también genera un **nombre formateado** (ej. `Mewtwo⁹³`) copiable para renombrar en GO.
+
+### Calculadora de Exhibición
+
+Introduce altura y peso del Pokémon (y IVs opcionalmente) → **puntuación de la Exhibición de PokéParada** (máx. 1178), medallas XXL/XXS, desglose por altura/peso/IVs y tier.
+
+---
+
+## Notas y preguntas frecuentes
+
+**¿Necesita internet?**
+Sí. Los rankings y datos se descargan en tiempo real de dialgadex, pvpoke y dittobase. La primera carga tarda más; después se cachean.
+
+**¿Por qué hay ataques con "+"?**
+Son los ataques **supermega** (nivel 4): el mejor en los rankings, pero **predefinidos** — no los eliges tú. Por eso la Pokédex muestra además el mejor ataque **elegible** (sin "+"), que sí puedes ponerle al Pokémon.
+
+**¿Por qué mi Pokémon Oscuro cuesta más?**
+Los Oscuros pagan un recargo del **+20%** en polvo y caramelos. Marca **Costes Oscuro** en la Calculadora IV para ver los costes exactos.
+
+**¿Por qué no salen Megas en Top por Max?**
+Un Pokémon Mega no puede Dinamaxear: en los Combates Max solo participan formas **Dinamax** y **Gigantamax**.
+
+**¿Por qué la proyección llega al nivel 51?**
+El nivel 51 se alcanza con el boost de **Mejor Amigo** (temporal y gratuito).
+
+**Modo avanzado oculto**
+Toca el icono de Fuecoco 5 veces en menos de 1.5 segundos para desbloquear el rango desde/hasta en las cadenas PvP y PvE.
+
+**Tema oscuro**
+Se adapta automáticamente al modo oscuro del sistema.
+
+---
+
+## Características (resumen técnico)
+
+- **Cadena PvP** — Rankings de [pvpoke.com](https://pvpoke.com) para 32 ligas y copas. Filtros: Caramelos XL, Oscuro, Mov. Élite.
+- **Cadena PvE** — Rankings de atacantes de incursión de [dialgadex.com](https://dialgadex.com) por tipo. Usa WebView + scraping JS.
+- **Limpiar** — Cadenas de filtro por 11 atributos.
+- **Pokédex (Tipos)** — Tabla de tipos, rankings PvP (32 ligas), PvE global y por tipo. Sprites oficiales desde PokeAPI.
+- **Top por Tipo** — Mejores atacantes por tipo (eDPS) con navegación a la Pokédex.
+- **Top por Max** — Combates Max por tipo desde [dittobase.com](https://www.dittobase.com/pokemon-go/best-attackers/max-battles).
+- **Calculadora IV** — Nivel exacto, perfección, proyección y costes (normales y oscuros).
+- **Calculadora de Exhibición** — Puntuación de PokéStop Showcase (máx. 1178).
+- **Auto-actualizador**, **bilingüe ES/EN**, **modo avanzado oculto**, **tema oscuro**.
 
 ## Stack tecnológico
 
@@ -75,21 +179,127 @@ PokeChain es solo para Android. Si usas iPhone, puedes ejecutarlo en tu PC con e
 
 # English
 
-Companion app for Pokémon GO with search string generator, pokédex, IV calculator, showcase calculator and more.
+Companion app for Pokémon GO with search string generator, pokédex, attacker rankings (PvE and Max Battles), IV calculator, showcase calculator and more.
 
-## Features
+> **Requirement:** Android 8.0 or higher and an **internet connection** — rankings and data are downloaded live from [dialgadex.com](https://dialgadex.com), [pvpoke.com](https://pvpoke.com) and [dittobase.com](https://www.dittobase.com).
 
-- **PvP Chain** — Rankings from [pvpoke.com](https://pvpoke.com) for 32 leagues and cups (Great, Ultra, Master and 29 cups). Filters: XL Candy, Shadow, Elite Move. Generates a search string ready to paste into Pokémon GO.
-- **PvE Chain** — Raid attacker rankings from [dialgadex.com](https://dialgadex.com) by type. Filters: Unreleased, Shadow, Shadow (casual), Legendary, Mega/Primal. Uses WebView + JS scraping.
-- **Clean** — Generates filter strings by 11 attributes (4★, 3★, Shiny, Lucky, Favorite, Costume, Location background, Legendary, Mythical, Ultra Beast, Gigantamax).
-- **Types** — Pokémon lookup with type chart (weakness/resistance), PvP rankings across 32 leagues, global PvE ranking (top 300) and per-type PvE ranking (top 25). Official sprites from PokeAPI.
-- **Max Top** — Max Battles (Dynamax/Gigantamax) rankings by type, top 10 per type from [db.pokemongohub.net](https://db.pokemongohub.net/best/dynamax-attackers-per-type). Official sprites for Max forms.
-- **IV Calculator** — Finds exact level from CP + IVs. Shows perfection %, CP projection up to level 50, power-up cost table (dust/candy/XL candy) and generates a formatted GO name.
-- **Showcase Calculator** — Computes PokéStop Showcase score (max 1178). XXL/XXS badges, height/weight/IV breakdown and trophy tier.
-- **Auto-updater** — Checks GitHub Releases for new APKs and installs them with one tap.
-- **Bilingual** — Full English and Spanish translations (Pokémon names, moves, leagues and forms included).
-- **Hidden advanced mode** — Tap the Fuecoco icon 5 times within 1.5 seconds to unlock from/to rank range for PvP and PvE.
-- **Dark theme** — Automatically adapts to the system dark mode.
+## Index
+
+| Section | |
+|---------|---|
+| [Installation](#installation-1) | [User guide](#user-guide) |
+| [Notes & FAQ](#notes--faq) | [Features](#features-1) |
+| [Build (developers)](#build-1) | [iPhone?](#iphone-2) |
+| **Guía en español:** [aquí](#instalación) | |
+
+## Installation
+
+1. Go to [Releases](https://github.com/Damagr/PokeChainMobile/releases) and download the latest `app-release.apk`.
+2. Open the APK. Android will ask for permission to install unknown apps → allow it for this app.
+3. Tap Install and open PokeChain.
+
+**Updates:** the app checks GitHub Releases on launch and notifies you when a new version is available — it downloads and installs with one tap.
+
+## User guide
+
+### Language switch
+
+On the main screen, at the top: **ES / EN** selector. The whole app translates instantly, including Pokémon names, moves, leagues and forms.
+
+### Chain (PvP and PvE)
+
+Generates **search strings** ready to paste into the Pokémon GO search box.
+
+**PvP Chain:**
+1. **PvP** tab.
+2. Pick a league or cup (Great, Ultra, Master and 29 themed cups).
+3. Enter the minimum CP and tap **Generate**.
+4. Copy the string and paste it into Pokémon GO.
+
+Filters: **XL Candy**, **Shadow** and **Elite Move**.
+
+**PvE Chain:**
+1. **PvE** tab.
+2. Pick a type and filters (unreleased, shadow, casual shadow, legendary, mega/primal).
+3. **Generate** → string with the best attackers for that type.
+
+> The first run takes a little longer: dialgadex calculation data is downloaded.
+
+### Clean
+
+Tick the attributes you want to keep (4★, 3★, Shiny, Lucky, Favorite, Costume, Location background, Legendary, Mythical, Ultra Beast, Gigantamax) → **Generate** → copy the cleanup string.
+
+### Pokédex (Types)
+
+Search a Pokémon by name or number to see its **detail page**:
+
+- Official sprite, types, **resistances** and **weaknesses**.
+- **PvP rankings** across 32 leagues and cups (position of the Pokémon and its forms, including Shadow).
+- **PvE ranking** global (top 300) and **per type** (top 25) with its best moveset.
+- **Attacks:** the top line shows the **charged attack you choose** (normal level); below, **"Mega level 4"** shows the predefined supermega attack — the one with the **+** sign in dialgadex search strings.
+
+### Type Top
+
+1. Pick **Global** or a **type**.
+2. List of the best attackers by eDPS (with Shadow, Mega and Primal tags).
+3. **Mega** switch to include or exclude megas.
+4. **Tap a card** → the **Pokédex page opens**. With **back** you return to the ranking with your type and results intact.
+
+### Max Top
+
+1. Pick a **type**.
+2. Top 10 attackers for **Max Battles** (only **Dynamax** and **Gigantamax** forms), sorted by Max Move damage, with their fast attack and Max Move.
+3. **Tap a card** → Pokédex page.
+
+Data from [dittobase.com](https://www.dittobase.com/pokemon-go/best-attackers/max-battles).
+
+### IV Calculator
+
+1. Search the Pokémon and enter its current **CP** and **IVs** (attack, defense, stamina) → **Calculate**.
+2. You'll see the **exact level**, the **perfection %** and estimated **HP** (several levels can match the same CP).
+3. **Projection:** move the slider to the target level (up to **51** with Best Buddy) → projected CP and HP plus the **cost** in dust, candy and XL candy.
+4. Tick **Shadow costs** if the Pokémon is **Shadow**: costs switch to Shadow values (+20% surcharge).
+
+The card also generates a copyable **formatted name** (e.g. `Mewtwo⁹³`) for renaming in GO.
+
+### Showcase Calculator
+
+Enter the Pokémon's height and weight (and IVs optionally) → the **PokéStop Showcase score** (max 1178), XXL/XXS badges, height/weight/IV breakdown and trophy tier.
+
+## Notes & FAQ
+
+**Does it need internet?**
+Yes. Rankings and data are downloaded in real time from dialgadex, pvpoke and dittobase. The first load takes longer; afterwards everything is cached.
+
+**Why are there attacks with "+"?**
+They are **supermega** attacks (level 4): the best in the rankings, but **predefined** — you don't choose them. That's why the Pokédex also shows the best **selectable** attack (without "+"), the one you can actually put on the Pokémon.
+
+**Why does my Shadow Pokémon cost more?**
+Shadow Pokémon pay a **+20%** surcharge on dust and candy. Tick **Shadow costs** in the IV Calculator for the exact values.
+
+**Why don't Megas appear in Max Top?**
+A Mega Pokémon cannot Dynamax: only **Dynamax** and **Gigantamax** forms take part in Max Battles.
+
+**Why does the projection go up to level 51?**
+Level 51 is reached with the **Best Buddy** boost (temporary and free).
+
+**Hidden advanced mode**
+Tap the Fuecoco icon 5 times within 1.5 seconds to unlock the from/to rank range in the PvP and PvE chains.
+
+**Dark theme**
+Automatically adapts to the system dark mode.
+
+## Features (technical summary)
+
+- **PvP Chain** — Rankings from [pvpoke.com](https://pvpoke.com) for 32 leagues and cups. Filters: XL Candy, Shadow, Elite Move.
+- **PvE Chain** — Raid attacker rankings from [dialgadex.com](https://dialgadex.com) by type. Uses WebView + JS scraping.
+- **Clean** — Filter strings by 11 attributes.
+- **Pokédex (Types)** — Type chart, PvP rankings (32 leagues), global and per-type PvE. Official sprites from PokeAPI.
+- **Type Top** — Best attackers by type (eDPS) with navigation to the Pokédex.
+- **Max Top** — Max Battles by type from [dittobase.com](https://www.dittobase.com/pokemon-go/best-attackers/max-battles).
+- **IV Calculator** — Exact level, perfection, projection and costs (normal and shadow).
+- **Showcase Calculator** — PokéStop Showcase score (max 1178).
+- **Auto-updater**, **bilingual ES/EN**, **hidden advanced mode**, **dark theme**.
 
 ## Tech Stack
 
