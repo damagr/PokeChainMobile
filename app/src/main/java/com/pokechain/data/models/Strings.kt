@@ -145,6 +145,15 @@ object Strings {
     fun ivDefLabel(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "DEF IV"; AppLanguage.ES -> "IV Defensa" }
     fun ivHpLabel(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "HP IV"; AppLanguage.ES -> "IV Salud" }
     fun ivCalculate(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Calculate"; AppLanguage.ES -> "Calcular" }
+    // ── Escáner IV (lectura de pantalla) ──────────────────────────
+    fun ivScanStart(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Scan IVs"; AppLanguage.ES -> "Escanear IVs" }
+    fun ivScanHint(lang: AppLanguage) = when (lang) {
+        AppLanguage.EN -> "Open the Appraisal screen in Pokémon GO"
+        AppLanguage.ES -> "Abre la Valoración en Pokémon GO"
+    }
+    fun ivScanCopy(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Copy"; AppLanguage.ES -> "Copiar" }
+    fun ivScanLast(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Last scan"; AppLanguage.ES -> "Último escaneo" }
+    fun ivScanFill(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Fill"; AppLanguage.ES -> "Rellenar" }
     fun ivPerfection(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "IV Perfection"; AppLanguage.ES -> "Perfección IV" }
     fun ivLevel(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Level"; AppLanguage.ES -> "Nivel" }
     fun ivEstimatedHp(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Estimated HP"; AppLanguage.ES -> "PS Estimados" }

@@ -13,8 +13,8 @@ android {
         applicationId = "com.pokechain"
         minSdk = 26
         targetSdk = 37
-        versionCode = 93
-        versionName = "1.10.3"
+        versionCode = 94
+        versionName = "1.11.0"
     }
 
     signingConfigs {
@@ -82,6 +82,9 @@ dependencies {
 
     // HTML Parsing
     implementation("org.jsoup:jsoup:1.18.3")
+
+    // OCR en dispositivo (escáner de IVs desde capturas de Pokémon GO)
+    implementation("com.google.mlkit:text-recognition:16.0.1")
 
     // Image loading
     implementation("io.coil-kt:coil-compose:2.7.0")
