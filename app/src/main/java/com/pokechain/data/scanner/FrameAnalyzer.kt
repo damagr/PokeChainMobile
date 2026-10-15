@@ -48,9 +48,18 @@ class FrameAnalyzer(context: Context) {
         // ── PC y PS ────────────────────────────────────────────────
         var cp: Int? = null
         var hp: Int? = null
+        // ── Peso y altura (página del Pokémon, para Exhibición) ────
+        var weight: Double? = null
+        var height: Double? = null
         for (line in lines) {
             if (cp == null) CP_REGEX.find(line)?.let { cp = it.groupValues[1].toIntOrNull() }
             if (hp == null) HP_REGEX.find(line)?.let { hp = it.groupValues[1].toIntOrNull() }
+            if (weight == null) WEIGHT_REGEX.find(line)?.let {
+                weight = it.groupValues[1].replace(',', '.').toDoubleOrNull()
+            }
+            if (height == null) HEIGHT_REGEX.find(line)?.let {
+                height = it.groupValues[1].replace(',', '.').toDoubleOrNull()
+            }
         }
 
         // ── Especie por nombre ─────────────────────────────────────
@@ -64,6 +73,8 @@ class FrameAnalyzer(context: Context) {
             dex = species?.second,
             cp = cp,
             hp = hp,
+            heightM = height,
+            weightKg = weight,
             ivAtk = bars?.getOrNull(0)?.let { (it * 15).roundToInt() },
             ivDef = bars?.getOrNull(1)?.let { (it * 15).roundToInt() },
             ivSta = bars?.getOrNull(2)?.let { (it * 15).roundToInt() },
@@ -200,5 +211,8 @@ class FrameAnalyzer(context: Context) {
     companion object {
         private val CP_REGEX = Regex("(?:PC|CP)\\s*([0-9]{2,5})")
         private val HP_REGEX = Regex("(?:PS|HP)\\s*([0-9]{2,4})")
+        // PoGo muestra "12,54 kg" (ES) o "12.54 kg" (EN) — coma y punto
+        private val WEIGHT_REGEX = Regex("([0-9]{1,3}[.,][0-9]{2})\\s*kg")
+        private val HEIGHT_REGEX = Regex("([0-9]{1,2}[.,][0-9]{2})\\s*m(?!\\w)")
     }
 }

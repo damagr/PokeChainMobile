@@ -154,6 +154,10 @@ object Strings {
     fun ivScanCopy(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Copy"; AppLanguage.ES -> "Copiar" }
     fun ivScanLast(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Last scan"; AppLanguage.ES -> "Último escaneo" }
     fun ivScanFill(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Fill"; AppLanguage.ES -> "Rellenar" }
+    fun ivScanHintShowcase(lang: AppLanguage) = when (lang) {
+        AppLanguage.EN -> "Open the Pokémon page in Pokémon GO"
+        AppLanguage.ES -> "Abre la página del Pokémon en Pokémon GO"
+    }
     fun ivPerfection(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "IV Perfection"; AppLanguage.ES -> "Perfección IV" }
     fun ivLevel(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Level"; AppLanguage.ES -> "Nivel" }
     fun ivEstimatedHp(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Estimated HP"; AppLanguage.ES -> "PS Estimados" }

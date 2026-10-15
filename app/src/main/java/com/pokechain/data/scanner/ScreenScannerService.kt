@@ -24,7 +24,6 @@ import android.util.DisplayMetrics
 import android.view.ViewGroup
 import android.view.WindowManager
 import androidx.core.app.NotificationCompat
-import com.pokechain.data.iv.IvFormat
 import com.pokechain.data.models.Strings
 import com.pokechain.ui.scanner.ScannerOverlay
 import kotlinx.coroutines.CoroutineScope
@@ -48,6 +47,7 @@ class ScreenScannerService : Service() {
     private var handlerThread: HandlerThread? = null
     private var overlay: ScannerOverlay? = null
     private lateinit var analyzer: FrameAnalyzer
+    private lateinit var showcaseProvider: com.pokechain.data.showcase.ShowcaseDataProvider
     private var lastProcessedMs = 0L
     private var copiedFlash = false
 
@@ -66,6 +66,7 @@ class ScreenScannerService : Service() {
         }
 
         analyzer = FrameAnalyzer(applicationContext)
+        showcaseProvider = com.pokechain.data.showcase.ShowcaseDataProvider(applicationContext)
 
         // Notificación + FGS (Android 14+: startForeground ANTES de getMediaProjection)
         startForegroundInternal()
@@ -84,7 +85,7 @@ class ScreenScannerService : Service() {
         overlay = ScannerOverlay(
             this,
             ScannerState.language,
-            onCopy = ::copyPerfection,
+            onCopy = ::copyResult,
             onStop = { stopSelf() },
             onTap = ::openApp,
         )
@@ -144,8 +145,11 @@ class ScreenScannerService : Service() {
                         val frame = analyzer.analyze(bmp)
                         bmp.recycle()
                         val merged = ScannerState.lastResult.value?.mergeWith(frame) ?: frame
-                        ScannerState.lastResult.value = merged
-                        overlay?.update(merged)
+                        // Modo SHOWCASE: calcular la puntuación total (XXXX/1178)
+                        val published = if (ScannerState.mode == ScannerMode.SHOWCASE)
+                            merged.copy(showcaseTotal = showcaseTotal(merged)) else merged
+                        ScannerState.lastResult.value = published
+                        overlay?.update(published)
                     } catch (_: Exception) {
                         bmp.recycle()
                     }
@@ -160,13 +164,33 @@ class ScreenScannerService : Service() {
         )
     }
 
-    private fun copyPerfection() {
-        val result = ScannerState.lastResult.value
-        val pct = result?.perfection?.let { it.roundToInt() } ?: return
-        val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-        clipboard.setPrimaryClip(
-            android.content.ClipData.newPlainText("iv", IvFormat.superscript(pct))
+    /** Puntuación de Exhibición (XXXX/1178): especie + peso + altura (+IVs si leídos). */
+    private fun showcaseTotal(result: ScanResult): Int? {
+        val dex = result.dex ?: return null
+        val height = result.heightM ?: return null
+        val weight = result.weightKg ?: return null
+        val entry = showcaseProvider.getSize(dex) ?: return null
+        val calc = com.pokechain.data.showcase.ShowcaseCalculator.calculate(
+            size = entry.size,
+            inputHeight = height,
+            inputWeight = weight,
+            atkIv = result.ivAtk,
+            defIv = result.ivDef,
+            hpIv = result.ivSta
         )
+        return calc.total
+    }
+
+    private fun copyResult() {
+        val result = ScannerState.lastResult.value
+        val text = when (ScannerState.mode) {
+            ScannerMode.SHOWCASE -> result?.showcaseTotal?.let { "$it/1178" }
+            ScannerMode.IV -> result?.perfection?.let { it.roundToInt() }?.let {
+                com.pokechain.data.iv.IvFormat.superscript(it)
+            }
+        } ?: return
+        val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+        clipboard.setPrimaryClip(android.content.ClipData.newPlainText("pokechain", text))
         overlay?.flash(Strings.copied(ScannerState.language))
     }
 

@@ -5,7 +5,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 
 /**
  * Resultado parcial del escáner: cada frame detectado actualiza los campos
- * que puede leer (PC en la pantalla principal, barras y PS en la Valoración).
+ * que puede leer (PC en la pantalla principal, barras y PS en la Valoración,
+ * peso y altura en la página del Pokémon).
  * Los campos null se conservan del estado anterior al hacer merge.
  */
 data class ScanResult(
@@ -13,9 +14,13 @@ data class ScanResult(
     val dex: Int? = null,
     val cp: Int? = null,
     val hp: Int? = null,
+    val heightM: Double? = null,
+    val weightKg: Double? = null,
     val ivAtk: Int? = null,
     val ivDef: Int? = null,
     val ivSta: Int? = null,
+    /** Solo en modo SHOWCASE: puntuación total calculada (de XXXX/1178). */
+    val showcaseTotal: Int? = null,
 ) {
     /** % de perfección: solo con las tres barras leídas (IVs exactos). */
     val perfection: Double?
@@ -34,14 +39,20 @@ data class ScanResult(
             dex = new.dex ?: base.dex,
             cp = new.cp ?: base.cp,
             hp = new.hp ?: base.hp,
+            heightM = new.heightM ?: base.heightM,
+            weightKg = new.weightKg ?: base.weightKg,
             ivAtk = new.ivAtk ?: base.ivAtk,
             ivDef = new.ivDef ?: base.ivDef,
             ivSta = new.ivSta ?: base.ivSta,
+            showcaseTotal = new.showcaseTotal ?: base.showcaseTotal,
         )
     }
 }
 
-/** Estado compartido entre el servicio de escaneo y la UI (Calc. IV). */
+/** Qué calculadora alimenta el escáner: define qué muestra el chip flotante. */
+enum class ScannerMode { IV, SHOWCASE }
+
+/** Estado compartido entre el servicio de escaneo y la UI (Calc. IV / Exhibición). */
 object ScannerState {
     val isRunning = MutableStateFlow(false)
     val lastResult = MutableStateFlow<ScanResult?>(null)
@@ -49,6 +60,10 @@ object ScannerState {
     /** Idioma de la app en el momento de iniciar el escaneo (para el overlay). */
     @Volatile
     var language: AppLanguage = AppLanguage.ES
+
+    /** Modo del escaneo: IV (por defecto) o SHOWCASE. Se fija al iniciar. */
+    @Volatile
+    var mode: ScannerMode = ScannerMode.IV
 
     fun reset() {
         lastResult.value = null

@@ -105,18 +105,37 @@ class ScannerOverlay(
     }
 
     private fun render() {
-        val pct = lastResult?.perfection?.let { it.roundToInt() }
-        if (pct != null) {
-            // Formato superíndice sin nombre (ej. "⁹³") — sin i18n
-            messageView.text = IvFormat.superscript(pct)
-            messageView.textSize = 24f
-            copyView.visibility = android.view.View.VISIBLE
-            stopView.text = "✕"
-        } else {
-            messageView.text = Strings.ivScanHint(language)
-            messageView.textSize = 14f
-            copyView.visibility = android.view.View.GONE
-            stopView.text = "✕"
+        when (com.pokechain.data.scanner.ScannerState.mode) {
+            com.pokechain.data.scanner.ScannerMode.SHOWCASE -> {
+                val total = lastResult?.showcaseTotal
+                if (total != null) {
+                    // Formato de exhibición: "987/1178" — sin i18n
+                    messageView.text = "$total/1178"
+                    messageView.textSize = 20f
+                    copyView.visibility = android.view.View.VISIBLE
+                    stopView.text = "✕"
+                } else {
+                    messageView.text = Strings.ivScanHintShowcase(language)
+                    messageView.textSize = 14f
+                    copyView.visibility = android.view.View.GONE
+                    stopView.text = "✕"
+                }
+            }
+            com.pokechain.data.scanner.ScannerMode.IV -> {
+                val pct = lastResult?.perfection?.let { it.roundToInt() }
+                if (pct != null) {
+                    // Formato superíndice sin nombre (ej. "⁹³") — sin i18n
+                    messageView.text = IvFormat.superscript(pct)
+                    messageView.textSize = 24f
+                    copyView.visibility = android.view.View.VISIBLE
+                    stopView.text = "✕"
+                } else {
+                    messageView.text = Strings.ivScanHint(language)
+                    messageView.textSize = 14f
+                    copyView.visibility = android.view.View.GONE
+                    stopView.text = "✕"
+                }
+            }
         }
     }
 
