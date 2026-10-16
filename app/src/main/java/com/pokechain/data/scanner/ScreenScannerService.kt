@@ -89,10 +89,12 @@ class ScreenScannerService : Service() {
             onCopy = ::copyResult,
             onStop = { stopSelf() },
             onTap = ::openApp,
+            onReset = { ScannerState.resetFlow() },
         )
         overlay?.show()
 
         setupCapture()
+        ScannerState.resetFlow()
         ScannerState.isRunning.value = true
 
         // El chip solo se muestra sobre Pokémon GO (oculto dentro de PokeChain)
@@ -100,6 +102,90 @@ class ScreenScannerService : Service() {
             ScannerState.appInForeground.collect { fg -> overlay?.setVisible(!fg) }
         }
         return START_NOT_STICKY
+    }
+
+    // ── Máquina de estados del flujo de escaneo ────────────────────
+
+    private var candidateIdentity: Triple<Int?, Double?, Double?>? = null
+    private var candidateIvs: Triple<Int, Int, Int>? = null
+    private var confirmCount = 0
+
+    private suspend fun processFrame(bmp: Bitmap, mask: android.graphics.Rect?) {
+        when (ScannerState.stage.value) {
+            ScanStage.LOOKING_POKEMON -> processLooking(bmp, mask)
+            ScanStage.POKEMON_READ -> processPokemonRead(bmp, mask)
+            ScanStage.IV_READ -> processIvRead(bmp, mask)
+        }
+    }
+
+    /** Etapa 1: buscar y confirmar la página del Pokémon (nombre/peso/altura/PC). */
+    private suspend fun processLooking(bmp: Bitmap, mask: android.graphics.Rect?) {
+        val frame = analyzer.analyzeLooking(bmp, mask)
+        val reading = frame.speciesName != null && frame.weightKg != null && frame.heightM != null
+        ScannerState.reading.value = reading
+        if (!reading) {
+            candidateIdentity = null
+            confirmCount = 0
+            overlay?.update(ScannerState.lastResult.value)
+            return
+        }
+
+        // Confirmación: 2 frames consecutivos con la misma identidad
+        val identity = Triple(frame.dex, frame.weightKg, frame.heightM)
+        if (identity == candidateIdentity) confirmCount++ else { candidateIdentity = identity; confirmCount = 1 }
+
+        // Publicar los datos leídos (el chip muestra el progreso)
+        val merged = (ScannerState.lastResult.value ?: ScanResult()).mergeWith(frame)
+        ScannerState.lastResult.value = merged
+        overlay?.update(merged)
+
+        if (confirmCount >= 2) {
+            ScannerState.stage.value = ScanStage.POKEMON_READ
+            ScannerState.reading.value = false
+            confirmCount = 0
+            candidateIdentity = null
+        }
+    }
+
+    /** Etapa 2: esperar y confirmar las barras de la Valoración (IVs). */
+    private suspend fun processPokemonRead(bmp: Bitmap, mask: android.graphics.Rect?) {
+        val ivs = analyzer.readBars(bmp, mask)
+        ScannerState.reading.value = ivs != null
+        if (ivs == null) {
+            // La Valoración no está abierta (aún): mantener los datos del Pokémon
+            overlay?.update(ScannerState.lastResult.value)
+            return
+        }
+
+        // Confirmación: 2 frames consecutivos con los mismos IVs
+        if (ivs == candidateIvs) confirmCount++ else { candidateIvs = ivs; confirmCount = 1 }
+
+        if (confirmCount >= 2) {
+            val frame = ScanResult(ivAtk = ivs.first, ivDef = ivs.second, ivSta = ivs.third)
+            val merged = (ScannerState.lastResult.value ?: ScanResult()).mergeWith(frame)
+            val published = if (ScannerState.mode == ScannerMode.SHOWCASE)
+                merged.copy(showcaseTotal = showcaseTotal(merged)) else merged
+            ScannerState.lastResult.value = published
+            overlay?.update(published)
+            ScannerState.stage.value = ScanStage.IV_READ
+            ScannerState.reading.value = false
+            confirmCount = 0
+            candidateIvs = null
+        } else {
+            overlay?.update(ScannerState.lastResult.value)
+        }
+    }
+
+    /** Etapa 3 (COMPLETO): solo vigilar si la Valoración sigue en pantalla. */
+    private suspend fun processIvRead(bmp: Bitmap, mask: android.graphics.Rect?) {
+        val present = analyzer.barsPresence(bmp, mask)
+        if (!present) {
+            // El usuario navegó a otro Pokémon: reset automático del flujo
+            ScannerState.resetFlow()
+            ScannerState.reading.value = false
+            overlay?.update(null)
+        }
+        // Sin OCR: la pantalla estable no cuesta nada
     }
 
     private fun startForegroundInternal() {
@@ -158,14 +244,8 @@ class ScreenScannerService : Service() {
                                 (r.right * sx).toInt(), (r.bottom * sy).toInt()
                             )
                         }
-                        val frame = analyzer.analyze(bmp, mask)
+                        processFrame(bmp, mask)
                         bmp.recycle()
-                        val merged = ScannerState.lastResult.value?.mergeWith(frame) ?: frame
-                        // Modo SHOWCASE: calcular la puntuación total (XXXX/1178)
-                        val published = if (ScannerState.mode == ScannerMode.SHOWCASE)
-                            merged.copy(showcaseTotal = showcaseTotal(merged)) else merged
-                        ScannerState.lastResult.value = published
-                        overlay?.update(published)
                     } catch (_: Exception) {
                         bmp.recycle()
                     }

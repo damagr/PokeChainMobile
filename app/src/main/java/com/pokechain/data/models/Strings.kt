@@ -156,6 +156,15 @@ object Strings {
         AppLanguage.EN -> "Open the Pokémon page in Pokémon GO"
         AppLanguage.ES -> "Abre la página del Pokémon en Pokémon GO"
     }
+    fun ivScanOpenAppraisal(lang: AppLanguage) = when (lang) {
+        AppLanguage.EN -> "Open the Appraisal"
+        AppLanguage.ES -> "Abre la Valoración"
+    }
+    fun ivScanReading(lang: AppLanguage) = when (lang) {
+        AppLanguage.EN -> "Reading…"
+        AppLanguage.ES -> "Leyendo…"
+    }
+    fun ivScanReset(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "↺"; AppLanguage.ES -> "↺" }
     fun ivPerfection(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "IV Perfection"; AppLanguage.ES -> "Perfección IV" }
     fun ivLevel(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Level"; AppLanguage.ES -> "Nivel" }
     fun ivEstimatedHp(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Estimated HP"; AppLanguage.ES -> "PS Estimados" }

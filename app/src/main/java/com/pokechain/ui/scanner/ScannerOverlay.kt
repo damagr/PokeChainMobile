@@ -15,6 +15,7 @@ import com.pokechain.data.iv.IvFormat
 import com.pokechain.data.models.AppLanguage
 import com.pokechain.data.models.Strings
 import com.pokechain.data.scanner.ScanResult
+import com.pokechain.data.scanner.ScanStage
 import com.pokechain.data.scanner.ScannerMode
 import com.pokechain.data.scanner.ScannerState
 import kotlin.math.abs
@@ -22,13 +23,13 @@ import kotlin.math.roundToInt
 
 /**
  * Chip flotante sobre Pokémon GO (modelo Calcy IV):
- *  - Arrastrable con el dedo (la posición persiste en la sesión)
- *  - Colapsable a un punto pequeño (tap en "–") para no tapar nada
- *  - Muestra según ScannerState.mode: "⁹³" (IV) o "987/1178" (Exhibición)
- *  - Translúcido y en la parte superior por defecto (no tapa teclado ni
- *    peso/altura de PoGo)
- *
- * El chip se oculta cuando PokeChain está en primer plano (setVisible).
+ *  - Arrastrable con el dedo (posición persiste en la sesión)
+ *  - Colapsable a un punto pequeño (botón "–")
+ *  - Muestra el progreso del flujo por etapas y el resultado por modo:
+ *      IV:        "⁹³" al completar
+ *      SHOWCASE:  "XXXX/1178" (sin IVs) -> "XXXX/1178" (con IVs)
+ *  - Botones: Copiar, ↺ (reiniciar flujo), "–" (colapsar), ✕ (detener)
+ *  - Se oculta cuando PokeChain está en primer plano
  */
 class ScannerOverlay(
     context: Context,
@@ -36,6 +37,7 @@ class ScannerOverlay(
     private val onCopy: () -> Unit,
     private val onStop: () -> Unit,
     private val onTap: () -> Unit,
+    private val onReset: () -> Unit,
 ) {
     private val wm = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
     private var shown = false
@@ -70,31 +72,50 @@ class ScannerOverlay(
         }
     }
 
-    private val messageView = TextView(context).apply {
+    // Columna de texto: valor (arriba) + hint de etapa (abajo)
+    private val valueView = TextView(context).apply {
         setTextColor(Color.WHITE)
-        textSize = 14f
+        textSize = 20f
         setPadding(0, 0, 14, 0)
-        // Arrastrar desde el cuerpo; tap corto = abrir la app
         setOnTouchListener(dragOrTap { onTap() })
+    }
+
+    private val hintView = TextView(context).apply {
+        setTextColor(Color.argb(255, 200, 200, 210))
+        textSize = 11f
+    }
+
+    private val textColumn = LinearLayout(context).apply {
+        orientation = LinearLayout.VERTICAL
+        gravity = Gravity.CENTER_VERTICAL
+        addView(valueView)
+        addView(hintView)
     }
 
     private val copyView = TextView(context).apply {
         setTextColor(Color.argb(255, 130, 200, 255))
         textSize = 14f
-        text = Strings.ivScanCopy(language)
         setPadding(16, 8, 16, 8)
         background = GradientDrawable().apply {
             setColor(Color.argb(255, 55, 70, 110))
             cornerRadius = 18f
         }
+        text = Strings.ivScanCopy(language)
         visibility = View.GONE
         setOnClickListener { onCopy() }
+    }
+
+    private val resetView = TextView(context).apply {
+        setTextColor(Color.WHITE)
+        textSize = 14f
+        setPadding(12, 4, 4, 4)
+        setOnClickListener { onReset() }
     }
 
     private val collapseView = TextView(context).apply {
         setTextColor(Color.WHITE)
         textSize = 16f
-        setPadding(16, 4, 8, 4)
+        setPadding(12, 4, 8, 4)
         setOnClickListener { setCollapsed(true) }
     }
 
@@ -106,8 +127,9 @@ class ScannerOverlay(
     }
 
     init {
-        root.addView(messageView)
+        root.addView(textColumn)
         root.addView(copyView)
+        root.addView(resetView)
         root.addView(collapseView)
         root.addView(stopView)
     }
@@ -177,51 +199,54 @@ class ScannerOverlay(
 
     private fun render() {
         root.post {
-            val showChip = shown && !ScannerState.appInForeground.value
-            if (!showChip) return@post
-            val pct = lastResult?.perfection?.let { it.roundToInt() }
-            val total = lastResult?.showcaseTotal
-            when (ScannerState.mode) {
-                ScannerMode.SHOWCASE -> {
-                    if (total != null) {
-                        messageView.text = "$total/1178"
-                        messageView.textSize = 20f
-                    } else {
-                        messageView.text = Strings.ivScanHintShowcase(language)
-                        messageView.textSize = 13f
-                    }
-                }
-                ScannerMode.IV -> {
-                    if (pct != null) {
-                        messageView.text = IvFormat.superscript(pct)
-                        messageView.textSize = 22f
-                    } else {
-                        messageView.text = Strings.ivScanHint(language)
-                        messageView.textSize = 13f
-                    }
-                }
-            }
-            copyView.visibility = if ((pct != null || total != null) && !collapsed) View.VISIBLE else View.GONE
-            collapseView.text = if (collapsed) "□" else "–"
-            collapseView.visibility = if (collapsed) View.GONE else View.VISIBLE
-            stopView.text = if (collapsed) "□" else "✕"
-            if (collapsed) {
-                stopView.visibility = View.GONE
-                copyView.visibility = View.GONE
-                // punto pequeño: tap para expandir
-                messageView.setOnTouchListener(dragOrTap { setCollapsed(false) })
-            } else {
-                stopView.visibility = View.VISIBLE
-                messageView.setOnTouchListener(dragOrTap { onTap() })
-            }
-        }
-    }
+            if (!shown || ScannerState.appInForeground.value) return@post
+            val result = lastResult
+            val stage = ScannerState.stage.value
+            val reading = ScannerState.reading.value
 
-    /** Mensaje transitorio (ej. "¡Copiado!") que vuelve al estado anterior. */
-    fun flash(message: String) {
-        root.post {
-            messageView.text = message
-            root.postDelayed({ render() }, 1200L)
+            // ── Valor según etapa y modo ─────────────────────────
+            when (stage) {
+                ScanStage.LOOKING_POKEMON -> valueView.text = ""
+                ScanStage.POKEMON_READ -> valueView.text = when (ScannerState.mode) {
+                    ScannerMode.SHOWCASE -> result?.showcaseTotal?.let { "$it/1178" } ?: "…"
+                    ScannerMode.IV -> if (reading) "…" else "✓"
+                }
+                ScanStage.IV_READ -> valueView.text = when (ScannerState.mode) {
+                    ScannerMode.SHOWCASE -> result?.showcaseTotal?.let { "$it/1178" } ?: "…"
+                    ScannerMode.IV -> result?.perfection?.let { IvFormat.superscript(it.roundToInt()) } ?: "…"
+                }
+            }
+
+            // ── Hint de etapa ────────────────────────────────────
+            hintView.text = when (stage) {
+                ScanStage.LOOKING_POKEMON -> when (ScannerState.mode) {
+                    ScannerMode.SHOWCASE -> Strings.ivScanHintShowcase(language)
+                    ScannerMode.IV -> Strings.ivScanHint(language)
+                }
+                ScanStage.POKEMON_READ -> when (ScannerState.mode) {
+                    ScannerMode.SHOWCASE -> Strings.ivScanOpenAppraisal(language)
+                    ScannerMode.IV -> if (reading) Strings.ivScanReading(language)
+                                      else Strings.ivScanOpenAppraisal(language)
+                }
+                ScanStage.IV_READ -> when (ScannerState.mode) {
+                    ScannerMode.SHOWCASE -> if (reading) Strings.ivScanReading(language) else ""
+                    ScannerMode.IV -> ""
+                }
+            }
+
+            // ── Visibilidad de botones ───────────────────────────
+            val hasValue = valueView.text.isNotBlank() && valueView.text != "…" && valueView.text != "✓"
+            copyView.visibility = if (hasValue && !collapsed) View.VISIBLE else View.GONE
+            resetView.visibility = if (!collapsed) View.VISIBLE else View.GONE
+            collapseView.visibility = if (!collapsed) View.VISIBLE else View.GONE
+            stopView.visibility = if (!collapsed) View.VISIBLE else View.GONE
+            if (collapsed) {
+                hintView.visibility = View.GONE
+                // Punto pequeño: tap para expandir
+                valueView.setOnTouchListener(dragOrTap { setCollapsed(false) })
+            } else {
+                hintView.visibility = if (hintView.text.isBlank()) View.GONE else View.VISIBLE
+            }
         }
     }
 
@@ -231,5 +256,13 @@ class ScannerOverlay(
         val loc = IntArray(2)
         root.getLocationOnScreen(loc)
         return Rect(loc[0], loc[1], loc[0] + root.width, loc[1] + root.height)
+    }
+
+    /** Mensaje transitorio (ej. "¡Copiado!") que vuelve al estado anterior. */
+    fun flash(message: String) {
+        root.post {
+            hintView.text = message
+            root.postDelayed({ render() }, 1200L)
+        }
     }
 }

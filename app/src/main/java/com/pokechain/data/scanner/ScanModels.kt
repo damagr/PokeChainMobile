@@ -52,10 +52,24 @@ data class ScanResult(
 /** Qué calculadora alimenta el escáner: define qué muestra el chip flotante. */
 enum class ScannerMode { IV, SHOWCASE }
 
+/**
+ * Etapas del flujo de escaneo:
+ *  - LOOKING_POKEMON: buscando la página del Pokémon (nombre/peso/altura/PC)
+ *  - POKEMON_READ: datos del Pokémon confirmados — pendiente la Valoración
+ *  - IV_READ: barras confirmadas — COMPLETO (solo vigilancia de cambios)
+ */
+enum class ScanStage { LOOKING_POKEMON, POKEMON_READ, IV_READ }
+
 /** Estado compartido entre el servicio de escaneo y la UI (Calc. IV / Exhibición). */
 object ScannerState {
     val isRunning = MutableStateFlow(false)
     val lastResult = MutableStateFlow<ScanResult?>(null)
+
+    /** Etapa actual del flujo. */
+    val stage = MutableStateFlow(ScanStage.LOOKING_POKEMON)
+
+    /** El frame actual pertenece a la pantalla que espera la etapa (feedback "Leyendo…"). */
+    val reading = MutableStateFlow(false)
 
     /** Idioma de la app en el momento de iniciar el escaneo (para el overlay). */
     @Volatile
@@ -77,5 +91,12 @@ object ScannerState {
 
     fun reset() {
         lastResult.value = null
+        stage.value = ScanStage.LOOKING_POKEMON
+        reading.value = false
+    }
+
+    /** Reinicio del flujo desde el chip (botón ↺): vuelve a buscar un Pokémon. */
+    fun resetFlow() {
+        reset()
     }
 }
