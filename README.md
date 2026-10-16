@@ -90,9 +90,25 @@ Datos de [dittobase.com](https://www.dittobase.com/pokemon-go/best-attackers/max
 
 La tarjeta también genera un **nombre formateado** (ej. `Mewtwo⁹³`) copiable para renombrar en GO.
 
+**Escáner en vivo (opcional):** toca el **icono de cámara** arriba a la derecha:
+
+1. Concede los permisos: **"Mostrar sobre otras apps"** y **"Grabar pantalla"**.
+2. Cambia a Pokémon GO, abre el Pokémon y entra en su **Valoración** (la pantalla de las barras).
+3. El **chip flotante** mide las barras y muestra el % de perfección (ej. `⁹³`).
+4. **Copiar** → pégalo como nombre del Pokémon.
+
+El chip se puede **arrastrar**, **colapsar** (botón "–") y se oculta dentro de PokeChain.
+
 ### Calculadora de Exhibición
 
 Introduce altura y peso del Pokémon (y IVs opcionalmente) → **puntuación de la Exhibición de PokéParada** (máx. 1178), medallas XXL/XXS, desglose por altura/peso/IVs y tier.
+
+**Escáner en vivo (opcional):** el mismo **icono de cámara**, desde la pantalla de Exhibición:
+
+1. Concede los permisos y cambia a Pokémon GO.
+2. Abre el **Pokémon** (su página muestra el peso y la altura).
+3. El chip muestra la puntuación lista para renombrar (ej. `987/1178`) → **Copiar**.
+4. (Opcional) Abre la **Valoración** para sumar los puntos de IVs al score — el chip se actualiza al momento.
 
 ---
 
@@ -118,6 +134,15 @@ Toca el icono de Fuecoco 5 veces en menos de 1.5 segundos para desbloquear el ra
 
 **Tema oscuro**
 Se adapta automáticamente al modo oscuro del sistema.
+
+**"Android dice: ajuste restringido / acceso denegado"**
+Las apps instaladas fuera de tiendas tienen los permisos sensibles bloqueados por Android. Desbloquéalo así: **Ajustes → Aplicaciones → PokeChain → menú ⋮ → Permitir permisos restringidos**. Después vuelve a la app y concede el permiso. (Alternativa: reinstalar por ADB.)
+
+**¿Puedo ser baneado por el escáner?**
+No. Solo lee tu propia pantalla (lo mismo que una captura manual): no interacciona con el juego, no inyecta nada ni automatiza nada.
+
+**El chip tapa la altura, el peso o el teclado**
+Arrástralo a otra posición con el dedo o colápsalo con el botón "–". En Exhibición, si tu compañero tapa la altura, tócalo para que se mueva e inténtalo de nuevo.
 
 ---
 
@@ -225,9 +250,25 @@ Data from [dittobase.com](https://www.dittobase.com/pokemon-go/best-attackers/ma
 
 The card also generates a copyable **formatted name** (e.g. `Mewtwo⁹³`) for renaming in GO.
 
+**Live scanner (optional):** tap the **camera icon** at the top right:
+
+1. Grant the permissions: **"Display over other apps"** and **"Record screen"**.
+2. Switch to Pokémon GO, open the Pokémon and enter its **Appraisal** (the bars screen).
+3. The **floating chip** measures the bars and shows the perfection % (e.g. `⁹³`).
+4. **Copy** → paste it as the Pokémon's name.
+
+The chip can be **dragged**, **collapsed** (the "–" button) and hides inside PokeChain.
+
 ### Showcase Calculator
 
 Enter the Pokémon's height and weight (and IVs optionally) → the **PokéStop Showcase score** (max 1178), XXL/XXS badges, height/weight/IV breakdown and trophy tier.
+
+**Live scanner (optional):** the same **camera icon**, from the Showcase screen:
+
+1. Grant the permissions and switch to Pokémon GO.
+2. Open the **Pokémon** (its page shows weight and height).
+3. The chip shows the score ready to rename (e.g. `987/1178`) → **Copy**.
+4. (Optional) Open the **Appraisal** to add the IV points to the score — the chip updates on the spot.
 
 ---
 
@@ -253,6 +294,15 @@ Tap the Fuecoco icon 5 times within 1.5 seconds to unlock the from/to rank range
 
 **Dark theme**
 Automatically adapts to the system dark mode.
+
+**"Android says: restricted setting / access denied"**
+Apps installed outside stores have sensitive permissions blocked by Android. Unlock it: **Settings → Apps → PokeChain → ⋮ menu → Allow restricted permissions**. Then go back to the app and grant the permission. (Alternative: reinstall via ADB.)
+
+**Can I get banned for the scanner?**
+No. It only reads your own screen (just like a manual screenshot): it does not interact with the game, inject anything or automate anything.
+
+**The chip covers the height, weight or keyboard**
+Drag it to another position or collapse it with the "–" button. In Showcases, if your buddy covers the height, tap it so it moves and try again.
 
 ---
 
