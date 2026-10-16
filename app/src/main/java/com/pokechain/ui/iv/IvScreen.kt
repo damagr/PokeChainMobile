@@ -77,7 +77,6 @@ fun IvScreen(
 
     // ── Escáner en vivo (lectura de pantalla de Pokémon GO) ───────
     LaunchedEffect(Unit) { ScannerState.mode = ScannerMode.IV }
-    val scanResult by ScannerState.lastResult.collectAsState()
     val scanRunning by ScannerState.isRunning.collectAsState()
 
     val projectionManager = context.getSystemService(MediaProjectionManager::class.java)
@@ -128,35 +127,6 @@ fun IvScreen(
     val suggestions = remember(searchText.text, typeProvider.isLoaded) {
         if (!typeProvider.isLoaded) emptyList()
         else typeProvider.searchAll(searchText.text, translator, language).take(30)
-    }
-
-    /** Rellena los campos de la calculadora con el resultado del escáner. */
-    fun fillFromScan(scan: com.pokechain.data.scanner.ScanResult) {
-        scan.cp?.let { cpText = it.toString() }
-        scan.ivAtk?.let { atkIvText = it.toString() }
-        scan.ivDef?.let { defIvText = it.toString() }
-        scan.ivSta?.let { staIvText = it.toString() }
-        hasCalculated = false
-        errorMessage = null
-
-        val dex = scan.dex
-        val name = scan.speciesName
-        if (dex != null || name != null) {
-            scope.launch {
-                try {
-                    typeProvider.ensureLoaded()
-                    val entry = typeProvider.searchAll(name ?: "", translator, language)
-                        .firstOrNull { dex == null || it.dex == dex }
-                    entry?.let { e ->
-                        selectedEntry = e
-                        val dn = e.displayName(language, translator)
-                        searchText = TextFieldValue(dn, selection = TextRange(dn.length))
-                    }
-                } catch (_: Exception) {
-                    // La selección manual del Pokémon siempre está disponible
-                }
-            }
-        }
     }
 
     fun performCalculation() {
@@ -414,50 +384,6 @@ fun IvScreen(
                         color = MaterialTheme.colorScheme.onErrorContainer,
                         style = MaterialTheme.typography.bodyMedium
                     )
-                }
-            }
-
-            // ── Último escaneo (escáner en vivo) ──────────────────
-            scanResult?.let { scan ->
-                if (scan.ivAtk != null && scan.ivDef != null && scan.ivSta != null) {
-                    val pct = scan.perfection?.roundToInt() ?: 0
-                    Card(modifier = Modifier.fillMaxWidth()) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = Strings.ivScanLast(language),
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                                IconButton(onClick = {
-                                    clipboardManager.setText(AnnotatedString(IvFormat.superscript(pct)))
-                                }) {
-                                    Icon(
-                                        imageVector = Icons.Default.ContentCopy,
-                                        contentDescription = Strings.ivScanCopy(language),
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
-                            }
-                            Text(
-                                text = "${IvFormat.superscript(pct)}  ${scan.ivAtk}/${scan.ivDef}/${scan.ivSta}",
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(Modifier.height(6.dp))
-                            Button(
-                                onClick = { fillFromScan(scan) },
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text(Strings.ivScanFill(language))
-                            }
-                        }
-                    }
                 }
             }
 

@@ -152,8 +152,6 @@ object Strings {
         AppLanguage.ES -> "Abre la Valoración en Pokémon GO"
     }
     fun ivScanCopy(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Copy"; AppLanguage.ES -> "Copiar" }
-    fun ivScanLast(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Last scan"; AppLanguage.ES -> "Último escaneo" }
-    fun ivScanFill(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Fill"; AppLanguage.ES -> "Rellenar" }
     fun ivScanHintShowcase(lang: AppLanguage) = when (lang) {
         AppLanguage.EN -> "Open the Pokémon page in Pokémon GO"
         AppLanguage.ES -> "Abre la página del Pokémon en Pokémon GO"

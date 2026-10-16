@@ -81,6 +81,7 @@ class ScannerOverlay(
     private val copyView = TextView(context).apply {
         setTextColor(Color.argb(255, 130, 200, 255))
         textSize = 14f
+        text = Strings.ivScanCopy(language)
         setPadding(16, 8, 16, 8)
         background = GradientDrawable().apply {
             setColor(Color.argb(255, 55, 70, 110))

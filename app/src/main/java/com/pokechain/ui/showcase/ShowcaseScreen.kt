@@ -35,7 +35,6 @@ import com.pokechain.data.dialgadex.PokemonTypeEntry
 import com.pokechain.data.dialgadex.PokemonTypeProvider
 import com.pokechain.data.models.AppLanguage
 import com.pokechain.data.models.Strings
-import com.pokechain.data.scanner.ScanResult
 import com.pokechain.data.scanner.ScannerMode
 import com.pokechain.data.scanner.ScannerState
 import com.pokechain.data.scanner.ScreenScannerService
@@ -56,7 +55,6 @@ fun ShowcaseScreen(
     val typeProvider = remember { PokemonTypeProvider() }
     val showcaseProvider = remember { ShowcaseDataProvider(context) }
     val scope = rememberCoroutineScope()
-    val clipboardManager = LocalClipboardManager.current
 
     // ── Pokémon search state ──────────────────────────────────────
     var searchText by remember { mutableStateOf(TextFieldValue("")) }
@@ -98,7 +96,6 @@ fun ShowcaseScreen(
 
     // ── Escáner en vivo (lectura de pantalla de Pokémon GO) ───────
     LaunchedEffect(Unit) { ScannerState.mode = ScannerMode.SHOWCASE }
-    val scanResult by ScannerState.lastResult.collectAsState()
 
     val projectionManager = context.getSystemService(MediaProjectionManager::class.java)
 
@@ -127,36 +124,6 @@ fun ShowcaseScreen(
             )
         } else {
             projectionLauncher.launch(projectionManager.createScreenCaptureIntent())
-        }
-    }
-
-    /** Rellena altura/peso/IVs y selecciona la especie escaneada. */
-    fun fillFromScan(scan: ScanResult) {
-        scan.heightM?.let { heightText = String.format(java.util.Locale.US, "%.2f", it) }
-        scan.weightKg?.let { weightText = String.format(java.util.Locale.US, "%.2f", it) }
-        scan.ivAtk?.let { atkIvText = it.toString() }
-        scan.ivDef?.let { defIvText = it.toString() }
-        scan.ivSta?.let { hpIvText = it.toString() }
-        hasCalculated = false
-        errorMessage = null
-
-        val dex = scan.dex
-        val name = scan.speciesName
-        if (dex != null || name != null) {
-            scope.launch {
-                try {
-                    typeProvider.ensureLoaded()
-                    val entry = typeProvider.searchAll(name ?: "", translator, language)
-                        .firstOrNull { dex == null || it.dex == dex }
-                    entry?.let { e ->
-                        selectedEntry = e
-                        val dn = e.displayName(language, translator)
-                        searchText = TextFieldValue(dn, selection = TextRange(dn.length))
-                    }
-                } catch (_: Exception) {
-                    // La selección manual del Pokémon siempre está disponible
-                }
-            }
         }
     }
 
@@ -438,53 +405,6 @@ fun ShowcaseScreen(
                         color = MaterialTheme.colorScheme.onErrorContainer,
                         style = MaterialTheme.typography.bodyMedium
                     )
-                }
-            }
-
-            // ── Último escaneo (escáner en vivo) ──────────────────
-            scanResult?.let { scan ->
-                if (scan.heightM != null && scan.weightKg != null) {
-                    val copyText = scan.showcaseTotal?.let { "$it/1178" }
-                    Card(modifier = Modifier.fillMaxWidth()) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = Strings.ivScanLast(language),
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                                if (copyText != null) {
-                                    IconButton(onClick = {
-                                        clipboardManager.setText(AnnotatedString(copyText))
-                                    }) {
-                                        Icon(
-                                            imageVector = Icons.Default.ContentCopy,
-                                            contentDescription = Strings.ivScanCopy(language),
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                    }
-                                }
-                            }
-                            Text(
-                                text = "${scan.heightM} m · ${scan.weightKg} kg" +
-                                    (scan.showcaseTotal?.let { "  →  $it/1178" } ?: ""),
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(Modifier.height(6.dp))
-                            Button(
-                                onClick = { fillFromScan(scan) },
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text(Strings.ivScanFill(language))
-                            }
-                        }
-                    }
                 }
             }
 
