@@ -97,6 +97,7 @@ fun ShowcaseScreen(
     }
 
     // ── Escáner en vivo (lectura de pantalla de Pokémon GO) ───────
+    LaunchedEffect(Unit) { ScannerState.mode = ScannerMode.SHOWCASE }
     val scanResult by ScannerState.lastResult.collectAsState()
 
     val projectionManager = context.getSystemService(MediaProjectionManager::class.java)

@@ -49,7 +49,8 @@ class ScreenScannerService : Service() {
     private lateinit var analyzer: FrameAnalyzer
     private lateinit var showcaseProvider: com.pokechain.data.showcase.ShowcaseDataProvider
     private var lastProcessedMs = 0L
-    private var copiedFlash = false
+    private var screenW = 0
+    private var screenH = 0
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -93,6 +94,11 @@ class ScreenScannerService : Service() {
 
         setupCapture()
         ScannerState.isRunning.value = true
+
+        // El chip solo se muestra sobre Pokémon GO (oculto dentro de PokeChain)
+        scope.launch {
+            ScannerState.appInForeground.collect { fg -> overlay?.setVisible(!fg) }
+        }
         return START_NOT_STICKY
     }
 
@@ -124,6 +130,8 @@ class ScreenScannerService : Service() {
         )
         val w = bounds.width()
         val h = bounds.height()
+        screenW = w
+        screenH = h
         val density: Int = resources.displayMetrics.densityDpi
 
         handlerThread = HandlerThread("ScannerFrames").apply { start() }
@@ -142,7 +150,15 @@ class ScreenScannerService : Service() {
                 if (bmp == null) return@setOnImageAvailableListener
                 scope.launch {
                     try {
-                        val frame = analyzer.analyze(bmp)
+                        val mask = overlay?.boundsOnScreen()?.let { r ->
+                            val sx = MAX_SCAN_WIDTH.toFloat() / screenW
+                            val sy = MAX_SCAN_WIDTH.toFloat() / screenH
+                            android.graphics.Rect(
+                                (r.left * sx).toInt(), (r.top * sy).toInt(),
+                                (r.right * sx).toInt(), (r.bottom * sy).toInt()
+                            )
+                        }
+                        val frame = analyzer.analyze(bmp, mask)
                         bmp.recycle()
                         val merged = ScannerState.lastResult.value?.mergeWith(frame) ?: frame
                         // Modo SHOWCASE: calcular la puntuación total (XXXX/1178)
@@ -244,7 +260,7 @@ class ScreenScannerService : Service() {
         private const val EXTRA_DATA = "data"
         private const val NOTIF_ID = 42001
         private const val FRAME_INTERVAL_MS = 400L // ~2,5 fps
-        private const val MAX_SCAN_WIDTH = 540
+        private const val MAX_SCAN_WIDTH = 720
 
         fun start(context: Context, resultCode: Int, data: Intent) {
             val intent = Intent(context, ScreenScannerService::class.java).apply {

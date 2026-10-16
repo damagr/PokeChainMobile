@@ -65,6 +65,16 @@ object ScannerState {
     @Volatile
     var mode: ScannerMode = ScannerMode.IV
 
+    /** Posición arrastrada del chip (sesión). */
+    @Volatile
+    var chipX: Int = 60
+
+    @Volatile
+    var chipY: Int = 140
+
+    /** PokeChain en primer plano -> el chip se oculta (solo aparece sobre PoGo). */
+    val appInForeground = MutableStateFlow(true)
+
     fun reset() {
         lastResult.value = null
     }

@@ -3,6 +3,7 @@ package com.pokechain.data.scanner
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Color
+import android.graphics.Rect
 import com.google.android.gms.tasks.Task
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.Text
@@ -10,20 +11,27 @@ import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import com.pokechain.data.dialgadex.NameTranslator
 import com.pokechain.data.models.AppLanguage
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 /**
- * Motor de análisis de frames de Pokémon GO:
- *  - OCR (ML Kit, en dispositivo) del nombre, PC y PS
- *  - Medición de las 3 barras de la Valoración -> IVs (0-15)
+ * Motor de análisis de frames de Pokémon GO (calibrado con capturas 1080×2400):
  *
- * El relleno de cada barra es proporcional al IV: relleno/longitud × 15.
- * Los umbrales son heurísticos y pueden requerir calibración si PoGo
- * cambia su UI; la app incluye corrección manual como red de seguridad.
+ *  - Pantalla principal: OCR del nombre, PC ("PC523") y peso/altura ("95,04kg" / "0,39m")
+ *  - Valoración: OCR de los PS ("75 / 75 PS") + medición de las 3 barras
+ *
+ * Barras (geometría calibrada, relativo a 1080×2400):
+ *  - Pista fija: x = 128..502 (ancho 374px), 3 segmentos con huecos
+ *  - Relleno: RGB(240,167,75) naranja (rosa en hundos) — cálido
+ *  - Pista vacía: RGB(226,226,224) — gris
+ *  - Panel: blanco puro. Etiquetas ("Ataque"...) también cálidas pero dispersas
+ *  - La medalla de valoración (círculo cálido) se excluye por extenderse
+ *    a la izquierda de la pista
+ *
+ * El relleno de cada barra es proporcional al IV: ratio × 15.
  */
 class FrameAnalyzer(context: Context) {
 
@@ -40,20 +48,23 @@ class FrameAnalyzer(context: Context) {
         }
     }
 
-    suspend fun analyze(bitmap: Bitmap): ScanResult {
-        val text = recognizer.process(InputImage.fromBitmap(bitmap, 0)).awaitTask()
+    suspend fun analyze(bitmap: Bitmap, maskRect: Rect? = null): ScanResult {
+        val image = InputImage.fromBitmap(bitmap, 0)
+        val text = recognizer.process(image).awaitTask()
         val lines = text.textBlocks.flatMap { block -> block.lines.map { it.text.trim() } }
             .filter { it.isNotBlank() }
 
-        // ── PC y PS ────────────────────────────────────────────────
+        // ── PC, PS, peso y altura ──────────────────────────────────
         var cp: Int? = null
         var hp: Int? = null
-        // ── Peso y altura (página del Pokémon, para Exhibición) ────
         var weight: Double? = null
         var height: Double? = null
         for (line in lines) {
             if (cp == null) CP_REGEX.find(line)?.let { cp = it.groupValues[1].toIntOrNull() }
-            if (hp == null) HP_REGEX.find(line)?.let { hp = it.groupValues[1].toIntOrNull() }
+            if (hp == null) {
+                // "75 / 75 PS" (PS al final) o "PS 75"
+                HP_REGEX.find(line)?.let { hp = (it.groupValues[2] ?: it.groupValues[1]).toIntOrNull() }
+            }
             if (weight == null) WEIGHT_REGEX.find(line)?.let {
                 weight = it.groupValues[1].replace(',', '.').toDoubleOrNull()
             }
@@ -66,7 +77,7 @@ class FrameAnalyzer(context: Context) {
         val species = matchSpecies(lines)
 
         // ── Barras de la Valoración ────────────────────────────────
-        val bars = analyzeBars(bitmap)
+        val bars = analyzeBars(bitmap, maskRect)
 
         return ScanResult(
             speciesName = species?.first,
@@ -114,91 +125,83 @@ class FrameAnalyzer(context: Context) {
         return prev[b.length]
     }
 
-    // ── Barras de la Valoración ────────────────────────────────────
+    // ── Barras de la Valoración (geometría calibrada) ──────────────
 
     /**
-     * Detecta las 3 barras horizontales del panel de Valoración y devuelve
-     * sus ratios de relleno (0.0–1.0) de arriba a abajo, o null si no
-     * encuentra exactamente 3 bandas alineadas.
+     * Detecta las 3 barras y devuelve sus ratios de relleno (0.0–1.0)
+     * de arriba a abajo, o null si no las encuentra con confianza.
+     *
+     * @param maskRect región del chip flotante (coords del bitmap) a excluir
      */
-    private fun analyzeBars(bmp: Bitmap): List<Double>? {
+    private fun analyzeBars(bmp: Bitmap, maskRect: Rect?): List<Double>? {
         val w = bmp.width
         val h = bmp.height
-        val top = (h * 0.45).toInt() // las barras están en la mitad inferior
+        val trackStart = (TRACK_START_REL * w).toInt()
+        val trackEnd = (TRACK_END_REL * w).toInt()
+        val zoneTop = (ZONE_TOP_REL * h).toInt()
+        val zoneBottom = (ZONE_BOTTOM_REL * h).toInt()
+        val trackW = trackEnd - trackStart
+        if (trackW <= 0) return null
 
-        // 1) Filas con un tramo horizontal claro suficientemente ancho
-        data class Run(val y: Int, val start: Int, val end: Int)
-        val runs = mutableListOf<Run>()
-        val threshold = 60 // luminancia mínima para considerar píxel de barra (panel oscuro de fondo)
-        for (y in top until h) {
-            var bestStart = -1
-            var bestEnd = -1
-            var curStart = -1
-            for (x in 0 until w) {
-                val p = bmp.getPixel(x, y)
-                val lum = 0.299f * Color.red(p) + 0.587f * Color.green(p) + 0.114f * Color.blue(p)
-                if (lum > threshold) {
-                    if (curStart < 0) curStart = x
-                } else if (curStart >= 0) {
-                    if (x - curStart > bestEnd - bestStart) { bestStart = curStart; bestEnd = x }
-                    curStart = -1
-                }
-            }
-            if (curStart >= 0 && w - curStart > bestEnd - bestStart) { bestStart = curStart; bestEnd = w }
-            if (bestEnd - bestStart > w * 0.25) runs.add(Run(y, bestStart, bestEnd))
+        fun isWarm(p: Int): Boolean {
+            val r = Color.red(p); val g = Color.green(p); val b = Color.blue(p)
+            return r > 150 && r - b > 40 && r - g > 20
         }
-        if (runs.size < 9) return null // cada barra ocupa varias filas (>=3)
+        fun isTrack(p: Int): Boolean {
+            val r = Color.red(p); val g = Color.green(p); val b = Color.blue(p)
+            return abs(r - 226) < 22 && abs(g - 226) < 22 && abs(b - 224) < 22
+        }
+        fun masked(x: Int, y: Int): Boolean =
+            maskRect != null && x >= maskRect.left && x <= maskRect.right &&
+                y >= maskRect.top && y <= maskRect.bottom
+
+        // 1) Filas de barra: cobertura (relleno + pista) > 55% de la pista
+        val barRows = mutableListOf<Int>()
+        for (y in zoneTop..zoneBottom) {
+            if (masked(trackStart, y) || masked(trackEnd, y)) continue
+            var cov = 0
+            for (x in trackStart..trackEnd) {
+                if (masked(x, y)) continue
+                val p = bmp.getPixel(x, y)
+                if (isWarm(p) || isTrack(p)) cov++
+            }
+            if (cov.toDouble() / trackW > 0.55) barRows.add(y)
+        }
 
         // 2) Agrupar filas contiguas en bandas
-        data class Band(val rows: MutableList<Run>)
-        val bands = mutableListOf<Band>()
-        for (run in runs.sortedBy { it.y }) {
-            val last = bands.lastOrNull()
-            if (last != null && run.y - last.rows.last().y <= 2) last.rows.add(run)
-            else bands.add(Band(mutableListOf(run)))
+        val bands = mutableListOf<Pair<Int, Int>>()
+        var start = -1
+        var prev = -1
+        for (y in barRows) {
+            if (start < 0) start = y
+            else if (y - prev > 4) { bands.add(start to prev); start = y }
+            prev = y
         }
-        // Quedarnos con las 3 bandas más anchas (las barras son las más largas)
-        val candidates = bands.sortedByDescending { b -> b.rows.maxOf { it.end - it.start } }.take(3)
-            .sortedBy { it.rows.first().y }
-        if (candidates.size < 3) return null
+        if (start >= 0) bands.add(start to prev)
+        val minH = (5.0 * h / 2400).toInt()
+        val barBands = bands.filter { (a, b) -> b - a >= minH }
+        if (barBands.size != 3) return null
 
-        // 3) Alineación: las 3 barras comparten extensión horizontal aproximada
-        val starts = candidates.map { b -> b.rows.minOf { it.start } }
-        val ends = candidates.map { b -> b.rows.maxOf { it.end } }
-        val tolerance = w * 0.05
-        if ((ends.max() - ends.min()) > tolerance) return null
-        if ((starts.max() - starts.min()) > tolerance) return null
-
-        // 4) Por banda: pista = extensión común; relleno = sub-tramo brillante
-        val fillThreshold = 150 // luminancia del relleno (más brillante que la pista)
-        val ratios = candidates.map { band ->
-            val trackStart = band.rows.minOf { it.start }
-            val trackEnd = band.rows.maxOf { it.end }
-            if (trackEnd <= trackStart) return@map -1.0
-            // perfil de luminancia medio por columna en las filas de la banda
-            val profile = DoubleArray(trackEnd - trackStart)
-            var count = 0
-            for (row in band.rows) {
-                if (row.start > trackStart || row.end < trackEnd) continue
-                count++
-                for (x in trackStart until trackEnd) {
-                    val p = bmp.getPixel(x, row.y)
-                    profile[x - trackStart] += 0.299f * Color.red(p) + 0.587f * Color.green(p) + 0.114f * Color.blue(p)
-                }
+        // 3) Exclusión de la medalla: píxeles cálidos a la IZQUIERDA de la pista
+        val medalLeftX = (0.055 * w).toInt()
+        val medalRightX = (0.102 * w).toInt()
+        for ((a, b) in barBands) {
+            val ym = (a + b) / 2
+            for (x in medalLeftX..medalRightX) {
+                if (isWarm(bmp.getPixel(x, ym))) return null // es la medalla
             }
-            if (count == 0) return@map -1.0
-            for (i in profile.indices) profile[i] /= count
-            // desde la derecha, retroceder hasta encontrar el final del relleno brillante
-            var fillEnd = -1
-            for (i in profile.indices.reversed()) {
-                if (profile[i] >= fillThreshold) { fillEnd = i + 1; break }
-            }
-            if (fillEnd <= 0) return@map 0.0
-            // el relleno empieza siempre por la izquierda de la pista
-            (fillEnd.toDouble() / (trackEnd - trackStart)).coerceIn(0.0, 1.0)
         }
-        if (ratios.any { it < 0 }) return null
-        return ratios
+
+        // 4) Por banda: relleno = último píxel cálido dentro de la pista
+        return barBands.map { (a, b) ->
+            val ym = (a + b) / 2
+            var fillEnd = trackStart - 1
+            for (x in trackStart..trackEnd) {
+                if (masked(x, ym)) continue
+                if (isWarm(bmp.getPixel(x, ym))) fillEnd = x
+            }
+            ((fillEnd - trackStart + 1).toDouble() / (trackW + 1)).coerceIn(0.0, 1.0)
+        }
     }
 
     // ── Utilidades ─────────────────────────────────────────────────
@@ -210,9 +213,15 @@ class FrameAnalyzer(context: Context) {
 
     companion object {
         private val CP_REGEX = Regex("(?:PC|CP)\\s*([0-9]{2,5})")
-        private val HP_REGEX = Regex("(?:PS|HP)\\s*([0-9]{2,4})")
-        // PoGo muestra "12,54 kg" (ES) o "12.54 kg" (EN) — coma y punto
+        // "163 / 163 PS" (PS al final) o "PS 163"
+        private val HP_REGEX = Regex("(?:(?:PS|HP)\\s*([0-9]{1,4}))|(?:([0-9]{1,4})\\s*/\\s*[0-9]{1,4}\\s*(?:PS|HP))")
         private val WEIGHT_REGEX = Regex("([0-9]{1,3}[.,][0-9]{2})\\s*kg")
         private val HEIGHT_REGEX = Regex("([0-9]{1,2}[.,][0-9]{2})\\s*m(?!\\w)")
+
+        // Geometría calibrada (relativo a la pantalla)
+        const val TRACK_START_REL = 0.1204  // x=128/1080
+        const val TRACK_END_REL = 0.4648    // x=502/1080
+        const val ZONE_TOP_REL = 0.76       // y
+        const val ZONE_BOTTOM_REL = 0.92    // y
     }
 }

@@ -40,6 +40,7 @@ import com.pokechain.data.models.AppLanguage
 import com.pokechain.data.models.BaseStats
 import com.pokechain.data.models.PokemonType
 import com.pokechain.data.models.Strings
+import com.pokechain.data.scanner.ScannerMode
 import com.pokechain.data.scanner.ScannerState
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -75,6 +76,7 @@ fun IvScreen(
     var hasCalculated by remember { mutableStateOf(false) }
 
     // ── Escáner en vivo (lectura de pantalla de Pokémon GO) ───────
+    LaunchedEffect(Unit) { ScannerState.mode = ScannerMode.IV }
     val scanResult by ScannerState.lastResult.collectAsState()
     val scanRunning by ScannerState.isRunning.collectAsState()
 
