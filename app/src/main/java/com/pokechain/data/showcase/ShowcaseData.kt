@@ -1,6 +1,7 @@
 package com.pokechain.data.showcase
 
 import android.content.Context
+import kotlin.math.abs
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -85,6 +86,26 @@ class ShowcaseDataProvider(context: Context) {
             ?: entry.forms.values.firstOrNull().takeIf { entry.isUniform }
             ?: return null
         return SpeciesFormEntry(dex, entry.name, size)
+    }
+
+    /** Get size data for a species by dex and measured height/weight.
+     *  Para especies no uniformes (ej. Pumpkaboo/Gourgeist con 4 tamaños),
+     *  elige la forma cuya baseHeight/baseWeight se acerque más a lo medido
+     *  por pantalla, en lugar de requerir un sufijo de forma. */
+    fun getSizeByMeasurements(dex: Int, heightM: Double, weightKg: Double): SpeciesFormEntry? {
+        val entry = data[dex.toString()] ?: return null
+        val forms = entry.forms.values.toList()
+        if (forms.isEmpty()) return null
+        if (entry.isUniform || forms.size == 1) {
+            return SpeciesFormEntry(dex, entry.name, forms.first())
+        }
+        var best: SpeciesSize? = null
+        var bestDiff = Double.MAX_VALUE
+        for (size in forms) {
+            val diff = abs(size.baseHeight - heightM) + abs(size.baseWeight - weightKg)
+            if (diff < bestDiff) { bestDiff = diff; best = size }
+        }
+        return best?.let { SpeciesFormEntry(dex, entry.name, it) }
     }
 
     /** Search by name or dex number. Returns dex numbers of matches. */

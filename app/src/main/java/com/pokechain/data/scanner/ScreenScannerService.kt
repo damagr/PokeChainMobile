@@ -106,7 +106,7 @@ class ScreenScannerService : Service() {
 
     // ── Máquina de estados del flujo de escaneo ────────────────────
 
-    private var candidateIdentity: Triple<Int?, Double?, Double?>? = null
+    private var candidateIdentity: Triple<Int?, Any?, Any?>? = null
     private var candidateIvs: Triple<Int, Int, Int>? = null
     private var confirmCount = 0
 
@@ -121,7 +121,12 @@ class ScreenScannerService : Service() {
     /** Etapa 1: buscar y confirmar la página del Pokémon (nombre/peso/altura/PC). */
     private suspend fun processLooking(bmp: Bitmap, mask: android.graphics.Rect?) {
         val frame = analyzer.analyzeLooking(bmp, mask)
-        val reading = frame.speciesName != null && frame.weightKg != null && frame.heightM != null
+
+        // Modo IV: solo hace falta el nombre (pantalla principal). Modo SHOWCASE: nombre + altura + peso.
+        val reading = when (ScannerState.mode) {
+            ScannerMode.IV -> frame.speciesName != null
+            ScannerMode.SHOWCASE -> frame.speciesName != null && frame.weightKg != null && frame.heightM != null
+        }
         ScannerState.reading.value = reading
         if (!reading) {
             candidateIdentity = null
@@ -131,7 +136,10 @@ class ScreenScannerService : Service() {
         }
 
         // Confirmación: 2 frames consecutivos con la misma identidad
-        val identity = Triple(frame.dex, frame.weightKg, frame.heightM)
+        val identity = when (ScannerState.mode) {
+            ScannerMode.IV -> Triple(frame.dex, frame.speciesName, frame.cp)
+            ScannerMode.SHOWCASE -> Triple(frame.dex, frame.weightKg, frame.heightM)
+        }
         if (identity == candidateIdentity) confirmCount++ else { candidateIdentity = identity; confirmCount = 1 }
 
         // Publicar los datos leídos (el chip muestra el progreso)
@@ -237,11 +245,12 @@ class ScreenScannerService : Service() {
                 scope.launch {
                     try {
                         val mask = overlay?.boundsOnScreen()?.let { r ->
-                            val sx = MAX_SCAN_WIDTH.toFloat() / screenW
-                            val sy = MAX_SCAN_WIDTH.toFloat() / screenH
+                            // Escala uniforme para X e Y: el bitmap se redibuja a MAX_SCAN_WIDTH
+                            // manteniendo proporción, así que ambas ejes usan el mismo factor.
+                            val scale = MAX_SCAN_WIDTH.toFloat() / screenW
                             android.graphics.Rect(
-                                (r.left * sx).toInt(), (r.top * sy).toInt(),
-                                (r.right * sx).toInt(), (r.bottom * sy).toInt()
+                                (r.left * scale).toInt(), (r.top * scale).toInt(),
+                                (r.right * scale).toInt(), (r.bottom * scale).toInt()
                             )
                         }
                         processFrame(bmp, mask)
@@ -265,7 +274,9 @@ class ScreenScannerService : Service() {
         val dex = result.dex ?: return null
         val height = result.heightM ?: return null
         val weight = result.weightKg ?: return null
-        val entry = showcaseProvider.getSize(dex) ?: return null
+        // Usar getSizeByMeasurements para especies no uniformes (Pumpkaboo/Gourgeist)
+        // con varios tamaños; elige la forma que mejor coincida con lo medido.
+        val entry = showcaseProvider.getSizeByMeasurements(dex, height, weight) ?: return null
         val calc = com.pokechain.data.showcase.ShowcaseCalculator.calculate(
             size = entry.size,
             inputHeight = height,

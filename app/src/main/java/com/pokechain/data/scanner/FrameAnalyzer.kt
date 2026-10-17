@@ -223,13 +223,18 @@ class FrameAnalyzer(context: Context) {
             return r > 150 && r - b > 40 && r - g > 20
         }
 
-        // La medalla se extiende a la izquierda de la pista
+        // La medalla se extiende a la izquierda de la pista.
+        // Si todas las bandas tienen píxeles cálidos en el rango de la medalla,
+        // es la medalla y no las barras: descartar. Un par de bandas con píxeles
+        // cálidos ahí puede ser un reflejo falso: no bloquear la lectura.
+        var medalBands = 0
         for ((a, b) in barBands) {
             val ym = (a + b) / 2
             for (x in medalLeftX..medalRightX) {
-                if (isWarmAt(x, ym)) return null
+                if (isWarmAt(x, ym)) { medalBands++; break }
             }
         }
+        if (medalBands == barBands.size) return null
 
         // Extensión de pista (gris + cálido) en la fila central de cada banda
         return barBands.map { (a, b) ->

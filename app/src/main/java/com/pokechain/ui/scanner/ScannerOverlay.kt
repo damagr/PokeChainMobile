@@ -235,8 +235,9 @@ class ScannerOverlay(
             }
 
             // ── Visibilidad de botones ───────────────────────────
+            val ready = stage == ScanStage.IV_READ && lastResult != null
             val hasValue = valueView.text.isNotBlank() && valueView.text != "…" && valueView.text != "✓"
-            copyView.visibility = if (hasValue && !collapsed) View.VISIBLE else View.GONE
+            copyView.visibility = if ((hasValue || ready) && !collapsed) View.VISIBLE else View.GONE
             resetView.visibility = if (!collapsed) View.VISIBLE else View.GONE
             collapseView.visibility = if (!collapsed) View.VISIBLE else View.GONE
             stopView.visibility = if (!collapsed) View.VISIBLE else View.GONE
