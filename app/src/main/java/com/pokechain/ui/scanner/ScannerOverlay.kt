@@ -68,8 +68,6 @@ class ScannerOverlay(
         orientation = LinearLayout.HORIZONTAL
         gravity = Gravity.CENTER_VERTICAL
         setPadding(24, 12, 24, 12)
-        // Ancho mínimo fijo para alojar "XXXX/XXXX" sin redimensionar el chip
-        setMinimumWidth((180f * context.resources.displayMetrics.density).toInt())
         background = GradientDrawable().apply {
             setColor(Color.argb(205, 20, 20, 26))
             cornerRadius = 30f
@@ -230,6 +228,12 @@ class ScannerOverlay(
 
             // ── Valor según etapa y modo ─────────────────────────
             val scanning = ScannerState.scanningEnabled.value
+            // Ancho mínimo dinámico según el modo: IV necesita poco (⁹⁹⁹), SHOWCASE más (1054/1178)
+            val minWidthDp = when (ScannerState.mode) {
+                ScannerMode.IV -> 110f
+                ScannerMode.SHOWCASE -> 200f
+            }
+            root.setMinimumWidth((minWidthDp * root.context.resources.displayMetrics.density).toInt())
             when (stage) {
                 ScanStage.LOOKING_POKEMON -> valueView.text = if (scanning) "…" else ""
                 ScanStage.POKEMON_READ -> valueView.text = when (ScannerState.mode) {
