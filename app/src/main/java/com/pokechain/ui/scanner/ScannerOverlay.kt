@@ -139,7 +139,10 @@ class ScannerOverlay(
             setColor(Color.argb(255, 55, 70, 110))
             cornerRadius = 18f
         }
-        text = Strings.ivScanStart(language)
+        text = when (ScannerState.mode) {
+            ScannerMode.SHOWCASE -> Strings.ivScanStartShowcase(language)
+            ScannerMode.IV -> Strings.ivScanStart(language)
+        }
         visibility = View.GONE
         setOnClickListener { onStartScan() }
     }
@@ -230,7 +233,7 @@ class ScannerOverlay(
             val scanning = ScannerState.scanningEnabled.value
             // Ancho mínimo dinámico según el modo: IV necesita poco (⁹⁹⁹), SHOWCASE más (1054/1178)
             val minWidthDp = when (ScannerState.mode) {
-                ScannerMode.IV -> 110f
+                ScannerMode.IV -> 150f
                 ScannerMode.SHOWCASE -> 200f
             }
             root.setMinimumWidth((minWidthDp * root.context.resources.displayMetrics.density).toInt())

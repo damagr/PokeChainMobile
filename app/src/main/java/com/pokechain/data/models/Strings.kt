@@ -147,6 +147,7 @@ object Strings {
     fun ivCalculate(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Calculate"; AppLanguage.ES -> "Calcular" }
     // ── Escáner IV (lectura de pantalla) ──────────────────────────
     fun ivScanStart(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Scan IVs"; AppLanguage.ES -> "Escanear IVs" }
+    fun ivScanStartShowcase(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Scan"; AppLanguage.ES -> "Escanear" }
     fun ivScanHint(lang: AppLanguage) = when (lang) {
         AppLanguage.EN -> "Open the Appraisal screen in Pokémon GO"
         AppLanguage.ES -> "Abre la Valoración en Pokémon GO"

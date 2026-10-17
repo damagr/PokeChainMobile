@@ -62,9 +62,19 @@ class FrameAnalyzer(context: Context) {
         var hp: Int? = null
         var weight: Double? = null
         var height: Double? = null
+        // Líneas que contienen etiquetas descriptivas como "Más pesado" / "Más grande"
+        // (o en inglés "heavier" / "larger") no son candidatas para peso/altura.
+        val weightHeightLines = lines.filter { line ->
+            !line.contains("pesado", ignoreCase = true) &&
+                !line.contains("grande", ignoreCase = true) &&
+                !line.contains("heavier", ignoreCase = true) &&
+                !line.contains("larger", ignoreCase = true)
+        }
         for (line in lines) {
             if (cp == null) CP_REGEX.find(line)?.let { cp = it.groupValues[1].toIntOrNull() }
             if (hp == null) HP_REGEX.find(line)?.let { hp = (it.groupValues[2] ?: it.groupValues[1]).toIntOrNull() }
+        }
+        for (line in weightHeightLines) {
             if (weight == null) WEIGHT_REGEX.find(line)?.let {
                 weight = it.groupValues[1].replace(',', '.').toDoubleOrNull()
             }
