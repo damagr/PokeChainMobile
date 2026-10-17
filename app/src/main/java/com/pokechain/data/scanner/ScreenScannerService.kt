@@ -89,7 +89,7 @@ class ScreenScannerService : Service() {
             onCopy = ::copyResult,
             onStop = { stopSelf() },
             onTap = ::openApp,
-            onReset = { ScannerState.resetFlow() },
+            onReset = { ScannerState.resetFlow(); confirmedIvs = null },
             onStartScan = { ScannerState.scanningEnabled.value = true },
         )
         overlay?.show()
@@ -109,6 +109,7 @@ class ScreenScannerService : Service() {
 
     private var candidateIdentity: Triple<Int?, Any?, Any?>? = null
     private var candidateIvs: Triple<Int, Int, Int>? = null
+    private var confirmedIvs: Triple<Int, Int, Int>? = null
     private var confirmCount = 0
 
     private suspend fun processFrame(bmp: Bitmap, mask: android.graphics.Rect?) {
@@ -184,15 +185,15 @@ class ScreenScannerService : Service() {
             overlay?.update(published)
             ScannerState.stage.value = ScanStage.IV_READ
             ScannerState.reading.value = false
-            ScannerState.scanningEnabled.value = false
             confirmCount = 0
             candidateIvs = null
+            confirmedIvs = ivs
         } else {
             overlay?.update(ScannerState.lastResult.value)
         }
     }
 
-    /** Etapa 3 (COMPLETO): vigilar si la Valoración sigue en pantalla. Sin lecturas continuas. */
+    /** Etapa 3 (COMPLETO): vigilar si la Valoración sigue en pantalla y detectar cambio de IVs al cambiar de ficha. */
     private suspend fun processIvRead(bmp: Bitmap, mask: android.graphics.Rect?) {
         val present = analyzer.barsPresence(bmp, mask)
         if (!present) {
@@ -200,8 +201,28 @@ class ScreenScannerService : Service() {
             ScannerState.resetFlow()
             ScannerState.reading.value = false
             overlay?.update(null)
+            return
         }
-        // Sin OCR ni readBars: la pantalla estable no cuesta nada
+
+        // La Valoración sigue abierta: comprobar si los IVs cambiaron (usuario pasó de Pokémon
+        // sin cerrar la Valoración). Si cambian, recalcular y publicar.
+        val ivs = analyzer.readBars(bmp, mask)
+        if (ivs != null && confirmedIvs != null && ivs != confirmedIvs) {
+            val frame = ScanResult(ivAtk = ivs.first, ivDef = ivs.second, ivSta = ivs.third)
+            val merged = (ScannerState.lastResult.value ?: ScanResult()).mergeWith(frame)
+            // Si faltan peso/altura en modo SHOWCASE, intentar leerlos del frame actual
+            val withDims = if (ScannerState.mode == ScannerMode.SHOWCASE &&
+                (merged.heightM == null || merged.weightKg == null)) {
+                val looking = analyzer.analyzeLooking(bmp, mask)
+                merged.mergeWith(looking)
+            } else merged
+            val published = if (ScannerState.mode == ScannerMode.SHOWCASE)
+                withDims.copy(showcaseTotal = showcaseTotal(withDims)) else withDims
+            ScannerState.lastResult.value = published
+            overlay?.update(published)
+            confirmedIvs = ivs
+        }
+        // Sin OCR continuo: solo readBars barato para detectar cambios de IVs
     }
 
     private fun startForegroundInternal() {
