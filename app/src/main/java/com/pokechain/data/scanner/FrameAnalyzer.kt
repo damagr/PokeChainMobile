@@ -52,9 +52,11 @@ class FrameAnalyzer(context: Context) {
     suspend fun analyzeLooking(bitmap: Bitmap, maskRect: Rect? = null): ScanResult {
         val image = InputImage.fromBitmap(bitmap, 0)
         val text = recognizer.process(image).awaitTask()
-        val lines = text.textBlocks.flatMap { block -> block.lines.map { it.text.trim() } }
+        val rawLines = text.textBlocks.flatMap { block -> block.lines.map { it.text.trim() } }
             .filter { it.isNotBlank() }
-            .map { normalizeOcrLine(it) }
+        // Las líneas normalizadas solo se usan para regex de peso/altura.
+        // Los nombres de Pokémon van a matchSpecies sin normalizar (evita corromper "Pikachu"->"P1kachu").
+        val lines = rawLines.map { normalizeOcrLine(it) }
 
         var cp: Int? = null
         var hp: Int? = null
@@ -71,7 +73,7 @@ class FrameAnalyzer(context: Context) {
             }
         }
 
-        val species = matchSpecies(lines)
+        val species = matchSpecies(rawLines)
 
         return ScanResult(
             speciesName = species?.first,
