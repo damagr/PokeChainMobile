@@ -21,6 +21,7 @@ import android.os.IBinder
 import android.os.Looper
 import android.os.SystemClock
 import android.util.DisplayMetrics
+import android.util.Log
 import android.view.ViewGroup
 import android.view.WindowManager
 import androidx.core.app.NotificationCompat
@@ -123,10 +124,15 @@ class ScreenScannerService : Service() {
     private suspend fun processLooking(bmp: Bitmap, mask: android.graphics.Rect?) {
         val frame = analyzer.analyzeLooking(bmp, mask)
 
-        // Modo IV: solo hace falta el nombre (pantalla principal). Modo SHOWCASE: nombre + altura + peso.
+        Log.d("PokeChainScanner", "Looking: species=${frame.speciesName} dex=${frame.dex} " +
+                "cp=${frame.cp} weight=${frame.weightKg} height=${frame.heightM}")
+
+        // Modo IV: solo hace falta el nombre (pantalla principal).
+        // Modo SHOWCASE: nombre es suficiente para avanzar; peso/altura se siguen intentando
+        // en etapas posteriores si faltan.
         val reading = when (ScannerState.mode) {
             ScannerMode.IV -> frame.speciesName != null
-            ScannerMode.SHOWCASE -> frame.speciesName != null && frame.weightKg != null && frame.heightM != null
+            ScannerMode.SHOWCASE -> frame.speciesName != null
         }
         ScannerState.reading.value = reading
         if (!reading) {
@@ -162,7 +168,15 @@ class ScreenScannerService : Service() {
         ScannerState.reading.value = ivs != null
         if (ivs == null) {
             // La Valoración no está abierta (aún): mantener los datos del Pokémon
-            overlay?.update(ScannerState.lastResult.value)
+            // y seguir intentando leer peso/altura si faltan (modo SHOWCASE)
+            if (ScannerState.mode == ScannerMode.SHOWCASE) {
+                val looking = analyzer.analyzeLooking(bmp, mask)
+                val merged = (ScannerState.lastResult.value ?: ScanResult()).mergeWith(looking)
+                ScannerState.lastResult.value = merged
+                overlay?.update(merged)
+            } else {
+                overlay?.update(ScannerState.lastResult.value)
+            }
             return
         }
 
@@ -172,8 +186,16 @@ class ScreenScannerService : Service() {
         if (confirmCount >= 2) {
             val frame = ScanResult(ivAtk = ivs.first, ivDef = ivs.second, ivSta = ivs.third)
             val merged = (ScannerState.lastResult.value ?: ScanResult()).mergeWith(frame)
+            // Si faltan peso/altura en modo SHOWCASE, intentar leerlos del frame actual
+            val withDims = if (ScannerState.mode == ScannerMode.SHOWCASE &&
+                (merged.heightM == null || merged.weightKg == null)) {
+                val looking = analyzer.analyzeLooking(bmp, mask)
+                merged.mergeWith(looking)
+            } else merged
+            Log.d("PokeChainScanner", "PokemonRead: species=${withDims.speciesName} dex=${withDims.dex} " +
+                    "weight=${withDims.weightKg} height=${withDims.heightM} ivs=$ivs")
             val published = if (ScannerState.mode == ScannerMode.SHOWCASE)
-                merged.copy(showcaseTotal = showcaseTotal(merged)) else merged
+                withDims.copy(showcaseTotal = showcaseTotal(withDims)) else withDims
             ScannerState.lastResult.value = published
             overlay?.update(published)
             ScannerState.stage.value = ScanStage.IV_READ
@@ -203,11 +225,32 @@ class ScreenScannerService : Service() {
         if (ivs != null && confirmedIvs != null && ivs != confirmedIvs) {
             val frame = ScanResult(ivAtk = ivs.first, ivDef = ivs.second, ivSta = ivs.third)
             val merged = (ScannerState.lastResult.value ?: ScanResult()).mergeWith(frame)
+            val withDims = if (ScannerState.mode == ScannerMode.SHOWCASE &&
+                (merged.heightM == null || merged.weightKg == null)) {
+                val looking = analyzer.analyzeLooking(bmp, mask)
+                merged.mergeWith(looking)
+            } else merged
+            Log.d("PokeChainScanner", "IVRead changed: species=${withDims.speciesName} dex=${withDims.dex} " +
+                    "weight=${withDims.weightKg} height=${withDims.heightM} ivs=$ivs")
             val published = if (ScannerState.mode == ScannerMode.SHOWCASE)
-                merged.copy(showcaseTotal = showcaseTotal(merged)) else merged
+                withDims.copy(showcaseTotal = showcaseTotal(withDims)) else withDims
             ScannerState.lastResult.value = published
             overlay?.update(published)
             confirmedIvs = ivs
+        } else if (ScannerState.mode == ScannerMode.SHOWCASE &&
+            (ScannerState.lastResult.value?.heightM == null ||
+             ScannerState.lastResult.value?.weightKg == null)) {
+            // Seguir intentando leer peso/altura mientras la Valoración esté abierta
+            val looking = analyzer.analyzeLooking(bmp, mask)
+            val merged = (ScannerState.lastResult.value ?: ScanResult()).mergeWith(looking)
+            if (merged.heightM != null && merged.weightKg != null &&
+                (ScannerState.lastResult.value?.heightM == null ||
+                 ScannerState.lastResult.value?.weightKg == null)) {
+                Log.d("PokeChainScanner", "IVRead dims found: weight=${merged.weightKg} height=${merged.heightM}")
+                val published = merged.copy(showcaseTotal = showcaseTotal(merged))
+                ScannerState.lastResult.value = published
+                overlay?.update(published)
+            }
         }
         // Sin OCR: la pantalla estable no cuesta nada
     }

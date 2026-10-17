@@ -212,7 +212,7 @@ class ScannerOverlay(
 
             // ── Valor según etapa y modo ─────────────────────────
             when (stage) {
-                ScanStage.LOOKING_POKEMON -> valueView.text = ""
+                ScanStage.LOOKING_POKEMON -> valueView.text = "…"
                 ScanStage.POKEMON_READ -> valueView.text = when (ScannerState.mode) {
                     ScannerMode.SHOWCASE -> result?.showcaseTotal?.let { "$it/1178" } ?: "…"
                     ScannerMode.IV -> if (reading) "…" else "✓"

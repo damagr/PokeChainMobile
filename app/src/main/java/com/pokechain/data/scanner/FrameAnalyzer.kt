@@ -54,6 +54,7 @@ class FrameAnalyzer(context: Context) {
         val text = recognizer.process(image).awaitTask()
         val lines = text.textBlocks.flatMap { block -> block.lines.map { it.text.trim() } }
             .filter { it.isNotBlank() }
+            .map { normalizeOcrLine(it) }
 
         var cp: Int? = null
         var hp: Int? = null
@@ -80,6 +81,29 @@ class FrameAnalyzer(context: Context) {
             heightM = height,
             weightKg = weight,
         )
+    }
+
+    /**
+     * Normaliza una línea de OCR para mejorar la detección de peso y altura.
+     *  - Quita espacios
+     *  - Unifica separadores decimales (coma → punto)
+     *  - Corrige confusión OCR frecuente en números (O/o→0, l/I→1, S→5, Z→2, B→8)
+     */
+    private fun normalizeOcrLine(line: String): String {
+        val sb = StringBuilder()
+        for (c in line) {
+            when (c) {
+                ' ' -> { /* quitar espacios */ }
+                ',' -> sb.append('.')
+                'O', 'o' -> sb.append('0')
+                'l', 'I', 'i' -> sb.append('1')
+                'S', 's' -> sb.append('5')
+                'Z', 'z' -> sb.append('2')
+                'B' -> sb.append('8')
+                else -> sb.append(c)
+            }
+        }
+        return sb.toString()
     }
 
     // ── Especie: exacto o Levenshtein ≤ 2 ──────────────────────────
@@ -266,9 +290,9 @@ class FrameAnalyzer(context: Context) {
 
     companion object {
         private val CP_REGEX = Regex("(?:PC|CP)\\s*([0-9]{2,5})")
-        private val HP_REGEX = Regex("(?:(?:PS|HP)\\s*([0-9]{1,4}))|(?:([0-9]{1,4})\\s*/\\s*[0-9]{1,4}\\s*(?:PS|HP))")
-        private val WEIGHT_REGEX = Regex("(?i)([0-9]{1,3}[.,][0-9]{1,2})\\s*kg\\.?")
-        private val HEIGHT_REGEX = Regex("(?i)([0-9]{1,2}[.,][0-9]{1,2})\\s*m\\.?(?!\\w)")
+        private val HP_REGEX = Regex("(?i)(?:(?:PS|HP)\\s*([0-9]{1,4}))|(?:([0-9]{1,4})\\s*/\\s*[0-9]{1,4}\\s*(?:PS|HP))")
+        private val WEIGHT_REGEX = Regex("(?i)([0-9]{1,3}(?:[.,][0-9]{1,2})?)\\s*kg\\.?")
+        private val HEIGHT_REGEX = Regex("(?i)([0-9]{1,2}(?:[.,][0-9]{1,2})?)\\s*m\\.?(?!\\w)")
 
         // Geometría calibrada (relativo a la pantalla)
         const val TRACK_START_REL = 0.1204  // x=128/1080
