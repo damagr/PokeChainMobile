@@ -183,10 +183,10 @@ fun ShowcaseScreen(
                 },
                 title = { Text(Strings.showcaseCalculator(language)) },
                 actions = {
-                    // Escáner en vivo: lee nombre, peso y altura de Pokémon GO
+                    // Escáner en vivo: deshabilitado temporalmente para Exhibiciones
                     IconButton(
                         onClick = { startScannerFlow() },
-                        enabled = !isLoadingTypes
+                        enabled = false
                     ) {
                         Icon(
                             imageVector = Icons.Default.ScreenshotMonitor,
