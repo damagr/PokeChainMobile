@@ -8,6 +8,7 @@ import android.graphics.drawable.GradientDrawable
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -77,6 +78,8 @@ class ScannerOverlay(
         setTextColor(Color.WHITE)
         textSize = 20f
         setPadding(0, 0, 14, 0)
+        setSingleLine(true)
+        setEllipsize(null)
         setOnTouchListener(dragOrTap { onTap() })
     }
 
@@ -127,7 +130,10 @@ class ScannerOverlay(
     }
 
     init {
-        root.addView(textColumn)
+        // La columna de texto expande para que el número no se corte visualmente;
+        // los botones (Copiar, ↺, –, ✕) mantienen su tamaño natural.
+        val textParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        root.addView(textColumn, textParams)
         root.addView(copyView)
         root.addView(resetView)
         root.addView(collapseView)

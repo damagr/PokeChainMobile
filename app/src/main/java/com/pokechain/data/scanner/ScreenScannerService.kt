@@ -108,6 +108,7 @@ class ScreenScannerService : Service() {
 
     private var candidateIdentity: Triple<Int?, Any?, Any?>? = null
     private var candidateIvs: Triple<Int, Int, Int>? = null
+    private var confirmedIvs: Triple<Int, Int, Int>? = null
     private var confirmCount = 0
 
     private suspend fun processFrame(bmp: Bitmap, mask: android.graphics.Rect?) {
@@ -179,12 +180,13 @@ class ScreenScannerService : Service() {
             ScannerState.reading.value = false
             confirmCount = 0
             candidateIvs = null
+            confirmedIvs = ivs
         } else {
             overlay?.update(ScannerState.lastResult.value)
         }
     }
 
-    /** Etapa 3 (COMPLETO): solo vigilar si la Valoración sigue en pantalla. */
+    /** Etapa 3 (COMPLETO): vigilar si la Valoración sigue en pantalla y detectar cambio de IVs. */
     private suspend fun processIvRead(bmp: Bitmap, mask: android.graphics.Rect?) {
         val present = analyzer.barsPresence(bmp, mask)
         if (!present) {
@@ -192,6 +194,20 @@ class ScreenScannerService : Service() {
             ScannerState.resetFlow()
             ScannerState.reading.value = false
             overlay?.update(null)
+            return
+        }
+
+        // La Valoración sigue abierta: comprobar si los IVs cambiaron (usuario pasó de Pokémon
+        // sin cerrar la Valoración). Si cambian, recalcular y publicar.
+        val ivs = analyzer.readBars(bmp, mask)
+        if (ivs != null && confirmedIvs != null && ivs != confirmedIvs) {
+            val frame = ScanResult(ivAtk = ivs.first, ivDef = ivs.second, ivSta = ivs.third)
+            val merged = (ScannerState.lastResult.value ?: ScanResult()).mergeWith(frame)
+            val published = if (ScannerState.mode == ScannerMode.SHOWCASE)
+                merged.copy(showcaseTotal = showcaseTotal(merged)) else merged
+            ScannerState.lastResult.value = published
+            overlay?.update(published)
+            confirmedIvs = ivs
         }
         // Sin OCR: la pantalla estable no cuesta nada
     }

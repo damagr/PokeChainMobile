@@ -267,8 +267,8 @@ class FrameAnalyzer(context: Context) {
     companion object {
         private val CP_REGEX = Regex("(?:PC|CP)\\s*([0-9]{2,5})")
         private val HP_REGEX = Regex("(?:(?:PS|HP)\\s*([0-9]{1,4}))|(?:([0-9]{1,4})\\s*/\\s*[0-9]{1,4}\\s*(?:PS|HP))")
-        private val WEIGHT_REGEX = Regex("([0-9]{1,3}[.,][0-9]{2})\\s*kg")
-        private val HEIGHT_REGEX = Regex("([0-9]{1,2}[.,][0-9]{2})\\s*m(?!\\w)")
+        private val WEIGHT_REGEX = Regex("(?i)([0-9]{1,3}[.,][0-9]{1,2})\\s*kg\\.?")
+        private val HEIGHT_REGEX = Regex("(?i)([0-9]{1,2}[.,][0-9]{1,2})\\s*m\\.?(?!\\w)")
 
         // Geometría calibrada (relativo a la pantalla)
         const val TRACK_START_REL = 0.1204  // x=128/1080
