@@ -8,7 +8,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.graphics.Bitmap
-import android.graphics.Color
 import android.graphics.PixelFormat
 import android.hardware.display.DisplayManager
 import android.media.Image
@@ -22,7 +21,6 @@ import android.os.IBinder
 import android.os.Looper
 import android.os.SystemClock
 import android.util.DisplayMetrics
-import android.util.Log
 import android.view.ViewGroup
 import android.view.WindowManager
 import androidx.core.app.NotificationCompat
@@ -53,9 +51,6 @@ class ScreenScannerService : Service() {
     private var lastProcessedMs = 0L
     private var screenW = 0
     private var screenH = 0
-    // ── Optimización de calor: saltar frames sin cambios ───────────
-    private var lastFrameHash: Int = 0
-    private var stableFrames = 0
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -113,7 +108,6 @@ class ScreenScannerService : Service() {
 
     private var candidateIdentity: Triple<Int?, Any?, Any?>? = null
     private var candidateIvs: Triple<Int, Int, Int>? = null
-    private var confirmedIvs: Triple<Int, Int, Int>? = null
     private var confirmCount = 0
 
     private suspend fun processFrame(bmp: Bitmap, mask: android.graphics.Rect?) {
@@ -128,16 +122,9 @@ class ScreenScannerService : Service() {
     private suspend fun processLooking(bmp: Bitmap, mask: android.graphics.Rect?) {
         val frame = analyzer.analyzeLooking(bmp, mask)
 
-        Log.d("PokeChainScanner", "Looking: species=${frame.speciesName} dex=${frame.dex} " +
-                "cp=${frame.cp} weight=${frame.weightKg} height=${frame.heightM}")
-
-        // Modo IV: solo hace falta el nombre (pantalla principal).
-        // Modo SHOWCASE: nombre es suficiente para avanzar; peso/altura se siguen intentando
-        // en etapas posteriores si faltan.
-        val reading = when (ScannerState.mode) {
-            ScannerMode.IV -> frame.speciesName != null
-            ScannerMode.SHOWCASE -> frame.speciesName != null
-        }
+        // Ambos modos: basta con confirmar el nombre del Pokémon.
+        // El peso/altura (modo SHOWCASE) se completan en la etapa siguiente.
+        val reading = frame.speciesName != null
         ScannerState.reading.value = reading
         if (!reading) {
             candidateIdentity = null
@@ -147,10 +134,7 @@ class ScreenScannerService : Service() {
         }
 
         // Confirmación: 2 frames consecutivos con la misma identidad
-        val identity = when (ScannerState.mode) {
-            ScannerMode.IV -> Triple(frame.dex, frame.speciesName, frame.cp)
-            ScannerMode.SHOWCASE -> Triple(frame.dex, frame.weightKg, frame.heightM)
-        }
+        val identity = Triple(frame.dex, frame.speciesName, frame.cp)
         if (identity == candidateIdentity) confirmCount++ else { candidateIdentity = identity; confirmCount = 1 }
 
         // Publicar los datos leídos (el chip muestra el progreso)
@@ -166,21 +150,13 @@ class ScreenScannerService : Service() {
         }
     }
 
-    /** Etapa 2: esperar y confirmar las barras de la Valoración (IVs). */
+    /** Etapa 2: esperar y confirmar las barras de la Valoración (IVs). Una sola lectura. */
     private suspend fun processPokemonRead(bmp: Bitmap, mask: android.graphics.Rect?) {
         val ivs = analyzer.readBars(bmp, mask)
         ScannerState.reading.value = ivs != null
         if (ivs == null) {
             // La Valoración no está abierta (aún): mantener los datos del Pokémon
-            // y seguir intentando leer peso/altura si faltan (modo SHOWCASE)
-            if (ScannerState.mode == ScannerMode.SHOWCASE) {
-                val looking = analyzer.analyzeLooking(bmp, mask)
-                val merged = (ScannerState.lastResult.value ?: ScanResult()).mergeWith(looking)
-                ScannerState.lastResult.value = merged
-                overlay?.update(merged)
-            } else {
-                overlay?.update(ScannerState.lastResult.value)
-            }
+            overlay?.update(ScannerState.lastResult.value)
             return
         }
 
@@ -190,14 +166,12 @@ class ScreenScannerService : Service() {
         if (confirmCount >= 2) {
             val frame = ScanResult(ivAtk = ivs.first, ivDef = ivs.second, ivSta = ivs.third)
             val merged = (ScannerState.lastResult.value ?: ScanResult()).mergeWith(frame)
-            // Si faltan peso/altura en modo SHOWCASE, intentar leerlos del frame actual
+            // Si faltan peso/altura en modo SHOWCASE, intentar leerlos una vez del frame actual
             val withDims = if (ScannerState.mode == ScannerMode.SHOWCASE &&
                 (merged.heightM == null || merged.weightKg == null)) {
                 val looking = analyzer.analyzeLooking(bmp, mask)
                 merged.mergeWith(looking)
             } else merged
-            Log.d("PokeChainScanner", "PokemonRead: species=${withDims.speciesName} dex=${withDims.dex} " +
-                    "weight=${withDims.weightKg} height=${withDims.heightM} ivs=$ivs")
             val published = if (ScannerState.mode == ScannerMode.SHOWCASE)
                 withDims.copy(showcaseTotal = showcaseTotal(withDims)) else withDims
             ScannerState.lastResult.value = published
@@ -206,13 +180,12 @@ class ScreenScannerService : Service() {
             ScannerState.reading.value = false
             confirmCount = 0
             candidateIvs = null
-            confirmedIvs = ivs
         } else {
             overlay?.update(ScannerState.lastResult.value)
         }
     }
 
-    /** Etapa 3 (COMPLETO): vigilar si la Valoración sigue en pantalla y detectar cambio de IVs. */
+    /** Etapa 3 (COMPLETO): vigilar si la Valoración sigue en pantalla. Sin lecturas continuas. */
     private suspend fun processIvRead(bmp: Bitmap, mask: android.graphics.Rect?) {
         val present = analyzer.barsPresence(bmp, mask)
         if (!present) {
@@ -220,43 +193,8 @@ class ScreenScannerService : Service() {
             ScannerState.resetFlow()
             ScannerState.reading.value = false
             overlay?.update(null)
-            return
         }
-
-        // La Valoración sigue abierta: comprobar si los IVs cambiaron (usuario pasó de Pokémon
-        // sin cerrar la Valoración). Si cambian, recalcular y publicar.
-        val ivs = analyzer.readBars(bmp, mask)
-        if (ivs != null && confirmedIvs != null && ivs != confirmedIvs) {
-            val frame = ScanResult(ivAtk = ivs.first, ivDef = ivs.second, ivSta = ivs.third)
-            val merged = (ScannerState.lastResult.value ?: ScanResult()).mergeWith(frame)
-            val withDims = if (ScannerState.mode == ScannerMode.SHOWCASE &&
-                (merged.heightM == null || merged.weightKg == null)) {
-                val looking = analyzer.analyzeLooking(bmp, mask)
-                merged.mergeWith(looking)
-            } else merged
-            Log.d("PokeChainScanner", "IVRead changed: species=${withDims.speciesName} dex=${withDims.dex} " +
-                    "weight=${withDims.weightKg} height=${withDims.heightM} ivs=$ivs")
-            val published = if (ScannerState.mode == ScannerMode.SHOWCASE)
-                withDims.copy(showcaseTotal = showcaseTotal(withDims)) else withDims
-            ScannerState.lastResult.value = published
-            overlay?.update(published)
-            confirmedIvs = ivs
-        } else if (ScannerState.mode == ScannerMode.SHOWCASE &&
-            (ScannerState.lastResult.value?.heightM == null ||
-             ScannerState.lastResult.value?.weightKg == null)) {
-            // Seguir intentando leer peso/altura mientras la Valoración esté abierta
-            val looking = analyzer.analyzeLooking(bmp, mask)
-            val merged = (ScannerState.lastResult.value ?: ScanResult()).mergeWith(looking)
-            if (merged.heightM != null && merged.weightKg != null &&
-                (ScannerState.lastResult.value?.heightM == null ||
-                 ScannerState.lastResult.value?.weightKg == null)) {
-                Log.d("PokeChainScanner", "IVRead dims found: weight=${merged.weightKg} height=${merged.heightM}")
-                val published = merged.copy(showcaseTotal = showcaseTotal(merged))
-                ScannerState.lastResult.value = published
-                overlay?.update(published)
-            }
-        }
-        // Sin OCR: la pantalla estable no cuesta nada
+        // Sin OCR ni readBars: la pantalla estable no cuesta nada
     }
 
     private fun startForegroundInternal() {
@@ -305,20 +243,6 @@ class ScreenScannerService : Service() {
                 val image: Image = reader.acquireLatestImage() ?: return@setOnImageAvailableListener
                 val bmp = try { image.toBitmapDownscaled(MAX_SCAN_WIDTH) } catch (_: Exception) { null } finally { image.close() }
                 if (bmp == null) return@setOnImageAvailableListener
-
-                // Optimización: si el frame no cambió, no procesar (ahorra CPU y reduce calor)
-                val hash = bitmapHash(bmp)
-                if (hash == lastFrameHash) {
-                    stableFrames++
-                    // Si lleva muchos frames estables, no procesar este frame
-                    if (stableFrames > 3) {
-                        bmp.recycle()
-                        return@setOnImageAvailableListener
-                    }
-                } else {
-                    stableFrames = 0
-                    lastFrameHash = hash
-                }
 
                 scope.launch {
                     try {
@@ -394,22 +318,6 @@ class ScreenScannerService : Service() {
         ScannerState.isRunning.value = false
         scope.cancel()
         super.onDestroy()
-    }
-
-    /** Hash rápido del bitmap muestreando una cuadrícula de píxeles (para detectar cambios de pantalla sin procesar OCR). */
-    private fun bitmapHash(bmp: Bitmap): Int {
-        val w = bmp.width
-        val h = bmp.height
-        val stepX = maxOf(1, w / 12)
-        val stepY = maxOf(1, h / 12)
-        var hash = 1
-        for (y in 0 until h step stepY) {
-            for (x in 0 until w step stepX) {
-                val p = bmp.getPixel(x, y)
-                hash = hash * 31 + Color.red(p) + Color.green(p) + Color.blue(p)
-            }
-        }
-        return hash
     }
 
     // ── Conversión Image -> Bitmap (con rowStride + downscale) ─────
