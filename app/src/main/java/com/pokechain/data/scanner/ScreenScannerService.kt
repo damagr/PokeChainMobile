@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.graphics.Bitmap
+import android.graphics.Color
 import android.graphics.PixelFormat
 import android.hardware.display.DisplayManager
 import android.media.Image
@@ -52,6 +53,9 @@ class ScreenScannerService : Service() {
     private var lastProcessedMs = 0L
     private var screenW = 0
     private var screenH = 0
+    // ── Optimización de calor: saltar frames sin cambios ───────────
+    private var lastFrameHash: Int = 0
+    private var stableFrames = 0
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -301,6 +305,21 @@ class ScreenScannerService : Service() {
                 val image: Image = reader.acquireLatestImage() ?: return@setOnImageAvailableListener
                 val bmp = try { image.toBitmapDownscaled(MAX_SCAN_WIDTH) } catch (_: Exception) { null } finally { image.close() }
                 if (bmp == null) return@setOnImageAvailableListener
+
+                // Optimización: si el frame no cambió, no procesar (ahorra CPU y reduce calor)
+                val hash = bitmapHash(bmp)
+                if (hash == lastFrameHash) {
+                    stableFrames++
+                    // Si lleva muchos frames estables, no procesar este frame
+                    if (stableFrames > 3) {
+                        bmp.recycle()
+                        return@setOnImageAvailableListener
+                    }
+                } else {
+                    stableFrames = 0
+                    lastFrameHash = hash
+                }
+
                 scope.launch {
                     try {
                         val mask = overlay?.boundsOnScreen()?.let { r ->
@@ -375,6 +394,22 @@ class ScreenScannerService : Service() {
         ScannerState.isRunning.value = false
         scope.cancel()
         super.onDestroy()
+    }
+
+    /** Hash rápido del bitmap muestreando una cuadrícula de píxeles (para detectar cambios de pantalla sin procesar OCR). */
+    private fun bitmapHash(bmp: Bitmap): Int {
+        val w = bmp.width
+        val h = bmp.height
+        val stepX = maxOf(1, w / 12)
+        val stepY = maxOf(1, h / 12)
+        var hash = 1
+        for (y in 0 until h step stepY) {
+            for (x in 0 until w step stepX) {
+                val p = bmp.getPixel(x, y)
+                hash = hash * 31 + Color.red(p) + Color.green(p) + Color.blue(p)
+            }
+        }
+        return hash
     }
 
     // ── Conversión Image -> Bitmap (con rowStride + downscale) ─────

@@ -67,6 +67,8 @@ class ScannerOverlay(
         orientation = LinearLayout.HORIZONTAL
         gravity = Gravity.CENTER_VERTICAL
         setPadding(24, 12, 24, 12)
+        // Ancho mínimo para que el número no se comprima/corte al aparecer
+        setMinimumWidth((140f * context.resources.displayMetrics.density).toInt())
         background = GradientDrawable().apply {
             setColor(Color.argb(205, 20, 20, 26))
             cornerRadius = 30f
@@ -88,11 +90,20 @@ class ScannerOverlay(
         textSize = 11f
     }
 
+    // Nombre del Pokémon (pequeño, para feedback de qué se está leyendo)
+    private val nameView = TextView(context).apply {
+        setTextColor(Color.argb(255, 180, 180, 190))
+        textSize = 9f
+        setSingleLine(true)
+        setEllipsize(android.text.TextUtils.TruncateAt.END)
+    }
+
     private val textColumn = LinearLayout(context).apply {
         orientation = LinearLayout.VERTICAL
         gravity = Gravity.CENTER_VERTICAL
         addView(valueView)
         addView(hintView)
+        addView(nameView)
     }
 
     private val copyView = TextView(context).apply {
@@ -240,6 +251,10 @@ class ScannerOverlay(
                 }
             }
 
+            // Nombre del Pokémon (feedback de qué se está leyendo)
+            nameView.text = result?.speciesName?.let { if (it.isNotBlank()) it else null } ?: ""
+            nameView.visibility = if (nameView.text.isNotBlank() && !collapsed) View.VISIBLE else View.GONE
+
             // ── Visibilidad de botones ───────────────────────────
             val ready = stage == ScanStage.IV_READ && lastResult != null
             val hasValue = valueView.text.isNotBlank() && valueView.text != "…" && valueView.text != "✓"
@@ -249,6 +264,7 @@ class ScannerOverlay(
             stopView.visibility = if (!collapsed) View.VISIBLE else View.GONE
             if (collapsed) {
                 hintView.visibility = View.GONE
+                nameView.visibility = View.GONE
                 // Punto pequeño: tap para expandir
                 valueView.setOnTouchListener(dragOrTap { setCollapsed(false) })
             } else {
