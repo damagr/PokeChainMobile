@@ -90,6 +90,7 @@ class ScreenScannerService : Service() {
             onStop = { stopSelf() },
             onTap = ::openApp,
             onReset = { ScannerState.resetFlow() },
+            onStartScan = { ScannerState.scanningEnabled.value = true },
         )
         overlay?.show()
 
@@ -111,6 +112,11 @@ class ScreenScannerService : Service() {
     private var confirmCount = 0
 
     private suspend fun processFrame(bmp: Bitmap, mask: android.graphics.Rect?) {
+        // Si el usuario no ha iniciado el escaneo, no procesar nada
+        if (!ScannerState.scanningEnabled.value) {
+            overlay?.update(ScannerState.lastResult.value)
+            return
+        }
         when (ScannerState.stage.value) {
             ScanStage.LOOKING_POKEMON -> processLooking(bmp, mask)
             ScanStage.POKEMON_READ -> processPokemonRead(bmp, mask)
@@ -178,6 +184,7 @@ class ScreenScannerService : Service() {
             overlay?.update(published)
             ScannerState.stage.value = ScanStage.IV_READ
             ScannerState.reading.value = false
+            ScannerState.scanningEnabled.value = false
             confirmCount = 0
             candidateIvs = null
         } else {

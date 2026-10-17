@@ -39,6 +39,7 @@ class ScannerOverlay(
     private val onStop: () -> Unit,
     private val onTap: () -> Unit,
     private val onReset: () -> Unit,
+    private val onStartScan: () -> Unit,
 ) {
     private val wm = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
     private var shown = false
@@ -67,8 +68,8 @@ class ScannerOverlay(
         orientation = LinearLayout.HORIZONTAL
         gravity = Gravity.CENTER_VERTICAL
         setPadding(24, 12, 24, 12)
-        // Ancho mínimo para que el número no se comprima/corte al aparecer
-        setMinimumWidth((140f * context.resources.displayMetrics.density).toInt())
+        // Ancho mínimo fijo para alojar "XXXX/XXXX" sin redimensionar el chip
+        setMinimumWidth((180f * context.resources.displayMetrics.density).toInt())
         background = GradientDrawable().apply {
             setColor(Color.argb(205, 20, 20, 26))
             cornerRadius = 30f
@@ -131,15 +132,30 @@ class ScannerOverlay(
         setOnClickListener { onStop() }
     }
 
+    // Botón de inicio: solo visible cuando no hay lectura activa y el usuario no ha iniciado
+    private val startView = TextView(context).apply {
+        setTextColor(Color.argb(255, 130, 200, 255))
+        textSize = 13f
+        setPadding(12, 4, 12, 4)
+        background = GradientDrawable().apply {
+            setColor(Color.argb(255, 55, 70, 110))
+            cornerRadius = 18f
+        }
+        text = Strings.ivScanStart(language)
+        visibility = View.GONE
+        setOnClickListener { onStartScan() }
+    }
+
     init {
         // La columna de texto expande para que el número no se corte visualmente;
-        // los botones (Copiar, ↺, –, ✕) mantienen su tamaño natural.
+        // los botones (Copiar, ↺, –, ✕, ▶) mantienen su tamaño natural.
         val textParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
         root.addView(textColumn, textParams)
         root.addView(copyView)
         root.addView(resetView)
         root.addView(collapseView)
         root.addView(stopView)
+        root.addView(startView)
     }
 
     /** Arrastrar con desambiguación tap (movimiento < 24px = tap). */
@@ -213,8 +229,9 @@ class ScannerOverlay(
             val reading = ScannerState.reading.value
 
             // ── Valor según etapa y modo ─────────────────────────
+            val scanning = ScannerState.scanningEnabled.value
             when (stage) {
-                ScanStage.LOOKING_POKEMON -> valueView.text = "…"
+                ScanStage.LOOKING_POKEMON -> valueView.text = if (scanning) "…" else ""
                 ScanStage.POKEMON_READ -> valueView.text = when (ScannerState.mode) {
                     ScannerMode.SHOWCASE -> result?.showcaseTotal?.let { "$it/1178" } ?: "…"
                     ScannerMode.IV -> if (reading) "…" else "✓"
@@ -245,10 +262,12 @@ class ScannerOverlay(
             // ── Visibilidad de botones ───────────────────────────
             val ready = stage == ScanStage.IV_READ && lastResult != null
             val hasValue = valueView.text.isNotBlank() && valueView.text != "…" && valueView.text != "✓"
+            val awaitingStart = !scanning && stage == ScanStage.LOOKING_POKEMON && lastResult == null
             copyView.visibility = if ((hasValue || ready) && !collapsed) View.VISIBLE else View.GONE
-            resetView.visibility = if (!collapsed) View.VISIBLE else View.GONE
+            resetView.visibility = if (!collapsed && scanning) View.VISIBLE else View.GONE
             collapseView.visibility = if (!collapsed) View.VISIBLE else View.GONE
             stopView.visibility = if (!collapsed) View.VISIBLE else View.GONE
+            startView.visibility = if (awaitingStart && !collapsed) View.VISIBLE else View.GONE
             if (collapsed) {
                 hintView.visibility = View.GONE
                 // Punto pequeño: tap para expandir

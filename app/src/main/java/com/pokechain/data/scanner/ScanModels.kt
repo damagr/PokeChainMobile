@@ -89,10 +89,14 @@ object ScannerState {
     /** PokeChain en primer plano -> el chip se oculta (solo aparece sobre PoGo). */
     val appInForeground = MutableStateFlow(true)
 
+    /** El usuario ha pulsado iniciar en el chip: el servicio procesa frames. */
+    val scanningEnabled = MutableStateFlow(false)
+
     fun reset() {
         lastResult.value = null
         stage.value = ScanStage.LOOKING_POKEMON
         reading.value = false
+        scanningEnabled.value = false
     }
 
     /** Reinicio del flujo desde el chip (botón ↺): vuelve a buscar un Pokémon. */
