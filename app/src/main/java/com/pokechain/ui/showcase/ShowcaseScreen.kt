@@ -183,14 +183,14 @@ fun ShowcaseScreen(
                 },
                 title = { Text(Strings.showcaseCalculator(language)) },
                 actions = {
-                    // Escáner en vivo: deshabilitado temporalmente para Exhibiciones
+                    // Escáner en vivo: lee la ficha + Valoración de Pokémon GO
                     IconButton(
                         onClick = { startScannerFlow() },
-                        enabled = false
+                        enabled = true
                     ) {
                         Icon(
                             imageVector = Icons.Default.ScreenshotMonitor,
-                            contentDescription = Strings.ivScanStart(language)
+                            contentDescription = Strings.ivScanStartShowcase(language)
                         )
                     }
                 }
