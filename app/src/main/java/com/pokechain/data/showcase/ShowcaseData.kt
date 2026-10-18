@@ -44,39 +44,20 @@ private data class ShowcaseFileEntry(
 
 /**
  * Loads per-species size data from the bundled [showcase_data.json] asset.
+ * El constructor secundario con texto JSON permite tests de JVM sin Android.
  */
-class ShowcaseDataProvider(context: Context) {
+class ShowcaseDataProvider private constructor(
+    private val data: Map<String, SpeciesFormData>
+) {
 
-    private val json = Json { ignoreUnknownKeys = true }
-    private val data: Map<String, SpeciesFormData> = load(context)
+    constructor(context: Context) : this(loadFromAssets(context))
+    constructor(jsonText: String) : this(parse(jsonText))
 
     data class SpeciesFormData(
         val name: String,
         val forms: Map<String, SpeciesSize>,
         val isUniform: Boolean
     )
-
-    private fun load(context: Context): Map<String, SpeciesFormData> {
-        return try {
-            val text = context.assets.open("showcase_data.json")
-                .bufferedReader().use { it.readText() }
-            json.decodeFromString<Map<String, ShowcaseFileEntry>>(text)
-                .mapValues { (_, e) ->
-                    val forms = e.forms.mapValues { (_, v) ->
-                        SpeciesSize(v[0], v[1], v[2])
-                    }
-                    val sizes = forms.values.toList()
-                    val isUniform = sizes.isEmpty() || sizes.all {
-                        it.baseHeight == sizes[0].baseHeight &&
-                        it.baseWeight == sizes[0].baseWeight &&
-                        it.maxHeight == sizes[0].maxHeight
-                    }
-                    SpeciesFormData(e.name, forms, isUniform)
-                }
-        } catch (_: Exception) {
-            emptyMap()
-        }
-    }
 
     /** Get size data for a species by dex number and optional form suffix. */
     fun getSize(dex: Int, formSuffix: String? = null): SpeciesFormEntry? {
@@ -85,28 +66,49 @@ class ShowcaseDataProvider(context: Context) {
         val size = entry.forms[formKey]
             ?: entry.forms.values.firstOrNull().takeIf { entry.isUniform }
             ?: return null
-        return SpeciesFormEntry(dex, entry.name, size)
+        return SpeciesFormEntry(dex, entry.name, size, formKey)
     }
 
     /** Get size data for a species by dex and measured height/weight.
-     *  Para especies no uniformes (ej. Pumpkaboo/Gourgeist con 4 tamaños),
-     *  elige la forma cuya baseHeight/baseWeight se acerque más a lo medido
-     *  por pantalla, en lugar de requerir un sufijo de forma. */
+     *
+     * Selección de forma cuando hay varias (el lector no puede distinguirlas):
+     *  - Especie uniforme o de una sola forma: esa forma.
+     *  - Con forma base (""): se usa la base siempre que las medidas quepan en
+     *    su rango (height ≤ maxHeight y weight ≤ maxWeight). Un individuo
+     *    XL/XXL de la forma base desvía mucho de su base y NO implica otra
+     *    forma: elegir la base "más cercana" asignaba variantes por error
+     *    (p. ej. Sandslash Alolan para un Sandslash normal XXL → 710 vs 1056).
+     *  - Si la medida excede el rango de la base: entre el resto de formas se
+     *    elige la que contenga la medida (o la más cercana si ninguna la hace).
+     *  - Sin forma base (clases de tamaño, p. ej. Pumpkaboo/Gourgeist): la
+     *    forma con la base más cercana a lo medido. */
     fun getSizeByMeasurements(dex: Int, heightM: Double, weightKg: Double): SpeciesFormEntry? {
         val entry = data[dex.toString()] ?: return null
-        val forms = entry.forms.values.toList()
+        val forms = entry.forms
         if (forms.isEmpty()) return null
         if (entry.isUniform || forms.size == 1) {
-            return SpeciesFormEntry(dex, entry.name, forms.first())
+            val key = forms.keys.first()
+            return SpeciesFormEntry(dex, entry.name, forms.values.first(), key)
         }
-        var best: SpeciesSize? = null
-        var bestDiff = Double.MAX_VALUE
-        for (size in forms) {
-            val diff = abs(size.baseHeight - heightM) + abs(size.baseWeight - weightKg)
-            if (diff < bestDiff) { bestDiff = diff; best = size }
+        val base = forms[DEFAULT_FORM_KEY]
+        if (base != null) {
+            if (heightM <= base.maxHeight && weightKg <= base.maxWeight) {
+                return SpeciesFormEntry(dex, entry.name, base, DEFAULT_FORM_KEY)
+            }
+            val others = forms.filterKeys { it != DEFAULT_FORM_KEY }
+            val other = nearestForm(others.values, heightM, weightKg)
+                ?: return SpeciesFormEntry(dex, entry.name, base, DEFAULT_FORM_KEY)
+            val key = others.entries.first { it.value == other }.key
+            return SpeciesFormEntry(dex, entry.name, other, key)
         }
-        return best?.let { SpeciesFormEntry(dex, entry.name, it) }
+        val best = nearestForm(forms.values, heightM, weightKg) ?: return null
+        val key = forms.entries.first { it.value == best }.key
+        return SpeciesFormEntry(dex, entry.name, best, key)
     }
+
+    /** Claves de forma disponibles para una dex ("" = base). Vacío si no hay datos. */
+    fun getForms(dex: Int): List<String> =
+        data[dex.toString()]?.forms?.keys?.toList() ?: emptyList()
 
     /** Search by name or dex number. Returns dex numbers of matches. */
     fun search(query: String): List<Int> {
@@ -119,10 +121,58 @@ class ShowcaseDataProvider(context: Context) {
             .mapNotNull { it.key.toIntOrNull() }
             .sorted()
     }
+
+    /** La forma cuya base está más cerca de lo medido; prefiere las que contienen la medida. */
+    private fun nearestForm(
+        forms: Collection<SpeciesSize>,
+        heightM: Double,
+        weightKg: Double
+    ): SpeciesSize? {
+        if (forms.isEmpty()) return null
+        val fitting = forms.filter { heightM <= it.maxHeight && weightKg <= it.maxWeight }
+        val pool = fitting.ifEmpty { forms }
+        return pool.minByOrNull {
+            abs(it.baseHeight - heightM) + abs(it.baseWeight - weightKg)
+        }
+    }
+
+    companion object {
+        private const val DEFAULT_FORM_KEY = ""
+        private val json = Json { ignoreUnknownKeys = true }
+
+        private fun loadFromAssets(context: Context): Map<String, SpeciesFormData> =
+            try {
+                parse(context.assets.open("showcase_data.json")
+                    .bufferedReader().use { it.readText() })
+            } catch (_: Exception) {
+                emptyMap()
+            }
+
+        private fun parse(text: String): Map<String, SpeciesFormData> =
+            try {
+                json.decodeFromString<Map<String, ShowcaseFileEntry>>(text)
+                    .mapValues { (_, e) ->
+                        val forms = e.forms.mapValues { (_, v) ->
+                            SpeciesSize(v[0], v[1], v[2])
+                        }
+                        val sizes = forms.values.toList()
+                        val isUniform = sizes.isEmpty() || sizes.all {
+                            it.baseHeight == sizes[0].baseHeight &&
+                                it.baseWeight == sizes[0].baseWeight &&
+                                it.maxHeight == sizes[0].maxHeight
+                        }
+                        SpeciesFormData(e.name, forms, isUniform)
+                    }
+            } catch (_: Exception) {
+                emptyMap()
+            }
+    }
 }
 
 data class SpeciesFormEntry(
     val dex: Int,
     val name: String,
-    val size: SpeciesSize
+    val size: SpeciesSize,
+    /** Clave de la forma elegida ("" = base). Útil para depurar y para el toggle del chip. */
+    val formKey: String = ""
 )

@@ -92,11 +92,39 @@ object ScannerState {
     /** El usuario ha pulsado iniciar en el chip: el servicio procesa frames. */
     val scanningEnabled = MutableStateFlow(false)
 
+    /**
+     * Formas de la especie confirmada (claves de showcase_data.json, "" = base).
+     * Vacío = especie de una sola forma o sin datos; oculta el toggle del chip.
+     */
+    val formKeys = MutableStateFlow<List<String>>(emptyList())
+
+    /** Índice de la forma seleccionada dentro de [formKeys]. */
+    val formIndex = MutableStateFlow(0)
+
+    /** Publica las formas de una especie y reinicia la selección. */
+    fun setForms(keys: List<String>) {
+        formKeys.value = keys
+        formIndex.value = 0
+    }
+
+    /**
+     * Cicla la forma seleccionada (toggle ⇄ del chip).
+     * Devuelve la clave elegida, o null si no hay más de una forma.
+     */
+    fun cycleForm(): String? {
+        val keys = formKeys.value
+        if (keys.size < 2) return null
+        val next = (formIndex.value + 1) % keys.size
+        formIndex.value = next
+        return keys[next]
+    }
+
     fun reset() {
         lastResult.value = null
         stage.value = ScanStage.LOOKING_POKEMON
         reading.value = false
         scanningEnabled.value = false
+        setForms(emptyList())
     }
 
     /** Reinicio del flujo desde el chip (botón ↺): vuelve a buscar un Pokémon. */
