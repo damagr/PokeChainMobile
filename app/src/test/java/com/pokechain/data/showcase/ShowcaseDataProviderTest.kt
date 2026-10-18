@@ -97,4 +97,15 @@ class ShowcaseDataProviderTest {
     fun `getForms vacio para dex sin datos`() {
         assertEquals(emptyList<String>(), provider.getForms(99999))
     }
+
+    @Test
+    fun `formas con datos identicos a la base no se publican (megas duplicadas)`() {
+        // Venusaur: ['', 'mega'] con medidas idénticas → el toggle ⇄ no aportaría nada
+        assertEquals(listOf(""), provider.getForms(3))
+    }
+
+    @Test
+    fun `clases de tamaño sin forma base se publican todas (Pumpkaboo)`() {
+        assertEquals(listOf("average", "small", "large", "super"), provider.getForms(710))
+    }
 }

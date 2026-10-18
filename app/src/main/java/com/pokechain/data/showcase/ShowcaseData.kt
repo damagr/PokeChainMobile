@@ -106,9 +106,17 @@ class ShowcaseDataProvider private constructor(
         return SpeciesFormEntry(dex, entry.name, best, key)
     }
 
-    /** Claves de forma disponibles para una dex ("" = base). Vacío si no hay datos. */
-    fun getForms(dex: Int): List<String> =
-        data[dex.toString()]?.forms?.keys?.toList() ?: emptyList()
+    /**
+     * Claves de forma disponibles para una dex ("" = base). Vacío si no hay
+     * datos o si todas las formas comparten medidas (p. ej. megas duplicadas
+     * en el JSON): el toggle ⇄ del chip solo se muestra si cambiar de forma
+     * puede alterar el cálculo.
+     */
+    fun getForms(dex: Int): List<String> {
+        val forms = data[dex.toString()]?.forms ?: return emptyList()
+        val base = forms[DEFAULT_FORM_KEY] ?: return forms.keys.toList()
+        return forms.keys.filter { it == DEFAULT_FORM_KEY || forms[it] != base }
+    }
 
     /** Search by name or dex number. Returns dex numbers of matches. */
     fun search(query: String): List<Int> {
