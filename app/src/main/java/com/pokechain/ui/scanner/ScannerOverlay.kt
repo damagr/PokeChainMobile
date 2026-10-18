@@ -10,6 +10,7 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
+import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
 import com.pokechain.data.iv.IvFormat
@@ -29,7 +30,10 @@ import kotlin.math.roundToInt
  *  - Muestra el progreso del flujo por etapas y el resultado por modo:
  *      IV:        "⁹³" al completar
  *      SHOWCASE:  "XXXX/1178" (sin IVs) -> "XXXX/1178" (con IVs)
- *  - Botones: Copiar, ↺ (reiniciar flujo), "–" (colapsar), ✕ (detener)
+ *  - ANCHO FIJO por modo (valor + Copiar + acciones caben siempre; sin
+ *    redimensiones entre estados ni al arrastrar) y hint siempre reservado
+ *  - Botones: Copiar (deshabilitado sin resultado), ⇄ (forma, si aplica),
+ *    ▶/↺ (comparten hueco), "–" (colapsar), ✕ (detener)
  *  - Se oculta cuando PokeChain está en primer plano
  */
 class ScannerOverlay(
@@ -82,12 +86,18 @@ class ScannerOverlay(
         setPadding(0, 0, 14, 0)
         setSingleLine(true)
         setEllipsize(null)
+        // Cifras tabulares: el número no "baila" al cambiar de dígitos
+        fontFeatureSettings = "tnum"
+        gravity = Gravity.CENTER_HORIZONTAL
         setOnTouchListener(dragOrTap { onTap() })
     }
 
     private val hintView = TextView(context).apply {
         setTextColor(Color.argb(255, 200, 200, 210))
         textSize = 11f
+        setSingleLine(true)
+        ellipsize = android.text.TextUtils.TruncateAt.END
+        gravity = Gravity.CENTER_HORIZONTAL
     }
 
     private val textColumn = LinearLayout(context).apply {
@@ -148,34 +158,38 @@ class ScannerOverlay(
         setOnClickListener { onStop() }
     }
 
-    // Botón de inicio: solo visible cuando no hay lectura activa y el usuario no ha iniciado
+    // Botón de inicio (▶): mismo hueco que ↺ (slot reservado, sin saltos)
     private val startView = TextView(context).apply {
         setTextColor(Color.argb(255, 130, 200, 255))
-        textSize = 13f
+        textSize = 15f
         setPadding(12, 4, 12, 4)
         background = GradientDrawable().apply {
             setColor(Color.argb(255, 55, 70, 110))
             cornerRadius = 18f
         }
-        text = when (ScannerState.mode) {
-            ScannerMode.SHOWCASE -> Strings.ivScanStartShowcase(language)
-            ScannerMode.IV -> Strings.ivScanStart(language)
-        }
-        visibility = View.GONE
+        text = "▶"
+        visibility = View.INVISIBLE
         setOnClickListener { onStartScan() }
     }
 
+    /** Hueco compartido ▶/↺: ancho constante, uno visible cada vez. */
+    private val actionSlot = FrameLayout(context).apply {
+        addView(resetView, FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        addView(startView, FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+    }
+
     init {
-        // La columna de texto expande para que el número no se corte visualmente;
-        // los botones (Copiar, ↺, –, ✕, ▶) mantienen su tamaño natural.
+        // La columna de texto expande (ancho del chip fijado por modo en
+        // applyChipWidth); los botones mantienen huecos reservados.
         val textParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
         root.addView(textColumn, textParams)
         root.addView(copyView)
         root.addView(formView)
-        root.addView(resetView)
+        root.addView(actionSlot)
         root.addView(collapseView)
         root.addView(stopView)
-        root.addView(startView)
     }
 
     /** Arrastrar con desambiguación tap (movimiento < 24px = tap). */
@@ -217,6 +231,7 @@ class ScannerOverlay(
 
     fun show() {
         if (!shown) {
+            applyChipWidth()
             wm.addView(root, params)
             shown = true
         }
@@ -241,21 +256,31 @@ class ScannerOverlay(
         root.post { render() }
     }
 
+    /** Ancho fijo del chip según el modo (colapsado: contenido). Sin saltos de tamaño. */
+    private fun applyChipWidth() {
+        val density = root.context.resources.displayMetrics.density
+        params.width = if (collapsed) {
+            WindowManager.LayoutParams.WRAP_CONTENT
+        } else {
+            val widthDp = when (ScannerState.mode) {
+                ScannerMode.IV -> IV_CHIP_WIDTH_DP        // "⁹⁹⁹" + Copiar + acciones
+                ScannerMode.SHOWCASE -> SHOWCASE_CHIP_WIDTH_DP // "1056/1178" + ⇄ + Copiar + acciones
+            }
+            (widthDp * density).toInt()
+        }
+        if (shown) runCatching { wm.updateViewLayout(root, params) }
+    }
+
     private fun render() {
         root.post {
             if (!shown || ScannerState.appInForeground.value) return@post
             val result = lastResult
             val stage = ScannerState.stage.value
             val reading = ScannerState.reading.value
+            applyChipWidth()
 
             // ── Valor según etapa y modo ─────────────────────────
             val scanning = ScannerState.scanningEnabled.value
-            // Ancho mínimo dinámico según el modo: IV necesita poco (⁹⁹⁹), SHOWCASE más (1054/1178)
-            val minWidthDp = when (ScannerState.mode) {
-                ScannerMode.IV -> 150f
-                ScannerMode.SHOWCASE -> 200f
-            }
-            root.setMinimumWidth((minWidthDp * root.context.resources.displayMetrics.density).toInt())
             when (stage) {
                 ScanStage.LOOKING_POKEMON -> valueView.text = if (scanning) "…" else ""
                 ScanStage.POKEMON_READ -> valueView.text = when (ScannerState.mode) {
@@ -268,8 +293,8 @@ class ScannerOverlay(
                 }
             }
 
-            // ── Hint de etapa ────────────────────────────────────
-            hintView.text = when (stage) {
+            // ── Hint de etapa (línea siempre reservada: altura estable) ──
+            val hint = when (stage) {
                 ScanStage.LOOKING_POKEMON -> when (ScannerState.mode) {
                     ScannerMode.SHOWCASE -> Strings.ivScanHintShowcase(language)
                     ScannerMode.IV -> Strings.ivScanHint(language)
@@ -284,32 +309,37 @@ class ScannerOverlay(
                     ScannerMode.IV -> ""
                 }
             }
+            hintView.text = hint.ifBlank { " " }
+            hintView.visibility = if (collapsed) View.GONE else View.VISIBLE
 
-            // ── Visibilidad de botones ───────────────────────────
+            // ── Botones: huecos reservados (VISIBLE/INVISIBLE), sin redimensionar ──
             val ready = stage == ScanStage.IV_READ && lastResult != null
             val hasValue = valueView.text.isNotBlank() && valueView.text != "…" && valueView.text != "✓"
             val awaitingStart = !scanning && stage == ScanStage.LOOKING_POKEMON && lastResult == null
-            copyView.visibility = if ((hasValue || ready) && !collapsed) View.VISIBLE else View.GONE
-            resetView.visibility = if (!collapsed && scanning) View.VISIBLE else View.GONE
-            collapseView.visibility = if (!collapsed) View.VISIBLE else View.GONE
-            stopView.visibility = if (!collapsed) View.VISIBLE else View.GONE
-            startView.visibility = if (awaitingStart && !collapsed) View.VISIBLE else View.GONE
-            // Toggle de forma: especie confirmada con >1 forma y modo SHOWCASE
+            val canCopy = hasValue || ready
+            copyView.visibility = if (collapsed) View.GONE else View.VISIBLE
+            copyView.isEnabled = canCopy
+            copyView.alpha = if (canCopy) 1f else 0.45f
+            resetView.visibility = if (!collapsed && scanning) View.VISIBLE else View.INVISIBLE
+            startView.visibility = if (!collapsed && awaitingStart) View.VISIBLE else View.INVISIBLE
+            collapseView.visibility = if (collapsed) View.GONE else View.VISIBLE
+            stopView.visibility = if (collapsed) View.GONE else View.VISIBLE
+            // Toggle de forma: reservado (INVISIBLE) en SHOWCASE; fuera en IV
             val forms = ScannerState.formKeys.value
             val showForm = ScannerState.mode == ScannerMode.SHOWCASE &&
-                forms.size > 1 && !collapsed && stage != ScanStage.LOOKING_POKEMON
-            if (showForm) {
-                formView.text = "⇄ ${ScannerState.formIndex.value + 1}/${forms.size}"
-                formView.visibility = View.VISIBLE
-            } else {
-                formView.visibility = View.GONE
+                forms.size > 1 && stage != ScanStage.LOOKING_POKEMON
+            formView.text = "⇄ ${ScannerState.formIndex.value + 1}/${forms.size}"
+            formView.visibility = when {
+                collapsed -> View.GONE
+                ScannerState.mode != ScannerMode.SHOWCASE -> View.GONE
+                showForm -> View.VISIBLE
+                else -> View.INVISIBLE
             }
             if (collapsed) {
-                hintView.visibility = View.GONE
                 // Punto pequeño: tap para expandir
                 valueView.setOnTouchListener(dragOrTap { setCollapsed(false) })
             } else {
-                hintView.visibility = if (hintView.text.isBlank()) View.GONE else View.VISIBLE
+                valueView.setOnTouchListener(dragOrTap { onTap() })
             }
         }
     }
@@ -328,5 +358,11 @@ class ScannerOverlay(
             hintView.text = message
             root.postDelayed({ render() }, 1200L)
         }
+    }
+
+    private companion object {
+        /** Ancho fijo (dp) del chip expandido, por modo. */
+        const val IV_CHIP_WIDTH_DP = 236f
+        const val SHOWCASE_CHIP_WIDTH_DP = 272f
     }
 }

@@ -148,14 +148,15 @@ object Strings {
     // ── Escáner IV (lectura de pantalla) ──────────────────────────
     fun ivScanStart(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Scan IVs"; AppLanguage.ES -> "Escanear IVs" }
     fun ivScanStartShowcase(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Scan"; AppLanguage.ES -> "Escanear" }
+    // Hints cortos: van en el chip flotante de ancho fijo (una línea)
     fun ivScanHint(lang: AppLanguage) = when (lang) {
-        AppLanguage.EN -> "Open the Appraisal screen in Pokémon GO"
-        AppLanguage.ES -> "Abre la Valoración en Pokémon GO"
+        AppLanguage.EN -> "Open the card"
+        AppLanguage.ES -> "Abre la ficha"
     }
     fun ivScanCopy(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Copy"; AppLanguage.ES -> "Copiar" }
     fun ivScanHintShowcase(lang: AppLanguage) = when (lang) {
-        AppLanguage.EN -> "Open the Pokémon page in Pokémon GO"
-        AppLanguage.ES -> "Abre la página del Pokémon en Pokémon GO"
+        AppLanguage.EN -> "Open the card"
+        AppLanguage.ES -> "Abre la ficha"
     }
     fun ivScanOpenAppraisal(lang: AppLanguage) = when (lang) {
         AppLanguage.EN -> "Open the Appraisal"
