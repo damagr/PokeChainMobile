@@ -52,13 +52,24 @@ class FrameAnalyzer(context: Context) {
     suspend fun analyzeLooking(bitmap: Bitmap, maskRect: Rect? = null): ScanResult {
         val image = InputImage.fromBitmap(bitmap, 0)
         val text = recognizer.process(image).awaitTask()
-        val rawLines = text.textBlocks.flatMap { block -> block.lines.map { it.text.trim() } }
-            .filter { it.isNotBlank() }
+        // Líneas con posición: el nombre de la especie es lo más alto de la
+        // ficha; pickSpecies recorre de arriba a abajo para que rótulos como
+        // "ALTURA" (casaba "Altaria" por Levenshtein) o "SANDSHREW" del rótulo
+        // de caramelos no le roben el match a la especie real.
+        val ocrLines = text.textBlocks
+            .flatMap { block -> block.lines }
+            .mapNotNull { line ->
+                val t = line.text.trim()
+                if (t.isBlank()) return@mapNotNull null
+                val centerY = line.boundingBox?.centerY()?.toFloat() ?: Float.MAX_VALUE
+                ScanTextParser.OcrLine(t, centerY)
+            }
+        val rawLines = ocrLines.map { it.text }
         // Los números (PC/PS/peso/altura) los extrae ScanTextParser, que limpia
         // las etiquetas de tamaño ("MÁS PESADO"…) y matchea en crudo con
-        // fallback normalizado. Los nombres van a matchSpecies sin tocar
+        // fallback normalizado. Los nombres van a pickSpecies sin tocar
         // (evita corromper "Pikachu"->"P1kachu").
-        val species = matchSpecies(rawLines)
+        val species = ScanTextParser.pickSpecies(ocrLines, nameToDex)
         val numbers = ScanTextParser.parse(rawLines)
 
         return ScanResult(
@@ -69,39 +80,6 @@ class FrameAnalyzer(context: Context) {
             heightM = numbers.heightM,
             weightKg = numbers.weightKg,
         )
-    }
-
-    // ── Especie: exacto o Levenshtein ≤ 2 ──────────────────────────
-
-    private fun matchSpecies(lines: List<String>): Pair<String, Int>? {
-        for (line in lines.sortedByDescending { it.length }) {
-            val norm = line.lowercase().trim()
-            nameToDex[norm]?.let { return line to it }
-            var best: Pair<Int, Int>? = null // distancia to dex
-            for ((name, dex) in nameToDex) {
-                if (abs(name.length - norm.length) > 2) continue
-                val d = levenshtein(norm, name)
-                if (d <= 2 && (best == null || d < best.first)) best = d to dex
-            }
-            best?.let { return line to it.second }
-        }
-        return null
-    }
-
-    private fun levenshtein(a: String, b: String): Int {
-        if (a == b) return 0
-        if (a.isEmpty()) return b.length
-        if (b.isEmpty()) return a.length
-        var prev = IntArray(b.length + 1) { it }
-        for (i in a.indices) {
-            val cur = IntArray(b.length + 1)
-            cur[0] = i + 1
-            for (j in b.indices) {
-                cur[j + 1] = minOf(prev[j + 1] + 1, cur[j] + 1, prev[j] + if (a[i] == b[j]) 0 else 1)
-            }
-            prev = cur
-        }
-        return prev[b.length]
     }
 
     // ── Etapa POKEMON_READ: medir las 3 barras (sin OCR) ───────────

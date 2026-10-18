@@ -1,7 +1,9 @@
 package com.pokechain.data.scanner
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -123,5 +125,57 @@ class ScanTextParserTest {
         assertEquals("44,77kg ", ScanTextParser.stripSizeLabels("44,77kg MÁS PESADO"))
         assertEquals("1,59m", ScanTextParser.stripSizeLabels("1,59mMÁSGRANDE"))
         assertEquals("TIERRA", ScanTextParser.stripSizeLabels("TIERRA"))
+    }
+
+    // ── Candidatas a nombre de especie ─────────────────────────────
+
+    @Test
+    fun `rótulos números y unidades no son candidatos a nombre`() {
+        listOf("ALTURA", "PESO", "MÁS GRANDE", "MÁS PESADO", "PC1696", "83 / 83 PS",
+               "44,77kg", "1,59m", "394", "3.600", "40.000", "…", "✓", "⇄ 1/2")
+            .forEach { assertFalse("$it debería descartarse", ScanTextParser.isNameCandidate(it)) }
+    }
+
+    @Test
+    fun `nombres reales y renombrados son candidatos`() {
+        listOf("Ralts", "Gible", "Munna", "Sandslash", "Ralts93", "Sandslash71", "TIERRA", "Exhibiciones")
+            .forEach { assertTrue("$it debería ser candidato", ScanTextParser.isNameCandidate(it)) }
+    }
+
+    // ── pickSpecies: prioridad por posición ────────────────────────
+
+    @Test
+    fun `ALTURA no roba el match a Ralts`() {
+        val map = mapOf("ralts" to 280, "altaria" to 334)
+        val lines = listOf(
+            ScanTextParser.OcrLine("PC1204", 200f),
+            ScanTextParser.OcrLine("Ralts", 800f),
+            ScanTextParser.OcrLine("ALTURA", 1500f),
+        )
+        assertEquals("Ralts" to 280, ScanTextParser.pickSpecies(lines, map))
+    }
+
+    @Test
+    fun `el nombre de la especie gana al SANDSHREW del rótulo de caramelos`() {
+        val map = mapOf("sandslash" to 28, "sandshrew" to 27)
+        val lines = listOf(
+            ScanTextParser.OcrLine("SANDSHREW", 1400f),
+            ScanTextParser.OcrLine("Sandslash", 800f),
+        )
+        assertEquals("Sandslash" to 28, ScanTextParser.pickSpecies(lines, map))
+    }
+
+    @Test
+    fun `nombre renombrado con superíndice casa por fuzzy`() {
+        val map = mapOf("ralts" to 280)
+        val lines = listOf(ScanTextParser.OcrLine("Ralts93", 800f))
+        assertEquals("Ralts93" to 280, ScanTextParser.pickSpecies(lines, map))
+    }
+
+    @Test
+    fun `sin candidatas devuelve null`() {
+        val map = mapOf("ralts" to 280)
+        val lines = listOf(ScanTextParser.OcrLine("394", 300f), ScanTextParser.OcrLine("ALTURA", 800f))
+        assertNull(ScanTextParser.pickSpecies(lines, map))
     }
 }

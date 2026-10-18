@@ -1,5 +1,7 @@
 package com.pokechain.data.scanner
 
+import kotlin.math.abs
+
 /**
  * Parser puro (testeable en JVM, sin Android/ML Kit) de las líneas OCR de la
  * ficha del Pokémon: PC, PS, peso y altura.
@@ -27,6 +29,69 @@ object ScanTextParser {
         val heightM: Double?,
         val weightKg: Double?
     )
+
+    /** Línea OCR con su posición vertical (centro del boundingBox, píxeles del bitmap). */
+    data class OcrLine(val text: String, val centerY: Float)
+
+    // ── Selección de especie ───────────────────────────────────────
+
+    /**
+     * true si la línea puede ser el NOMBRE del Pokémon en la ficha.
+     * Descarta rótulos e UI ("ALTURA", "PESO", "MÁS GRANDE"… quedan vacías tras
+     * [stripSizeLabels]), líneas numéricas sin letras ("394", "3.600") y las
+     * que ya casan PC/PS/peso/altura. El nombre renombrado con superíndice
+     * ("Ralts93") SÍ es candidato: tiene letras y no casa ninguna unidad.
+     */
+    fun isNameCandidate(line: String): Boolean {
+        val clean = stripSizeLabels(line).trim()
+        if (clean.isBlank()) return false
+        if (clean.none { it.isLetter() }) return false
+        if (CP_REGEX.containsMatchIn(clean)) return false
+        if (HP_REGEX.containsMatchIn(clean)) return false
+        if (WEIGHT_REGEX.containsMatchIn(clean)) return false
+        if (HEIGHT_REGEX.containsMatchIn(clean)) return false
+        return true
+    }
+
+    /**
+     * Elige la especie entre las líneas OCR. Recorre de ARRIBA a ABAJO
+     * (el nombre de la especie es lo más alto de la ficha tras el PC; los
+     * rótulos y los caramelos están más abajo): la primera candidata que case
+     * — exacta o con Levenshtein ≤ 2 — gana. Así "ALTURA" no puede robarle el
+     * match a "Ralts" (casaba "Altaria") ni "SANDSHREW" del rótulo de
+     * caramelos a la ficha de un Sandslash.
+     */
+    fun pickSpecies(lines: List<OcrLine>, nameToDex: Map<String, Int>): Pair<String, Int>? {
+        for (line in lines.sortedBy { it.centerY }) {
+            if (!isNameCandidate(line.text)) continue
+            val norm = line.text.lowercase().trim()
+            nameToDex[norm]?.let { return line.text to it }
+            var best: Pair<Int, Int>? = null // distancia to dex
+            for ((name, dex) in nameToDex) {
+                if (abs(name.length - norm.length) > 2) continue
+                val d = levenshtein(norm, name)
+                if (d <= 2 && (best == null || d < best.first)) best = d to dex
+            }
+            best?.let { return line.text to it.second }
+        }
+        return null
+    }
+
+    private fun levenshtein(a: String, b: String): Int {
+        if (a == b) return 0
+        if (a.isEmpty()) return b.length
+        if (b.isEmpty()) return a.length
+        var prev = IntArray(b.length + 1) { it }
+        for (i in a.indices) {
+            val cur = IntArray(b.length + 1)
+            cur[0] = i + 1
+            for (j in b.indices) {
+                cur[j + 1] = minOf(prev[j + 1] + 1, cur[j] + 1, prev[j] + if (a[i] == b[j]) 0 else 1)
+            }
+            prev = cur
+        }
+        return prev[b.length]
+    }
 
     fun parse(rawLines: List<String>): CardNumbers {
         var cp: Int? = null
