@@ -93,6 +93,14 @@ object ScannerState {
     val scanningEnabled = MutableStateFlow(false)
 
     /**
+     * Exhibiciones: la Valoración está abierta pero el peso/altura de la ficha
+     * no se han leído (p. ej. ▶ pulsado con la Valoración ya abierta, donde el
+     * avatar tapa las medidas). El chip pide "Vuelve a la ficha" y el flujo no
+     * avanza hasta leerlas.
+     */
+    val needsCard = MutableStateFlow(false)
+
+    /**
      * Formas de la especie confirmada (claves de showcase_data.json, "" = base).
      * Vacío = especie de una sola forma o sin datos; oculta el toggle del chip.
      */
@@ -124,6 +132,7 @@ object ScannerState {
         stage.value = ScanStage.LOOKING_POKEMON
         reading.value = false
         scanningEnabled.value = false
+        needsCard.value = false
         setForms(emptyList())
     }
 

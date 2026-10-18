@@ -1,6 +1,7 @@
 package com.pokechain.data.scanner
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Test
 
@@ -34,10 +35,12 @@ class ScanModelsTest {
     }
 
     @Test
-    fun `reset limpia las formas`() {
+    fun `reset limpia las formas y needsCard`() {
         ScannerState.setForms(listOf("", "alolan"))
+        ScannerState.needsCard.value = true
         ScannerState.reset()
         assertEquals(emptyList<String>(), ScannerState.formKeys.value)
+        assertFalse(ScannerState.needsCard.value)
         assertNull(ScannerState.cycleForm())
     }
 }

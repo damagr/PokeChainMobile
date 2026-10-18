@@ -109,7 +109,7 @@ class ScreenScannerService : Service() {
 
     // ── Máquina de estados del flujo de escaneo ────────────────────
 
-    private var candidateIdentity: Triple<Int?, Any?, Any?>? = null
+    private var candidateIdentity: Pair<Int?, String?>? = null
     private var candidateIvs: Triple<Int, Int, Int>? = null
     private var confirmedIvs: Triple<Int, Int, Int>? = null
     private var confirmCount = 0
@@ -118,6 +118,7 @@ class ScreenScannerService : Service() {
     private var lastLookingOcrMs = 0L
     private var lastDimsOcrMs = 0L
     private var lastIvCheckMs = 0L
+    private var lastSpeciesCheckMs = 0L
     // Dex para el que se publicaron las formas (evita resetear la selección del usuario)
     private var formsForDex: Int? = null
 
@@ -173,7 +174,8 @@ class ScreenScannerService : Service() {
         }
 
         // Confirmación: 2 frames consecutivos con la misma identidad
-        val identity = Triple(frame.dex, frame.speciesName, frame.cp)
+        // (dex + nombre; el PC parpadea en el OCR y impide confirmar)
+        val identity = Pair(frame.dex, frame.speciesName)
         if (identity == candidateIdentity) confirmCount++ else { candidateIdentity = identity; confirmCount = 1 }
 
         // Publicar los datos leídos (el chip muestra el progreso)
@@ -186,6 +188,7 @@ class ScreenScannerService : Service() {
             ScannerState.reading.value = false
             confirmCount = 0
             candidateIdentity = null
+            ScannerState.needsCard.value = false
             updateFormsForDex(merged.dex)
         }
     }
@@ -206,6 +209,10 @@ class ScreenScannerService : Service() {
                         lastDimsOcrMs = now
                         val merged = current.mergeWith(analyzer.analyzeLooking(bmp, mask))
                         ScannerState.lastResult.value = merged
+                        // Dims leídas: el flujo vuelve a pedir la Valoración
+                        if (merged.heightM != null && merged.weightKg != null) {
+                            ScannerState.needsCard.value = false
+                        }
                         updateFormsForDex(merged.dex)
                         overlay?.update(merged)
                         return
@@ -221,6 +228,24 @@ class ScreenScannerService : Service() {
         if (ivs == candidateIvs) confirmCount++ else { candidateIvs = ivs; confirmCount = 1 }
 
         if (confirmCount >= 2) {
+            val dimsMissing = ScannerState.mode == ScannerMode.SHOWCASE &&
+                (ScannerState.lastResult.value?.heightM == null ||
+                 ScannerState.lastResult.value?.weightKg == null)
+            if (dimsMissing) {
+                // La Valoración está abierta pero la ficha no se ha leído (p. ej.
+                // ▶ pulsado con la Valoración ya abierta: el avatar tapa peso y
+                // altura). NO avanzamos a IV_READ: pedimos volver a la ficha y,
+                // al cerrarla, el rescate de dims completa el flujo.
+                if (!ScannerState.needsCard.value) {
+                    ScannerState.needsCard.value = true
+                    publishIvs(ivs, bmp, mask)
+                }
+                ScannerState.reading.value = false
+                confirmCount = 0
+                candidateIvs = null
+                return
+            }
+            ScannerState.needsCard.value = false
             publishIvs(ivs, bmp, mask)
             ScannerState.stage.value = ScanStage.IV_READ
             ScannerState.reading.value = false
@@ -270,6 +295,23 @@ class ScreenScannerService : Service() {
             }
             publishIvs(ivs, bmp, mask)
             confirmedIvs = ivs
+        } else if (ScannerState.mode == ScannerMode.SHOWCASE && confirmedIvs != null) {
+            // Mismos IVs al deslizar de ficha: sin re-lectura el chip mostraría
+            // el total del Pokémon ANTERIOR. Verificación de especie cada ~5s
+            // (coste: 0,2 OCR/s, irrelevante para el calor).
+            val now2 = SystemClock.elapsedRealtime()
+            if (now2 - lastSpeciesCheckMs >= SPECIES_CHECK_INTERVAL_MS) {
+                lastSpeciesCheckMs = now2
+                val looking = analyzer.analyzeLooking(bmp, mask)
+                val prevDex = ScannerState.lastResult.value?.dex
+                if (looking.dex != null && prevDex != null && looking.dex != prevDex) {
+                    resetFlow()
+                    ScannerState.reading.value = false
+                    overlay?.update(null)
+                    return
+                }
+                updateFormsForDex(looking.dex)
+            }
         }
         // Sin OCR continuo: solo readBars barato para detectar cambios de IVs
     }
@@ -282,10 +324,15 @@ class ScreenScannerService : Service() {
     ) {
         val frame = ScanResult(ivAtk = ivs.first, ivDef = ivs.second, ivSta = ivs.third)
         var merged = (ScannerState.lastResult.value ?: ScanResult()).mergeWith(frame)
-        // Si faltan peso/altura en modo SHOWCASE, intentar leerlos una vez del frame actual
+        // Si faltan peso/altura en modo SHOWCASE, intentar leerlos del frame
+        // actual (throttle: este método puede llamarse en frames consecutivos)
         if (ScannerState.mode == ScannerMode.SHOWCASE &&
             (merged.heightM == null || merged.weightKg == null)) {
-            merged = merged.mergeWith(analyzer.analyzeLooking(bmp, mask))
+            val now = SystemClock.elapsedRealtime()
+            if (now - lastDimsOcrMs >= OCR_INTERVAL_MS) {
+                lastDimsOcrMs = now
+                merged = merged.mergeWith(analyzer.analyzeLooking(bmp, mask))
+            }
         }
         val published = if (ScannerState.mode == ScannerMode.SHOWCASE)
             merged.copy(showcaseTotal = showcaseTotal(merged)) else merged
@@ -472,6 +519,7 @@ class ScreenScannerService : Service() {
         private const val FRAME_INTERVAL_MS = 400L      // ~2,5 fps de captura
         private const val OCR_INTERVAL_MS = 1000L       // OCR como mucho 1/s
         private const val IV_CHECK_INTERVAL_MS = 1200L  // vigilancia IV_READ ~1/1,2s
+        private const val SPECIES_CHECK_INTERVAL_MS = 5000L // verificación de especie en IV_READ
         private const val MAX_SCAN_WIDTH = 720
 
         fun start(context: Context, resultCode: Int, data: Intent) {
