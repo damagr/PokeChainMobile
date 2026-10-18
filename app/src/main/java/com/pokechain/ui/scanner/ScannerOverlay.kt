@@ -73,6 +73,8 @@ class ScannerOverlay(
         orientation = LinearLayout.HORIZONTAL
         gravity = Gravity.CENTER_VERTICAL
         setPadding(24, 12, 24, 12)
+        // Plegado: pastilla siempre tocable aunque el valor esté vacío
+        minimumWidth = (48 * context.resources.displayMetrics.density).toInt()
         background = GradientDrawable().apply {
             setColor(Color.argb(205, 20, 20, 26))
             cornerRadius = 30f
@@ -182,14 +184,18 @@ class ScannerOverlay(
 
     init {
         // La columna de texto expande (ancho del chip fijado por modo en
-        // applyChipWidth); los botones mantienen huecos reservados.
+        // applyChipWidth); los botones mantienen separación consistente.
+        val density = context.resources.displayMetrics.density
+        fun actionParams() = LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT
+        ).apply { marginStart = (6 * density).toInt() }
         val textParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
         root.addView(textColumn, textParams)
-        root.addView(copyView)
-        root.addView(formView)
-        root.addView(actionSlot)
-        root.addView(collapseView)
-        root.addView(stopView)
+        root.addView(copyView, actionParams())
+        root.addView(formView, actionParams())
+        root.addView(actionSlot, actionParams())
+        root.addView(collapseView, actionParams())
+        root.addView(stopView, actionParams())
     }
 
     /** Arrastrar con desambiguación tap (movimiento < 24px = tap). */
@@ -294,7 +300,9 @@ class ScannerOverlay(
             }
 
             // ── Hint de etapa (línea siempre reservada: altura estable) ──
-            val hint = when (stage) {
+            // needsCard manda: en Exhibiciones faltan peso/altura y hay que
+            // volver a la ficha; también si el total quedó sin calcular.
+            val stageHint = when (stage) {
                 ScanStage.LOOKING_POKEMON -> when (ScannerState.mode) {
                     ScannerMode.SHOWCASE -> Strings.ivScanHintShowcase(language)
                     ScannerMode.IV -> Strings.ivScanHint(language)
@@ -309,6 +317,10 @@ class ScannerOverlay(
                     ScannerMode.IV -> ""
                 }
             }
+            val needsCardHint = ScannerState.needsCard.value ||
+                (stage == ScanStage.IV_READ && ScannerState.mode == ScannerMode.SHOWCASE &&
+                 result?.showcaseTotal == null)
+            val hint = if (needsCardHint) Strings.ivScanBackToCard(language) else stageHint
             hintView.text = hint.ifBlank { " " }
             hintView.visibility = if (collapsed) View.GONE else View.VISIBLE
 
@@ -336,7 +348,9 @@ class ScannerOverlay(
                 else -> View.INVISIBLE
             }
             if (collapsed) {
-                // Punto pequeño: tap para expandir
+                // Punto pequeño: tap para expandir. Sin valor visible el chip
+                // plegado muestra el glyph de expandir (nunca una pastilla muerta)
+                if (valueView.text.isBlank()) valueView.text = "▸"
                 valueView.setOnTouchListener(dragOrTap { setCollapsed(false) })
             } else {
                 valueView.setOnTouchListener(dragOrTap { onTap() })
@@ -361,8 +375,8 @@ class ScannerOverlay(
     }
 
     private companion object {
-        /** Ancho fijo (dp) del chip expandido, por modo. */
-        const val IV_CHIP_WIDTH_DP = 236f
-        const val SHOWCASE_CHIP_WIDTH_DP = 272f
+        /** Ancho fijo (dp) del chip expandido, por modo (incluye márgenes de 6dp entre botones). */
+        const val IV_CHIP_WIDTH_DP = 248f
+        const val SHOWCASE_CHIP_WIDTH_DP = 296f
     }
 }

@@ -166,6 +166,10 @@ object Strings {
         AppLanguage.EN -> "Reading…"
         AppLanguage.ES -> "Leyendo…"
     }
+    fun ivScanBackToCard(lang: AppLanguage) = when (lang) {
+        AppLanguage.EN -> "Go back to the card"
+        AppLanguage.ES -> "Vuelve a la ficha"
+    }
     fun ivScanReset(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "↺"; AppLanguage.ES -> "↺" }
     fun ivPerfection(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "IV Perfection"; AppLanguage.ES -> "Perfección IV" }
     fun ivLevel(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Level"; AppLanguage.ES -> "Nivel" }
