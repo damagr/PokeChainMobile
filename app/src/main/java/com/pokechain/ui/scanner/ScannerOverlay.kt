@@ -40,6 +40,7 @@ class ScannerOverlay(
     private val onTap: () -> Unit,
     private val onReset: () -> Unit,
     private val onStartScan: () -> Unit,
+    private val onCycleForm: () -> Unit = {},
 ) {
     private val wm = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
     private var shown = false
@@ -109,6 +110,23 @@ class ScannerOverlay(
         setOnClickListener { onCopy() }
     }
 
+    /**
+     * Toggle de forma (⇄ n/m): genérico para cualquier variante (Alola, Galar,
+     * Hisui, Mega, clases de tamaño…). Solo visible en modo SHOWCASE cuando la
+     * especie confirmada tiene más de una forma. Toca → siguiente forma.
+     */
+    private val formView = TextView(context).apply {
+        setTextColor(Color.WHITE)
+        textSize = 12f
+        setPadding(12, 6, 12, 6)
+        background = GradientDrawable().apply {
+            setColor(Color.argb(255, 80, 62, 105))
+            cornerRadius = 18f
+        }
+        visibility = View.GONE
+        setOnClickListener { onCycleForm() }
+    }
+
     private val resetView = TextView(context).apply {
         setTextColor(Color.WHITE)
         textSize = 14f
@@ -153,6 +171,7 @@ class ScannerOverlay(
         val textParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
         root.addView(textColumn, textParams)
         root.addView(copyView)
+        root.addView(formView)
         root.addView(resetView)
         root.addView(collapseView)
         root.addView(stopView)
@@ -275,6 +294,16 @@ class ScannerOverlay(
             collapseView.visibility = if (!collapsed) View.VISIBLE else View.GONE
             stopView.visibility = if (!collapsed) View.VISIBLE else View.GONE
             startView.visibility = if (awaitingStart && !collapsed) View.VISIBLE else View.GONE
+            // Toggle de forma: especie confirmada con >1 forma y modo SHOWCASE
+            val forms = ScannerState.formKeys.value
+            val showForm = ScannerState.mode == ScannerMode.SHOWCASE &&
+                forms.size > 1 && !collapsed && stage != ScanStage.LOOKING_POKEMON
+            if (showForm) {
+                formView.text = "⇄ ${ScannerState.formIndex.value + 1}/${forms.size}"
+                formView.visibility = View.VISIBLE
+            } else {
+                formView.visibility = View.GONE
+            }
             if (collapsed) {
                 hintView.visibility = View.GONE
                 // Punto pequeño: tap para expandir
