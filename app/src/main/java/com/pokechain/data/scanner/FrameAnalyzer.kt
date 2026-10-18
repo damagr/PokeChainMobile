@@ -54,68 +54,21 @@ class FrameAnalyzer(context: Context) {
         val text = recognizer.process(image).awaitTask()
         val rawLines = text.textBlocks.flatMap { block -> block.lines.map { it.text.trim() } }
             .filter { it.isNotBlank() }
-        // Las líneas normalizadas solo se usan para regex de peso/altura.
-        // Los nombres de Pokémon van a matchSpecies sin normalizar (evita corromper "Pikachu"->"P1kachu").
-        val lines = rawLines.map { normalizeOcrLine(it) }
-
-        var cp: Int? = null
-        var hp: Int? = null
-        var weight: Double? = null
-        var height: Double? = null
-        // Líneas que contienen etiquetas descriptivas como "Más pesado" / "Más grande"
-        // (o en inglés "heavier" / "larger") no son candidatas para peso/altura.
-        val weightHeightLines = lines.filter { line ->
-            !line.contains("pesado", ignoreCase = true) &&
-                !line.contains("grande", ignoreCase = true) &&
-                !line.contains("heavier", ignoreCase = true) &&
-                !line.contains("larger", ignoreCase = true)
-        }
-        for (line in lines) {
-            if (cp == null) CP_REGEX.find(line)?.let { cp = it.groupValues[1].toIntOrNull() }
-            if (hp == null) HP_REGEX.find(line)?.let { hp = (it.groupValues[2] ?: it.groupValues[1]).toIntOrNull() }
-        }
-        for (line in weightHeightLines) {
-            if (weight == null) WEIGHT_REGEX.find(line)?.let {
-                weight = it.groupValues[1].replace(',', '.').toDoubleOrNull()
-            }
-            if (height == null) HEIGHT_REGEX.find(line)?.let {
-                height = it.groupValues[1].replace(',', '.').toDoubleOrNull()
-            }
-        }
-
+        // Los números (PC/PS/peso/altura) los extrae ScanTextParser, que limpia
+        // las etiquetas de tamaño ("MÁS PESADO"…) y matchea en crudo con
+        // fallback normalizado. Los nombres van a matchSpecies sin tocar
+        // (evita corromper "Pikachu"->"P1kachu").
         val species = matchSpecies(rawLines)
+        val numbers = ScanTextParser.parse(rawLines)
 
         return ScanResult(
             speciesName = species?.first,
             dex = species?.second,
-            cp = cp,
-            hp = hp,
-            heightM = height,
-            weightKg = weight,
+            cp = numbers.cp,
+            hp = numbers.hp,
+            heightM = numbers.heightM,
+            weightKg = numbers.weightKg,
         )
-    }
-
-    /**
-     * Normaliza una línea de OCR para mejorar la detección de peso y altura.
-     *  - Quita espacios
-     *  - Unifica separadores decimales (coma → punto)
-     *  - Corrige confusión OCR frecuente en números (O/o→0, l/I→1, S→5, Z→2, B→8)
-     */
-    private fun normalizeOcrLine(line: String): String {
-        val sb = StringBuilder()
-        for (c in line) {
-            when (c) {
-                ' ' -> { /* quitar espacios */ }
-                ',' -> sb.append('.')
-                'O', 'o' -> sb.append('0')
-                'l', 'I', 'i' -> sb.append('1')
-                'S', 's' -> sb.append('5')
-                'Z', 'z' -> sb.append('2')
-                'B' -> sb.append('8')
-                else -> sb.append(c)
-            }
-        }
-        return sb.toString()
     }
 
     // ── Especie: exacto o Levenshtein ≤ 2 ──────────────────────────
@@ -301,11 +254,6 @@ class FrameAnalyzer(context: Context) {
     }
 
     companion object {
-        private val CP_REGEX = Regex("(?:PC|CP)\\s*([0-9]{2,5})")
-        private val HP_REGEX = Regex("(?i)(?:(?:PS|HP)\\s*([0-9]{1,4}))|(?:([0-9]{1,4})\\s*/\\s*[0-9]{1,4}\\s*(?:PS|HP))")
-        private val WEIGHT_REGEX = Regex("(?i)([0-9]{1,3}(?:[.,][0-9]{1,2})?)\\s*kg\\.?")
-        private val HEIGHT_REGEX = Regex("(?i)([0-9]{1,2}(?:[.,][0-9]{1,2})?)\\s*m\\.?(?!\\w)")
-
         // Geometría calibrada (relativo a la pantalla)
         const val TRACK_START_REL = 0.1204  // x=128/1080
         const val TRACK_END_REL = 0.4648    // x=502/1080
