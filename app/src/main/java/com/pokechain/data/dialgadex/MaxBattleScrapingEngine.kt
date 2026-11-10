@@ -19,14 +19,18 @@ import java.util.concurrent.TimeUnit
  * (una página individualizada por tipo, p.ej. /fire, /water...)
  *
  * La tabla NO usa <table>/<tr>/<td>: es una FlexTable de Chakra UI con
- * filas <li role="row"> y 7 celdas <div role="cell">:
- *   # | Pokémon | Max Move | Attack | Max damage | MMW | % of best
+ * filas <li role="row">. La estructura HA CAMBIADO con el tiempo:
+ *   - Original (7 celdas): # | Pokémon | Max Move | Attack | Max damage | MMW | % of best
+ *   - Actual  (8 celdas):  [espaciador] | # | Pokémon | Max Move | Attack | Max damage | MMW | % of best
+ * Por eso el parser se ANCLA en la celda del Pokémon (la que trae el sprite
+ * con alt) y lee los desplazamientos relativos (−1 = puesto, +1 = Max Move,
+ * +3 = Max damage), que son idénticos en ambas estructuras.
  *
  * - El alt del sprite SIEMPRE trae el nombre completo con forma
  *   ("Gigantamax Cinderace" / "Dynamax Moltres").
- * - El src del sprite es la URL directa del sprite
- *   (https://assets.dittobase.com/go/pokemon/{dex}-{slug}.png) y de él
- *   se extrae el dex real (/go/pokemon/(\d+)).
+ * - El src del sprite es la URL directa del sprite; de ella se extrae el dex
+ *   (/pokemon/(\d+)): cubre la URL antigua (/go/pokemon/815-....png) y la
+ *   actual (/go/optimized/v1/pokemon/815-...-128.webp).
  * - La celda Max Move muestra el nombre del signature move para G-Max
  *   ("G-Max Fireball") y SOLO el tipo para Dynamax ("Fire") — se deriva
  *   el nombre del Max Move con MAX_MOVE_BY_TYPE.
@@ -153,28 +157,41 @@ class MaxBattleScrapingEngine {
     }
 
     /**
-     * Extrae una entrada de una fila de la tabla.
-     * Celdas: # | Pokémon | Max Move | Attack | Max damage | MMW | % of best
+     * Extrae una entrada de una fila de la tabla, anclada en la celda del
+     * Pokémon (sprite con alt). Compatible con 7 y 8 celdas (espaciador).
      */
     private fun parseRow(cells: Elements): PvERankingEntry? {
-        val rank = cells[0].text().trim().toIntOrNull() ?: return null
+        // Ancla: primera celda con img de sprite (alt no vacío y src de pokemon)
+        var anchor = -1
+        var spriteImg: org.jsoup.nodes.Element? = null
+        for (i in cells.indices) {
+            val img = cells[i].select("img").firstOrNull() ?: continue
+            if (img.attr("alt").trim().isNotBlank() && img.attr("src").contains("/pokemon/")) {
+                anchor = i
+                spriteImg = img
+                break
+            }
+        }
+        if (anchor < 1 || anchor + 3 >= cells.size) return null
 
-        // Celda 1: Pokémon — sprite (src + alt con forma completa) + badge SVG
-        val spriteImg = cells[1].select("img").firstOrNull() ?: return null
-        val spriteUrl = spriteImg.attr("abs:src").ifBlank { spriteImg.attr("src") }
+        // Puesto: celda inmediatamente anterior al ancla
+        val rank = cells[anchor - 1].text().trim().toIntOrNull() ?: return null
+
+        val spriteUrl = spriteImg!!.attr("abs:src").ifBlank { spriteImg.attr("src") }
         val alt = spriteImg.attr("alt").trim()
 
-        // Dex real desde el src: /go/pokemon/815-cinderace-gigantamax.png -> 815
+        // Dex real desde el src: /pokemon/(\d+) — cubre /go/pokemon/815-...png
+        // y /go/optimized/v1/pokemon/815-...-128.webp
         var dex = 0
-        Regex("""/go/pokemon/(\d+)""").find(spriteUrl)?.let { m ->
+        Regex("""/pokemon/(\d+)""").find(spriteUrl)?.let { m ->
             dex = m.groupValues[1].toIntOrNull() ?: 0
         }
 
         // Forma: badge SVG (aria-label / use href) con fallback al prefijo del alt
-        val badgeLabel = cells[1].select("[aria-label]").firstOrNull()?.attr("aria-label")
+        val badgeLabel = cells[anchor].select("[aria-label]").firstOrNull()?.attr("aria-label")
         val form = when {
-            cells[1].select("use[href*=gigantamax]").isNotEmpty() || badgeLabel == "Gigantamax" -> "Gigantamax"
-            cells[1].select("use[href*=dynamax]").isNotEmpty() || badgeLabel == "Dynamax" -> "Dynamax"
+            cells[anchor].select("use[href*=gigantamax]").isNotEmpty() || badgeLabel == "Gigantamax" -> "Gigantamax"
+            cells[anchor].select("use[href*=dynamax]").isNotEmpty() || badgeLabel == "Dynamax" -> "Dynamax"
             alt.startsWith("Gigantamax", ignoreCase = true) -> "Gigantamax"
             alt.startsWith("Dynamax", ignoreCase = true) -> "Dynamax"
             else -> "Normal"
@@ -188,9 +205,10 @@ class MaxBattleScrapingEngine {
         }
         if (name.isBlank()) return null
 
-        // Celda 2: Max Move — icono de tipo (alt) + texto
-        val moveType = cells[2].select("img").firstOrNull()?.attr("alt")?.trim() ?: ""
-        val moveText = cells[2].select("p").firstOrNull()?.text()?.trim() ?: ""
+        // Celda ancla+1: Max Move — icono de tipo (alt) + texto
+        val moveCell = cells[anchor + 1]
+        val moveType = moveCell.select("img").firstOrNull()?.attr("alt")?.trim() ?: ""
+        val moveText = moveCell.select("p").firstOrNull()?.text()?.trim() ?: ""
 
         val maxMove = if (form == "Gigantamax") {
             moveText // signature move: "G-Max Fireball"
@@ -199,8 +217,8 @@ class MaxBattleScrapingEngine {
             MAX_MOVE_BY_TYPE[moveType.lowercase()] ?: moveText
         }
 
-        // Celda 4: Max damage
-        val damage = cells[4].text().trim().replace(",", "").toDoubleOrNull() ?: return null
+        // Celda ancla+3: Max damage
+        val damage = cells[anchor + 3].text().trim().replace(",", "").toDoubleOrNull() ?: return null
 
         return PvERankingEntry(
             rat = damage,

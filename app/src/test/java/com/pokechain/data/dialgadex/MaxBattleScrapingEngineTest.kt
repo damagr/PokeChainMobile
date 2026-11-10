@@ -9,13 +9,14 @@ import org.junit.Test
  *
  * El HTML replica la estructura real de
  * https://www.dittobase.com/pokemon-go/best-attackers/max-battles/{type}:
- * tabla FlexTable de Chakra UI con filas <li role="row"> y 7 celdas
- * <div role="cell">: # | Pokémon | Max Move | Attack | Max damage | MMW | % of best
+ * tabla FlexTable de Chakra UI con filas <li role="row">.
  *
- * - El alt del sprite SIEMPRE trae el nombre completo con forma.
- * - El src del sprite es la URL directa (assets.dittobase.com/go/pokemon/{dex}-{slug}.png).
- * - La celda Max Move muestra el signature move para G-Max ("G-Max Fireball")
- *   y SOLO el tipo para Dynamax ("Fire") -> se deriva "Max Flare".
+ * La web HA CAMBIADO de estructura (oct/2026): añadió un celda espaciadora
+ * al inicio (8 celdas) y las sprites pasaron a /go/optimized/v1/pokemon/
+ * ({dex}-{slug}-128.webp). El parser se ancla en la celda del sprite, así
+ * que debe parsear AMBAS estructuras:
+ *   - 7 celdas: # | Pokémon | Max Move | Attack | Max damage | MMW | % of best
+ *   - 8 celdas: [spacer] | # | Pokémon | Max Move | Attack | Max damage | MMW | % of best
  */
 class MaxBattleScrapingEngineTest {
 
@@ -56,6 +57,61 @@ class MaxBattleScrapingEngineTest {
         </body></html>
     """.trimIndent()
 
+    // ── Estructura ACTUAL (oct/2026): 8 celdas con espaciador y sprites .webp ──
+
+    private val newLayoutGmaxRow = """
+        <li role="row" aria-rowindex="2">
+          <div role="cell" style="--col-w:4px"><div class="spacer"></div></div>
+          <div role="cell" style="--col-w:1.75rem" class="ftc"> <p>1</p></div>
+          <div role="cell" style="--col-w:11rem;flex:1 0 11rem" class="ftc">
+            <a href="/pokemon-go/pokedex/cinderace-gigantamax">
+              <div aria-label="Gigantamax"><svg viewBox="0 0 50 50"><use href="/images/pokemon-go/max-form-icons.svg#gigantamax"></use></svg></div>
+              <div><img loading="lazy" alt="Gigantamax Cinderace" src="https://assets.dittobase.com/go/optimized/v1/pokemon/815-cinderace-gigantamax-128.webp"/></div>
+              <p>G-Max Cinderace</p><p>Gigantamax Cinderace</p>
+            </a>
+          </div>
+          <div role="cell" style="--col-w:11rem" class="ftc">
+            <img src="/images/go/attacker-cards/type-fire-128.webp" alt="fire"/>
+            <p>G-Max Fireball</p>
+          </div>
+          <div role="cell" class="ftc ftc--align_end"> <p>238</p></div>
+          <div role="cell" class="ftc ftc--align_end"> <p>580</p></div>
+          <div role="cell" class="ftc ftc--align_end"> <p>129.3</p></div>
+          <div role="cell" class="ftc ftc--align_end"> <p>100.0%</p></div>
+        </li>
+    """.trimIndent()
+
+    private val newLayoutDynamaxRow = """
+        <li role="row" aria-rowindex="3">
+          <div role="cell" style="--col-w:4px"><div class="spacer"></div></div>
+          <div role="cell" style="--col-w:1.75rem" class="ftc"> <p>3</p></div>
+          <div role="cell" style="--col-w:11rem;flex:1 0 11rem" class="ftc">
+            <a href="/pokemon-go/pokedex/darmanitan-standard-dynamax">
+              <div aria-label="Dynamax"><svg viewBox="0 0 50 50"><use href="/images/pokemon-go/max-form-icons.svg#dynamax"></use></svg></div>
+              <div><img loading="lazy" alt="Dynamax Darmanitan Standard" src="https://assets.dittobase.com/go/optimized/v1/pokemon/555-darmanitan-standard-128.webp"/></div>
+              <p>Darmanitan Standard</p><p>Darmanitan Standard</p>
+            </a>
+          </div>
+          <div role="cell" style="--col-w:11rem" class="ftc">
+            <img src="/images/go/attacker-cards/type-fire-128.webp" alt="fire"/>
+            <p>Fire</p>
+          </div>
+          <div role="cell" class="ftc ftc--align_end"> <p>263</p></div>
+          <div role="cell" class="ftc ftc--align_end"> <p>496</p></div>
+          <div role="cell" class="ftc ftc--align_end"> <p>151.2</p></div>
+          <div role="cell" class="ftc ftc--align_end"> <p>86.1%</p></div>
+        </li>
+    """.trimIndent()
+
+    private val newLayoutHtml = """
+        <html><body>
+        <ul role="rowgroup">
+          $newLayoutGmaxRow
+          $newLayoutDynamaxRow
+        </ul>
+        </body></html>
+    """.trimIndent()
+
     // ── Parsing de filas ────────────────────────────────────────────
 
     @Test
@@ -72,6 +128,29 @@ class MaxBattleScrapingEngineTest {
         assertEquals("G-Max Fireball", gmax.cm) // signature move tal cual
         assertEquals(582.0, gmax.rat, 0.001)
         assertEquals(false, gmax.shadow)
+    }
+
+    @Test
+    fun `parses current dittobase layout with spacer cell and webp sprites`() {
+        val entries = engine.parseHtml(newLayoutHtml)
+        assertEquals(2, entries.size) // antes devolvía 0: cells[0] era el espaciador
+
+        val gmax = entries[0]
+        assertEquals(1, gmax.originalRank)
+        assertEquals("Cinderace", gmax.name)
+        assertEquals("Gigantamax", gmax.form)
+        assertEquals(815, gmax.id) // dex desde /go/optimized/v1/pokemon/815-...webp
+        assertEquals("https://assets.dittobase.com/go/optimized/v1/pokemon/815-cinderace-gigantamax-128.webp", gmax.spriteUrl)
+        assertEquals("G-Max Fireball", gmax.cm)
+        assertEquals(580.0, gmax.rat, 0.001)
+
+        val dmax = entries[1]
+        assertEquals(3, dmax.originalRank)
+        assertEquals("Darmanitan Standard", dmax.name)
+        assertEquals("Dynamax", dmax.form)
+        assertEquals(555, dmax.id)
+        assertEquals("Max Flare", dmax.cm) // derivado del tipo "fire"
+        assertEquals(496.0, dmax.rat, 0.001)
     }
 
     @Test
