@@ -266,6 +266,10 @@ object Strings {
     fun maxRankingPickType(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Pick a type…"; AppLanguage.ES -> "Elige un tipo…" }
     fun maxRankingTitle(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Best Max Battle Attackers by Type"; AppLanguage.ES -> "Mejores Atacantes de Combates Max por Tipo" }
     fun maxRankingLoading(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Loading Max Battles…"; AppLanguage.ES -> "Cargando Combates Max…" }
+    fun maxRankingNoData(lang: AppLanguage) = when (lang) {
+        AppLanguage.EN -> "Couldn't load data. Please try again."
+        AppLanguage.ES -> "No se pudieron cargar datos. Inténtalo de nuevo."
+    }
 
     val pveProgress: List<Pair<Float, AppLanguage.() -> String>> = listOf(
         0.1f to { when (this) { AppLanguage.EN -> "Downloading game data..."; AppLanguage.ES -> "Descargando datos del juego..." } },

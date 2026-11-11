@@ -150,6 +150,23 @@ fun MaxRankingScreen(
                     }
                 }
 
+                selectedType != null && !isLoading && error == null && results.isEmpty() -> {
+                    // La fuente puede cambiar de estructura o fallar sin
+                    // excepción: nunca dejar la lista en blanco silencioso
+                    Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = Strings.maxRankingNoData(language),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(16.dp)
+                        )
+                        TextButton(onClick = { refreshKey++ }) {
+                            Text(Strings.retry(language))
+                        }
+                    }
+                }
+
                 selectedType != null -> {
                     LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
                         items(results, key = { it.originalRank to it.name to it.form }) { entry ->
