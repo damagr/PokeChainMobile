@@ -40,6 +40,10 @@ class MaxBattleScrapingEngine {
     private val client = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
+        // Deadline GLOBAL: cubre también la resolución DNS, que no está
+        // protegida por connect/readTimeout y puede colgar la llamada
+        // indefinidamente (DNS privado, VPN, portal cautivo)
+        .callTimeout(20, TimeUnit.SECONDS)
         .build()
 
     // Cache por tipo: "type" -> List<PvERankingEntry>
