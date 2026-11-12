@@ -60,6 +60,12 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+
+    testOptions {
+        // android.util.Log en tests unitarios: que devuelva valores por defecto
+        // en vez de lanzar "Method not mocked"
+        unitTests.isReturnDefaultValues = true
+    }
 }
 
 dependencies {
@@ -93,6 +99,7 @@ dependencies {
 
     // ── Test ────────────────────────────────────────────────────────
     testImplementation("junit:junit:4.13.2")
+    testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
     testImplementation("androidx.compose.ui:ui-graphics")
     testImplementation(platform("androidx.compose:compose-bom:2024.12.01"))
 }
