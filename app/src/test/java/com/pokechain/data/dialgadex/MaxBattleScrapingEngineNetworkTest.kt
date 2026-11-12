@@ -138,4 +138,18 @@ class MaxBattleScrapingEngineNetworkTest {
         assertEquals(first, second)
         assertEquals(1, server.requestCount) // la segunda vez usa la cache
     }
+
+    @Test
+    fun `probe reports the http status`() = runBlocking {
+        server.enqueue(MockResponse().setResponseCode(200))
+
+        assertEquals("HTTP 200", engine().probe())
+    }
+
+    @Test
+    fun `probe reports a failing status`() = runBlocking {
+        server.enqueue(MockResponse().setResponseCode(503))
+
+        assertEquals("HTTP 503", engine().probe())
+    }
 }
