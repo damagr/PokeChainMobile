@@ -22,6 +22,8 @@ import com.pokechain.data.models.PvERankingEntry
 import com.pokechain.data.models.PokemonType
 import com.pokechain.data.models.Strings
 import com.pokechain.ui.components.PokemonRow
+import kotlinx.coroutines.CancellationException
+import java.io.IOException
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,8 +56,16 @@ fun MaxRankingScreen(
         try {
             results = engine.computeMaxByType(type.nameEn.lowercase(), 10)
             listState.scrollToItem(0)
+        } catch (e: CancellationException) {
+            // Salir de la pantalla cancela la petición: no es un error
+            throw e
+        } catch (e: IOException) {
+            // Fallo de red (DNS, VPN, timeout): avisar con un mensaje accionable
+            error = Strings.maxRankingNoConnection(language)
+            results = emptyList()
+            listState.scrollToItem(0)
         } catch (e: Exception) {
-            error = e.message
+            error = e.message ?: Strings.maxRankingNoData(language)
             results = emptyList()
             listState.scrollToItem(0)
         } finally {

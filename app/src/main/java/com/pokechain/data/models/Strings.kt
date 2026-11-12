@@ -270,6 +270,10 @@ object Strings {
         AppLanguage.EN -> "Couldn't load data. Please try again."
         AppLanguage.ES -> "No se pudieron cargar datos. Inténtalo de nuevo."
     }
+    fun maxRankingNoConnection(lang: AppLanguage) = when (lang) {
+        AppLanguage.EN -> "Can't reach the data source. Check your connection, VPN or private DNS."
+        AppLanguage.ES -> "No se puede contactar con la fuente de datos. Revisa tu conexión, VPN o DNS privado."
+    }
 
     val pveProgress: List<Pair<Float, AppLanguage.() -> String>> = listOf(
         0.1f to { when (this) { AppLanguage.EN -> "Downloading game data..."; AppLanguage.ES -> "Descargando datos del juego..." } },
