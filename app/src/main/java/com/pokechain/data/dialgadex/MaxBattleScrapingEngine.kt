@@ -2,7 +2,9 @@ package com.pokechain.data.dialgadex
 
 import android.util.Log
 import com.pokechain.data.models.PvERankingEntry
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.Call
 import okhttp3.Callback
@@ -70,6 +72,9 @@ class MaxBattleScrapingEngine(
 
         /** Deadline de la descarga: pasado este tiempo se cancela y se avisa. */
         const val REQUEST_TIMEOUT_MS = 20_000L
+
+        /** Deadline de la prueba de conexión (diagnóstico). */
+        const val PROBE_TIMEOUT_MS = 5_000L
 
         /** Tipos válidos (coinciden con los slugs de Dittobase, en lowercase) */
         val VALID_TYPES = listOf(
@@ -198,6 +203,25 @@ class MaxBattleScrapingEngine(
                 }
             }
         })
+    }
+
+    /**
+     * Prueba rápida de conectividad con la fuente (para diagnóstico en la
+     * pantalla). Devuelve "HTTP <código>" si responde o el mensaje del error.
+     */
+    suspend fun probe(): String = withContext(Dispatchers.IO) {
+        try {
+            withTimeoutOrNull(PROBE_TIMEOUT_MS) {
+                val request = Request.Builder()
+                    .url("$baseUrl/fire")
+                    .head()
+                    .header("User-Agent", USER_AGENT)
+                    .build()
+                client.newCall(request).execute().use { response -> "HTTP ${response.code}" }
+            } ?: "Timeout de ${PROBE_TIMEOUT_MS / 1000}s"
+        } catch (e: Exception) {
+            "${e.javaClass.simpleName}: ${e.message ?: "sin detalle"}"
+        }
     }
 
     internal fun parseHtml(html: String): List<PvERankingEntry> {

@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.CloudDone
 import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -25,8 +26,10 @@ import com.pokechain.data.models.PvERankingEntry
 import com.pokechain.data.models.PokemonType
 import com.pokechain.data.models.Strings
 import com.pokechain.ui.components.PokemonRow
+import com.pokechain.ui.rememberVersionName
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -40,16 +43,20 @@ fun MaxRankingScreen(
 ) {
     val context = LocalContext.current
     val translator = remember { NameTranslator(context) }
+    val scope = rememberCoroutineScope()
 
     var showDropdown by rememberSaveable { mutableStateOf(false) }
     var selectedType by rememberSaveable { mutableStateOf<PokemonType?>(null) }
     var results by remember { mutableStateOf<List<PvERankingEntry>>(emptyList()) }
     var isLoading by remember { mutableStateOf(false) }
+    var isRefreshing by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var refreshKey by remember { mutableIntStateOf(0) }
     var fromCache by remember { mutableStateOf(false) }
     var cacheDate by remember { mutableStateOf<String?>(null) }
     var cancelled by remember { mutableStateOf(false) }
+    var lastError by remember { mutableStateOf<String?>(null) }
+    var elapsedSeconds by remember { mutableIntStateOf(0) }
     var loadJob by remember { mutableStateOf<Job?>(null) }
     val listState = rememberLazyListState()
 
@@ -58,6 +65,7 @@ fun MaxRankingScreen(
     val loader = remember(engine, snapshot) {
         MaxBattleLoader({ type, count -> engine.computeMaxByType(type, count) }, snapshot)
     }
+    val appVersion = rememberVersionName()
 
     LaunchedEffect(Unit) {
         typeProvider.ensureLoaded()
@@ -65,39 +73,67 @@ fun MaxRankingScreen(
 
     LaunchedEffect(selectedType, refreshKey) {
         val type = selectedType ?: return@LaunchedEffect
-        isLoading = true
+        val slug = type.nameEn.lowercase()
+
         error = null
-        fromCache = false
-        cacheDate = null
+        lastError = null
+        elapsedSeconds = 0
         cancelled = false
+
+        // 1) Datos guardados: al instante y sin red. Si existen, la pantalla
+        //    nunca puede quedarse en blanco ni con el spinner girando.
+        val local = loader.localEntries(slug, 10)
+        if (local.isNotEmpty()) {
+            results = local
+            fromCache = true
+            cacheDate = loader.snapshotDate
+            isLoading = false
+        } else {
+            results = emptyList()
+            fromCache = false
+            cacheDate = null
+            isLoading = true
+        }
+
+        // 2) Actualización desde la fuente en segundo plano: si responde, la
+        //    lista se refresca; si no, se conserva la local.
+        isRefreshing = true
         loadJob = launch {
+            val ticker = launch {
+                while (true) {
+                    delay(1000)
+                    elapsedSeconds++
+                }
+            }
             try {
-                when (val result = loader.load(type.nameEn.lowercase(), 10)) {
+                when (val result = loader.refresh(slug, 10)) {
                     is MaxBattleLoader.Result.Live -> {
                         results = result.entries
-                    }
-                    is MaxBattleLoader.Result.Cached -> {
-                        // La red no respondió: se muestran los datos empaquetados
-                        results = result.entries
-                        fromCache = true
-                        cacheDate = result.generatedAt
+                        fromCache = false
+                        cacheDate = null
+                        lastError = null
                     }
                     is MaxBattleLoader.Result.Failed -> {
-                        error = if (result.isNetwork) {
-                            Strings.maxRankingNoConnection(language)
-                        } else {
-                            Strings.maxRankingNoData(language)
+                        lastError = result.message
+                        // Sin datos guardados y sin red: solo queda el error
+                        if (results.isEmpty()) {
+                            error = if (result.isNetwork) {
+                                Strings.maxRankingNoConnection(language)
+                            } else {
+                                Strings.maxRankingNoData(language)
+                            }
                         }
-                        results = emptyList()
                     }
                 }
-                listState.scrollToItem(0)
+                if (results.isNotEmpty()) listState.scrollToItem(0)
             } catch (e: CancellationException) {
                 // Botón Cancelar o salir de la pantalla: no es un error
                 cancelled = true
                 throw e
             } finally {
+                ticker.cancel()
                 isLoading = false
+                isRefreshing = false
             }
         }
         loadJob?.invokeOnCompletion { loadJob = null }
@@ -212,14 +248,24 @@ fun MaxRankingScreen(
 
                 selectedType != null -> {
                     LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
-                        if (fromCache) {
-                            item(key = "cache-banner") {
-                                CacheBanner(
-                                    date = cacheDate,
-                                    language = language,
-                                    onRetry = { refreshKey++ }
-                                )
-                            }
+                        item(key = "status-banner") {
+                            MaxStatusBanner(
+                                fromCache = fromCache,
+                                cacheDate = cacheDate,
+                                isRefreshing = isRefreshing,
+                                elapsedSeconds = elapsedSeconds,
+                                lastError = lastError,
+                                appVersion = appVersion,
+                                language = language,
+                                onRefresh = { refreshKey++ },
+                                onCancel = { loadJob?.cancel() },
+                                onTestConnection = {
+                                    scope.launch {
+                                        val probe = engine.probe()
+                                        lastError = probe
+                                    }
+                                }
+                            )
                         }
                         items(results, key = { it.originalRank to it.name to it.form }) { entry ->
                             // Dittobase no muestra el fast move: subtitle = solo el Max Move
@@ -269,36 +315,75 @@ private fun cleanMaxName(entry: PvERankingEntry): String {
 }
 
 /**
- * Aviso de que los datos mostrados vienen del snapshot local (la fuente en
- * línea no respondió) con opción de reintentar la descarga.
+ * Panel de estado del Top por Max: de dónde vienen los datos, si se está
+ * actualizando y el último error técnico (para diagnosticar en el dispositivo
+ * sin necesidad de logcat).
  */
 @Composable
-private fun CacheBanner(
-    date: String?,
+private fun MaxStatusBanner(
+    fromCache: Boolean,
+    cacheDate: String?,
+    isRefreshing: Boolean,
+    elapsedSeconds: Int,
+    lastError: String?,
+    appVersion: String,
     language: AppLanguage,
-    onRetry: () -> Unit
+    onRefresh: () -> Unit,
+    onCancel: () -> Unit,
+    onTestConnection: () -> Unit
 ) {
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .padding(horizontal = 12.dp, vertical = 6.dp)
     ) {
-        Icon(
-            imageVector = Icons.Outlined.CloudOff,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(18.dp)
-        )
-        Spacer(Modifier.width(8.dp))
-        Text(
-            text = Strings.maxRankingCached(language, date.orEmpty()),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.weight(1f)
-        )
-        TextButton(onClick = onRetry) {
-            Text(Strings.retry(language))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = if (fromCache) Icons.Outlined.CloudOff else Icons.Outlined.CloudDone,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(Modifier.width(8.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = when {
+                        isRefreshing -> Strings.maxRankingUpdating(language, elapsedSeconds)
+                        fromCache -> Strings.maxRankingCached(language, cacheDate.orEmpty())
+                        else -> Strings.maxRankingLive(language)
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (!lastError.isNullOrBlank()) {
+                    Text(
+                        text = lastError,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (lastError.startsWith("HTTP 2")) {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        } else {
+                            MaterialTheme.colorScheme.error
+                        }
+                    )
+                }
+                Text(
+                    text = Strings.maxRankingVersion(language, appVersion),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            if (isRefreshing) {
+                TextButton(onClick = onCancel) {
+                    Text(Strings.maxRankingCancel(language))
+                }
+            } else {
+                TextButton(onClick = onRefresh) {
+                    Text(Strings.maxRankingRefresh(language))
+                }
+            }
+        }
+        TextButton(onClick = onTestConnection) {
+            Text(Strings.maxRankingTestConnection(language))
         }
     }
 }
