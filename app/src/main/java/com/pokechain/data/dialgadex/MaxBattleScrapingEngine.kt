@@ -1,16 +1,22 @@
 package com.pokechain.data.dialgadex
 
+import android.util.Log
 import com.pokechain.data.models.PvERankingEntry
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeoutOrNull
+import okhttp3.Call
+import okhttp3.Callback
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.Response
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.jsoup.select.Elements
+import java.io.IOException
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 /**
  * Scraper de rankings de Combates Max (Dynamax/Gigantamax) desde Dittobase.
@@ -34,24 +40,36 @@ import java.util.concurrent.TimeUnit
  * - La celda Max Move muestra el nombre del signature move para G-Max
  *   ("G-Max Fireball") y SOLO el tipo para Dynamax ("Fire") — se deriva
  *   el nombre del Max Move con MAX_MOVE_BY_TYPE.
+ *
+ * La descarga se hace con la API asíncrona de OkHttp: así el timeout de la
+ * coroutine se cumple siempre (incluso si la resolución DNS del dispositivo
+ * se queda colgada, que OkHttp NO puede interrumpir) y la pantalla nunca
+ * queda cargando indefinidamente.
  */
-class MaxBattleScrapingEngine {
+class MaxBattleScrapingEngine(
+    /** URL base de la fuente (parametrizable para los tests). */
+    private val baseUrl: String = BASE_URL,
+    /** Deadline de la descarga en ms (parametrizable para los tests). */
+    private val timeoutMs: Long = REQUEST_TIMEOUT_MS
+) {
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
-        // Deadline GLOBAL: cubre también la resolución DNS, que no está
-        // protegida por connect/readTimeout y puede colgar la llamada
-        // indefinidamente (DNS privado, VPN, portal cautivo)
-        .callTimeout(20, TimeUnit.SECONDS)
+        // Red de seguridad de OkHttp (el deadline real es timeoutMs)
+        .callTimeout(25, TimeUnit.SECONDS)
         .build()
 
     // Cache por tipo: "type" -> List<PvERankingEntry>
-    private val typeCache = mutableMapOf<String, List<PvERankingEntry>>()
-    private val mutex = Mutex()
+    private val typeCache = ConcurrentHashMap<String, List<PvERankingEntry>>()
 
     companion object {
+        private const val TAG = "MaxBattle"
         private const val BASE_URL = "https://www.dittobase.com/pokemon-go/best-attackers/max-battles"
+        private const val USER_AGENT = "Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36"
+
+        /** Deadline de la descarga: pasado este tiempo se cancela y se avisa. */
+        const val REQUEST_TIMEOUT_MS = 20_000L
 
         /** Tipos válidos (coinciden con los slugs de Dittobase, en lowercase) */
         val VALID_TYPES = listOf(
@@ -110,36 +128,76 @@ class MaxBattleScrapingEngine {
     /**
      * Devuelve el Top [count] (por defecto 10) de atacantes Max para un tipo.
      * El orden ya viene dado por la web (ranked by Max Attack damage).
+     *
+     * @throws IOException si la descarga falla o se agota el tiempo.
      */
-    suspend fun computeMaxByType(type: String, count: Int = 10): List<PvERankingEntry> = withContext(Dispatchers.IO) {
-        mutex.withLock {
-            typeCache[type]?.let { cached ->
-                return@withLock cached.take(count)
-            }
-
-            val results = fetchAndParseType(type)
-            // No cachear vacío: un 404/captcha transitorio no debe petrificar el ranking
-            if (results.isEmpty()) return@withLock emptyList()
-            val withRanks = results.take(count).mapIndexed { index, entry ->
-                entry.copy(originalRank = index + 1)
-            }
-            typeCache[type] = withRanks
-            withRanks
+    suspend fun computeMaxByType(type: String, count: Int = 10): List<PvERankingEntry> {
+        val key = type.trim().lowercase()
+        typeCache[key]?.let { cached ->
+            return cached.take(count)
         }
+
+        Log.d(TAG, "Descargando ranking Max para '$key'")
+        val html = withTimeoutOrNull(timeoutMs) { fetchHtml(key) }
+            ?: throw IOException("Timeout de ${timeoutMs / 1000}s al descargar los datos")
+
+        val results = parseHtml(html)
+        Log.d(TAG, "Parseados ${results.size} atacantes para '$key'")
+        // No cachear vacío: un 404/captcha transitorio no debe petrificar el ranking
+        if (results.isEmpty()) return emptyList()
+        val withRanks = results.take(count).mapIndexed { index, entry ->
+            entry.copy(originalRank = index + 1)
+        }
+        typeCache[key] = withRanks
+        return withRanks
     }
 
-    private fun fetchAndParseType(type: String): List<PvERankingEntry> {
+    /**
+     * Descarga el HTML de un tipo de forma asíncrona y no bloqueante: la
+     * coroutine puede cancelarse (timeout o "Cancelar" del usuario) y la
+     * petición de OkHttp se aborta con call.cancel().
+     */
+    private suspend fun fetchHtml(type: String): String = suspendCancellableCoroutine { continuation ->
         val request = Request.Builder()
-            .url("$BASE_URL/$type")
-            .header("User-Agent", "Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36")
+            .url("$baseUrl/$type")
+            .header("User-Agent", USER_AGENT)
             .build()
 
-        client.newCall(request).execute().use { response ->
-            // 404/500/captcha: devolver vacío SIN cachear (ver computeMaxByType)
-            if (!response.isSuccessful) return emptyList()
-            val html = response.body?.string() ?: return emptyList()
-            return parseHtml(html)
+        val call = client.newCall(request)
+        continuation.invokeOnCancellation {
+            Log.w(TAG, "Petición cancelada para '$type'")
+            call.cancel()
         }
+
+        call.enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                Log.w(TAG, "Fallo de red en '$type': ${e.javaClass.simpleName}: ${e.message}")
+                if (continuation.isActive) continuation.resumeWithException(e)
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                response.use {
+                    val code = it.code
+                    if (!it.isSuccessful) {
+                        Log.w(TAG, "HTTP $code en '$type'")
+                        if (continuation.isActive) {
+                            continuation.resumeWithException(IOException("HTTP $code"))
+                        }
+                        return
+                    }
+                    val body = it.body?.string()
+                    if (body.isNullOrEmpty()) {
+                        Log.w(TAG, "Respuesta vacía en '$type'")
+                        if (continuation.isActive) {
+                            continuation.resumeWithException(IOException("Respuesta vacía"))
+                        }
+                        return
+                    }
+                    Log.d(TAG, "OK '$type': ${body.length} caracteres")
+                    if (continuation.isActive) continuation.resume(body)
+                }
+            }
+        })
     }
 
     internal fun parseHtml(html: String): List<PvERankingEntry> {
@@ -247,7 +305,7 @@ class MaxBattleScrapingEngine {
         )
     }
 
-    fun getCachedByType(type: String): List<PvERankingEntry> = typeCache[type] ?: emptyList()
+    fun getCachedByType(type: String): List<PvERankingEntry> = typeCache[type.lowercase()] ?: emptyList()
 
     fun clearCache() {
         typeCache.clear()
