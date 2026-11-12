@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -14,7 +15,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.pokechain.data.dialgadex.MaxBattleLoader
 import com.pokechain.data.dialgadex.MaxBattleScrapingEngine
+import com.pokechain.data.dialgadex.MaxBattleSnapshot
 import com.pokechain.data.dialgadex.NameTranslator
 import com.pokechain.data.dialgadex.PokemonTypeProvider
 import com.pokechain.data.models.AppLanguage
@@ -23,7 +26,8 @@ import com.pokechain.data.models.PokemonType
 import com.pokechain.data.models.Strings
 import com.pokechain.ui.components.PokemonRow
 import kotlinx.coroutines.CancellationException
-import java.io.IOException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -42,8 +46,18 @@ fun MaxRankingScreen(
     var results by remember { mutableStateOf<List<PvERankingEntry>>(emptyList()) }
     var isLoading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
-    var refreshKey by remember { mutableStateOf(0) }
+    var refreshKey by remember { mutableIntStateOf(0) }
+    var fromCache by remember { mutableStateOf(false) }
+    var cacheDate by remember { mutableStateOf<String?>(null) }
+    var cancelled by remember { mutableStateOf(false) }
+    var loadJob by remember { mutableStateOf<Job?>(null) }
     val listState = rememberLazyListState()
+
+    // Respaldo local de los rankings (por si dittobase no es accesible)
+    val snapshot = remember { MaxBattleSnapshot.load(context) }
+    val loader = remember(engine, snapshot) {
+        MaxBattleLoader({ type, count -> engine.computeMaxByType(type, count) }, snapshot)
+    }
 
     LaunchedEffect(Unit) {
         typeProvider.ensureLoaded()
@@ -53,24 +67,40 @@ fun MaxRankingScreen(
         val type = selectedType ?: return@LaunchedEffect
         isLoading = true
         error = null
-        try {
-            results = engine.computeMaxByType(type.nameEn.lowercase(), 10)
-            listState.scrollToItem(0)
-        } catch (e: CancellationException) {
-            // Salir de la pantalla cancela la petición: no es un error
-            throw e
-        } catch (e: IOException) {
-            // Fallo de red (DNS, VPN, timeout): avisar con un mensaje accionable
-            error = Strings.maxRankingNoConnection(language)
-            results = emptyList()
-            listState.scrollToItem(0)
-        } catch (e: Exception) {
-            error = e.message ?: Strings.maxRankingNoData(language)
-            results = emptyList()
-            listState.scrollToItem(0)
-        } finally {
-            isLoading = false
+        fromCache = false
+        cacheDate = null
+        cancelled = false
+        loadJob = launch {
+            try {
+                when (val result = loader.load(type.nameEn.lowercase(), 10)) {
+                    is MaxBattleLoader.Result.Live -> {
+                        results = result.entries
+                    }
+                    is MaxBattleLoader.Result.Cached -> {
+                        // La red no respondió: se muestran los datos empaquetados
+                        results = result.entries
+                        fromCache = true
+                        cacheDate = result.generatedAt
+                    }
+                    is MaxBattleLoader.Result.Failed -> {
+                        error = if (result.isNetwork) {
+                            Strings.maxRankingNoConnection(language)
+                        } else {
+                            Strings.maxRankingNoData(language)
+                        }
+                        results = emptyList()
+                    }
+                }
+                listState.scrollToItem(0)
+            } catch (e: CancellationException) {
+                // Botón Cancelar o salir de la pantalla: no es un error
+                cancelled = true
+                throw e
+            } finally {
+                isLoading = false
+            }
         }
+        loadJob?.invokeOnCompletion { loadJob = null }
     }
 
     Scaffold(
@@ -142,6 +172,9 @@ fun MaxRankingScreen(
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                            TextButton(onClick = { loadJob?.cancel() }) {
+                                Text(Strings.maxRankingCancel(language))
+                            }
                         }
                     }
                 }
@@ -160,7 +193,7 @@ fun MaxRankingScreen(
                     }
                 }
 
-                selectedType != null && !isLoading && error == null && results.isEmpty() -> {
+                selectedType != null && !isLoading && error == null && results.isEmpty() && !cancelled -> {
                     // La fuente puede cambiar de estructura o fallar sin
                     // excepción: nunca dejar la lista en blanco silencioso
                     Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -179,6 +212,15 @@ fun MaxRankingScreen(
 
                 selectedType != null -> {
                     LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
+                        if (fromCache) {
+                            item(key = "cache-banner") {
+                                CacheBanner(
+                                    date = cacheDate,
+                                    language = language,
+                                    onRetry = { refreshKey++ }
+                                )
+                            }
+                        }
                         items(results, key = { it.originalRank to it.name to it.form }) { entry ->
                             // Dittobase no muestra el fast move: subtitle = solo el Max Move
                             val moveset = entry.cm?.let { translator.getMoveName(it, language) } ?: "-"
@@ -223,5 +265,40 @@ private fun cleanMaxName(entry: PvERankingEntry): String {
         "Crowned Sword", "Crowned Shield" -> "${entry.name} (${entry.form})"
         "Eternamax" -> "Eternamax ${entry.name}"
         else -> entry.name
+    }
+}
+
+/**
+ * Aviso de que los datos mostrados vienen del snapshot local (la fuente en
+ * línea no respondió) con opción de reintentar la descarga.
+ */
+@Composable
+private fun CacheBanner(
+    date: String?,
+    language: AppLanguage,
+    onRetry: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.CloudOff,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(18.dp)
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(
+            text = Strings.maxRankingCached(language, date.orEmpty()),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f)
+        )
+        TextButton(onClick = onRetry) {
+            Text(Strings.retry(language))
+        }
     }
 }

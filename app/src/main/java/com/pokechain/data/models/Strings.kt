@@ -274,6 +274,11 @@ object Strings {
         AppLanguage.EN -> "Can't reach the data source. Check your connection, VPN or private DNS."
         AppLanguage.ES -> "No se puede contactar con la fuente de datos. Revisa tu conexión, VPN o DNS privado."
     }
+    fun maxRankingCancel(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Cancel"; AppLanguage.ES -> "Cancelar" }
+    fun maxRankingCached(lang: AppLanguage, date: String) = when (lang) {
+        AppLanguage.EN -> if (date.isBlank()) "Showing saved data" else "Showing saved data · $date"
+        AppLanguage.ES -> if (date.isBlank()) "Mostrando datos guardados" else "Mostrando datos guardados · $date"
+    }
 
     val pveProgress: List<Pair<Float, AppLanguage.() -> String>> = listOf(
         0.1f to { when (this) { AppLanguage.EN -> "Downloading game data..."; AppLanguage.ES -> "Descargando datos del juego..." } },
