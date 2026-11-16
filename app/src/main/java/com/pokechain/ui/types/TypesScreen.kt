@@ -392,6 +392,11 @@ private fun PokemonTypeDetail(
         try {
             // Reutilizar el GameMaster del provider compartido si ya está descargado
             val gm = typeProvider.gameMasterResponse ?: PvPokeApi.fetchGameMaster()
+            if (gm == null) {
+                // Sin red no hay datos de PvP: avisar y no romper la pantalla
+                pvpError = Strings.noConnection(language)
+                return@LaunchedEffect
+            }
             val targetDex = entry.dex
             val allLeagues = PvPLeague.entries
 
@@ -779,7 +784,7 @@ private suspend fun fetchLeagueRank(
 ): PvpLeagueRank {
     return try {
         val raw = PvPokeApi.fetchRankings(league.cp, league.cup)
-        PvpLeagueRank(league, buildFormRanks(raw, targetDex, gm, language))
+        PvpLeagueRank(league, buildFormRanks(raw.orEmpty(), targetDex, gm, language))
     } catch (_: Exception) {
         PvpLeagueRank(league, emptyList())
     }

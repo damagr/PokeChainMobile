@@ -334,9 +334,19 @@ fun startPvPFetch(
         try {
             advanceStage(); delay(50)
             val gameMaster = PvPokeApi.fetchGameMaster()
+            if (gameMaster == null) {
+                error(Strings.noConnection(language))
+                showErrorDialog(true)
+                return@launch
+            }
 
             advanceStage(); delay(50)
             val rankings = PvPokeApi.fetchRankings(filters.league.cp, filters.league.cup)
+            if (rankings == null) {
+                error(Strings.noConnection(language))
+                showErrorDialog(true)
+                return@launch
+            }
 
             advanceStage(); delay(50)
             val processor = PvPDataProcessor(gameMaster)

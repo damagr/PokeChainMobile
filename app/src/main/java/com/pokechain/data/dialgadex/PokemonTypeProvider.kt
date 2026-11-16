@@ -360,7 +360,9 @@ class PokemonTypeProvider {
         }
         isLoading = true
         try {
-            val gm = PvPokeApi.fetchGameMaster()
+            // fetchGameMaster() devuelve null si falla la red: sin gamemaster
+            // la app sigue funcionando con los datos locales, pero sin cerrar
+            val gm = PvPokeApi.fetchGameMaster() ?: return
             rawGameMaster = gm
             allEntries = gm.pokemon.map {
                 PokemonTypeEntry(
@@ -371,6 +373,13 @@ class PokemonTypeProvider {
                     baseStats = it.baseStats,
                 )
             }
+        } catch (e: Exception) {
+            // Nunca propagar: esta llamada se hace desde LaunchedEffect y una
+            // excepcion no controlada cerraria la app
+            android.util.Log.w(
+                "PokemonTypeProvider",
+                "No se pudo cargar el gamemaster: ${e.javaClass.simpleName}: ${e.message}"
+            )
         } finally {
             isLoading = false
         }

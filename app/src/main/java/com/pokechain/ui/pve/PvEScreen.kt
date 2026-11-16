@@ -114,6 +114,11 @@ fun PvEScreen(language: AppLanguage = AppLanguage.ES, advancedMode: Boolean = fa
 
                 advanceStage(); delay(50)
                 val gm = PvPokeApi.fetchGameMaster()
+                if (gm == null) {
+                    error = Strings.noConnection(language)
+                    showErrorDialog = true
+                    return@launch
+                }
 
                 advanceStage(); delay(50)
                 val processor = PvPDataProcessor(gm)

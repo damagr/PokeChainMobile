@@ -275,26 +275,9 @@ object Strings {
         AppLanguage.ES -> "No se puede contactar con la fuente de datos. Revisa tu conexión, VPN o DNS privado."
     }
     fun maxRankingCancel(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Cancel"; AppLanguage.ES -> "Cancelar" }
-    fun maxRankingCached(lang: AppLanguage, date: String) = when (lang) {
-        AppLanguage.EN -> if (date.isBlank()) "Showing saved data" else "Showing saved data · $date"
-        AppLanguage.ES -> if (date.isBlank()) "Mostrando datos guardados" else "Mostrando datos guardados · $date"
-    }
-    fun maxRankingUpdating(lang: AppLanguage, seconds: Int) = when (lang) {
-        AppLanguage.EN -> "Updating… (${seconds}s)"
-        AppLanguage.ES -> "Actualizando… (${seconds}s)"
-    }
-    fun maxRankingLive(lang: AppLanguage) = when (lang) {
-        AppLanguage.EN -> "Live data"
-        AppLanguage.ES -> "Datos en línea"
-    }
-    fun maxRankingRefresh(lang: AppLanguage) = when (lang) { AppLanguage.EN -> "Refresh"; AppLanguage.ES -> "Actualizar" }
-    fun maxRankingTestConnection(lang: AppLanguage) = when (lang) {
-        AppLanguage.EN -> "Test connection"
-        AppLanguage.ES -> "Probar conexión"
-    }
-    fun maxRankingVersion(lang: AppLanguage, version: String) = when (lang) {
-        AppLanguage.EN -> "App version: $version"
-        AppLanguage.ES -> "Versión de la app: $version"
+    fun noConnection(lang: AppLanguage) = when (lang) {
+        AppLanguage.EN -> "No connection. Check your network, VPN or private DNS."
+        AppLanguage.ES -> "Sin conexión. Revisa tu red, VPN o DNS privado."
     }
 
     val pveProgress: List<Pair<Float, AppLanguage.() -> String>> = listOf(
