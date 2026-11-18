@@ -227,4 +227,92 @@ class IvCalculatorTest {
         val normal = IvCalculator.getPowerUpCost(1.0, 1.5)
         assertEquals(normal, shadowOff)
     }
+
+    // ── Eternatus (dex 890) cost table — Pokexperto, valores propios de Eternatus ──
+    // Tabla propia de Eternatus: caramelos mucho más altos que el estándar
+    // (p.ej. nivel 1.0 cuesta 30 caramelos, no 1; nivel 39.5 cuesta 8900 caramelos)
+
+    @Test
+    fun `eternatus one step from 1_0 to 1_5 costs 200 dust 30 candy`() {
+        val cost = IvCalculator.getPowerUpCost(1.0, 1.5, dex = 890)
+        assertEquals(200, cost.dust)
+        assertEquals(30, cost.candy)
+        assertEquals(0, cost.xlCandy)
+    }
+
+    @Test
+    fun `eternatus one step from 9_5 to 10_0 costs 1000 dust 30 candy`() {
+        val cost = IvCalculator.getPowerUpCost(9.5, 10.0, dex = 890)
+        assertEquals(1000, cost.dust)
+        assertEquals(30, cost.candy)
+        assertEquals(0, cost.xlCandy)
+    }
+
+    @Test
+    fun `eternatus one step from 25_0 to 25_5 costs 4000 dust 90 candy`() {
+        val cost = IvCalculator.getPowerUpCost(25.0, 25.5, dex = 890)
+        assertEquals(4000, cost.dust)
+        assertEquals(90, cost.candy)
+        assertEquals(0, cost.xlCandy)
+    }
+
+    @Test
+    fun `eternatus one step from 26_0 to 26_5 costs 4000 dust 120 candy`() {
+        val cost = IvCalculator.getPowerUpCost(26.0, 26.5, dex = 890)
+        assertEquals(4000, cost.dust)
+        assertEquals(120, cost.candy)
+        assertEquals(0, cost.xlCandy)
+    }
+
+    @Test
+    fun `eternatus one step from 31_0 to 31_5 costs 6000 dust 175 candy`() {
+        val cost = IvCalculator.getPowerUpCost(31.0, 31.5, dex = 890)
+        assertEquals(6000, cost.dust)
+        assertEquals(175, cost.candy)
+        assertEquals(0, cost.xlCandy)
+    }
+
+    @Test
+    fun `eternatus one step from 39_5 to 40_0 costs 10000 dust 890 candy`() {
+        val cost = IvCalculator.getPowerUpCost(39.5, 40.0, dex = 890)
+        assertEquals(10000, cost.dust)
+        assertEquals(890, cost.candy)
+        assertEquals(0, cost.xlCandy)
+    }
+
+    @Test
+    fun `eternatus one step from 40_0 to 40_5 costs 10000 dust 0 candy 100 xl`() {
+        val cost = IvCalculator.getPowerUpCost(40.0, 40.5, dex = 890)
+        assertEquals(10000, cost.dust)
+        assertEquals(0, cost.candy)
+        assertEquals(100, cost.xlCandy)
+    }
+
+    @Test
+    fun `eternatus one step from 49_0 to 49_5 costs 15000 dust 0 candy 890 xl`() {
+        val cost = IvCalculator.getPowerUpCost(49.0, 49.5, dex = 890)
+        assertEquals(15000, cost.dust)
+        assertEquals(0, cost.candy)
+        assertEquals(890, cost.xlCandy)
+    }
+
+    @Test
+    fun `eternatus full climb 40 to 50 totals 8900 xl candy`() {
+        // Suma de todos los pasos XL de 40.0 a 50.0 según pokexperto:
+        // 40.0-41.5: 100*4=400, 42.0-43.5: 200*4=800, 44.0-45.5: 400*4=1600,
+        // 46.0-47.5: 635*4=2540, 48.0-49.5: 890*4=3560 -> total 8900
+        val cost = IvCalculator.getPowerUpCost(40.0, 50.0, dex = 890)
+        assertEquals(8900, cost.xlCandy)
+        assertEquals(0, cost.candy)
+    }
+
+    @Test
+    fun `eternatus dex 0 uses standard table not eternatus table`() {
+        // Sin dex (0) debe usar la tabla estándar: 1 caramelo en 1.0
+        val standard = IvCalculator.getPowerUpCost(1.0, 1.5)
+        val eternatus = IvCalculator.getPowerUpCost(1.0, 1.5, dex = 890)
+        assertEquals(1, standard.candy)
+        assertEquals(30, eternatus.candy)
+        assertTrue(standard != eternatus)
+    }
 }

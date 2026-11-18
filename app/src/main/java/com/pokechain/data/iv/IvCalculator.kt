@@ -136,6 +136,9 @@ object IvCalculator {
     /** Levels sorted ascending for iteration. */
     val allLevels: List<Double> = cpmTable.keys.sorted()
 
+    /** Dex de Eternatus, cuya tabla de costes de subida es distinta a la estándar (Pokexperto). */
+    private const val DEX_ETERNATUS = 890
+
     /**
      * Calculate CP at a given level for a Pokémon with known base stats and IVs.
      * Formula: CP = floor((baseAtk + atkIV) × √(baseDef + defIV) × √(baseSta + staIV) × CPM² / 10)
@@ -333,13 +336,128 @@ object IvCalculator {
     }
 
     /**
+     * Power-up cost per half-level (0.5 increment) para Eternatus (dex 890).
+     * Eternatus tiene una tabla de costes propia, muy superior a la estándar.
+     * Returns (dust, candy, xlCandy).
+     * Data sourced from Pokexperto (24/07/2025).
+     * Regular candy stops at level 39.5, XL candy takes over for levels 40+.
+     */
+    private fun costPerPowerUpEternatus(fromLevel: Double): Triple<Int, Int, Int> {
+        val lvl = fromLevel
+        return when {
+            // ── Regular candy (1.0 – 39.5) ──────────────────────
+            lvl < 1.5  -> Triple(200, 30, 0)
+            lvl < 2.0  -> Triple(200, 30, 0)
+            lvl < 2.5  -> Triple(200, 30, 0)
+            lvl < 3.0  -> Triple(200, 30, 0)
+            lvl < 3.5  -> Triple(400, 30, 0)
+            lvl < 4.0  -> Triple(400, 30, 0)
+            lvl < 4.5  -> Triple(400, 30, 0)
+            lvl < 5.0  -> Triple(400, 30, 0)
+            lvl < 5.5  -> Triple(600, 30, 0)
+            lvl < 6.0  -> Triple(600, 30, 0)
+            lvl < 6.5  -> Triple(600, 30, 0)
+            lvl < 7.0  -> Triple(600, 30, 0)
+            lvl < 7.5  -> Triple(800, 30, 0)
+            lvl < 8.0  -> Triple(800, 30, 0)
+            lvl < 8.5  -> Triple(800, 30, 0)
+            lvl < 9.0  -> Triple(800, 30, 0)
+            lvl < 9.5  -> Triple(1000, 30, 0)
+            lvl < 10.0 -> Triple(1000, 30, 0)
+            lvl < 10.5 -> Triple(1000, 30, 0)
+            lvl < 11.0 -> Triple(1000, 30, 0)
+            lvl < 11.5 -> Triple(1300, 60, 0)
+            lvl < 12.0 -> Triple(1300, 60, 0)
+            lvl < 12.5 -> Triple(1300, 60, 0)
+            lvl < 13.0 -> Triple(1300, 60, 0)
+            lvl < 13.5 -> Triple(1600, 60, 0)
+            lvl < 14.0 -> Triple(1600, 60, 0)
+            lvl < 14.5 -> Triple(1600, 60, 0)
+            lvl < 15.0 -> Triple(1600, 60, 0)
+            lvl < 15.5 -> Triple(1900, 60, 0)
+            lvl < 16.0 -> Triple(1900, 60, 0)
+            lvl < 16.5 -> Triple(1900, 60, 0)
+            lvl < 17.0 -> Triple(1900, 60, 0)
+            lvl < 17.5 -> Triple(2200, 60, 0)
+            lvl < 18.0 -> Triple(2200, 60, 0)
+            lvl < 18.5 -> Triple(2200, 60, 0)
+            lvl < 19.0 -> Triple(2200, 60, 0)
+            lvl < 19.5 -> Triple(2500, 60, 0)
+            lvl < 20.0 -> Triple(2500, 60, 0)
+            lvl < 20.5 -> Triple(2500, 60, 0)
+            lvl < 21.0 -> Triple(2500, 60, 0)
+            lvl < 21.5 -> Triple(3000, 90, 0)
+            lvl < 22.0 -> Triple(3000, 90, 0)
+            lvl < 22.5 -> Triple(3000, 90, 0)
+            lvl < 23.0 -> Triple(3000, 90, 0)
+            lvl < 23.5 -> Triple(3500, 90, 0)
+            lvl < 24.0 -> Triple(3500, 90, 0)
+            lvl < 24.5 -> Triple(3500, 90, 0)
+            lvl < 25.0 -> Triple(3500, 90, 0)
+            lvl < 25.5 -> Triple(4000, 90, 0)
+            lvl < 26.0 -> Triple(4000, 90, 0)
+            lvl < 26.5 -> Triple(4000, 120, 0)
+            lvl < 27.0 -> Triple(4000, 120, 0)
+            lvl < 27.5 -> Triple(4500, 120, 0)
+            lvl < 28.0 -> Triple(4500, 120, 0)
+            lvl < 28.5 -> Triple(4500, 120, 0)
+            lvl < 29.0 -> Triple(4500, 120, 0)
+            lvl < 29.5 -> Triple(5000, 120, 0)
+            lvl < 30.0 -> Triple(5000, 120, 0)
+            lvl < 30.5 -> Triple(5000, 120, 0)
+            lvl < 31.0 -> Triple(5000, 120, 0)
+            lvl < 31.5 -> Triple(6000, 175, 0)
+            lvl < 32.0 -> Triple(6000, 175, 0)
+            lvl < 32.5 -> Triple(6000, 175, 0)
+            lvl < 33.0 -> Triple(6000, 175, 0)
+            lvl < 33.5 -> Triple(7000, 225, 0)
+            lvl < 34.0 -> Triple(7000, 225, 0)
+            lvl < 34.5 -> Triple(7000, 225, 0)
+            lvl < 35.0 -> Triple(7000, 225, 0)
+            lvl < 35.5 -> Triple(8000, 300, 0)
+            lvl < 36.0 -> Triple(8000, 300, 0)
+            lvl < 36.5 -> Triple(8000, 300, 0)
+            lvl < 37.0 -> Triple(8000, 300, 0)
+            lvl < 37.5 -> Triple(9000, 375, 0)
+            lvl < 38.0 -> Triple(9000, 375, 0)
+            lvl < 38.5 -> Triple(9000, 375, 0)
+            lvl < 39.0 -> Triple(9000, 375, 0)
+            lvl < 39.5 -> Triple(10000, 890, 0)
+            lvl < 40.0 -> Triple(10000, 890, 0)
+            // ── XL candy only (40.0 – 50.0) ────────────────────
+            lvl < 40.5 -> Triple(10000, 0, 100)
+            lvl < 41.0 -> Triple(10000, 0, 100)
+            lvl < 41.5 -> Triple(11000, 0, 100)
+            lvl < 42.0 -> Triple(11000, 0, 100)
+            lvl < 42.5 -> Triple(11000, 0, 200)
+            lvl < 43.0 -> Triple(11000, 0, 200)
+            lvl < 43.5 -> Triple(12000, 0, 200)
+            lvl < 44.0 -> Triple(12000, 0, 200)
+            lvl < 44.5 -> Triple(12000, 0, 400)
+            lvl < 45.0 -> Triple(12000, 0, 400)
+            lvl < 45.5 -> Triple(13000, 0, 400)
+            lvl < 46.0 -> Triple(13000, 0, 400)
+            lvl < 46.5 -> Triple(13000, 0, 635)
+            lvl < 47.0 -> Triple(13000, 0, 635)
+            lvl < 47.5 -> Triple(14000, 0, 635)
+            lvl < 48.0 -> Triple(14000, 0, 635)
+            lvl < 48.5 -> Triple(14000, 0, 890)
+            lvl < 49.0 -> Triple(14000, 0, 890)
+            lvl < 49.5 -> Triple(15000, 0, 890)
+            lvl < 50.0 -> Triple(15000, 0, 890)
+            else       -> Triple(0, 0, 0)
+        }
+    }
+
+    /**
      * Calculates total dust, candy, and XL candy required to power up
      * from [fromLevel] to [toLevel] (inclusive of each 0.5 step).
      *
+     * @param dex     Pokémon dex number (used for special cost tables, e.g. Eternatus = 890).
      * @param isShadow true para costes de Pokémon Oscuros (recargo del 20%,
      *                 con valores literales de Pokexperto)
      */
-    fun getPowerUpCost(fromLevel: Double, toLevel: Double, isShadow: Boolean = false): PowerUpCost {
+    fun getPowerUpCost(fromLevel: Double, toLevel: Double, isShadow: Boolean = false, dex: Int = 0): PowerUpCost {
         if (toLevel <= fromLevel) return PowerUpCost(0, 0, 0)
 
         var dust = 0
@@ -348,7 +466,11 @@ object IvCalculator {
         var current = fromLevel
 
         while (current < toLevel) {
-            val (d, c, xl) = if (isShadow) shadowCostPerPowerUp(current) else costPerPowerUp(current)
+            val (d, c, xl) = when {
+                dex == DEX_ETERNATUS -> costPerPowerUpEternatus(current)
+                isShadow           -> shadowCostPerPowerUp(current)
+                else               -> costPerPowerUp(current)
+            }
             dust += d
             candy += c
             xlCandy += xl

@@ -419,7 +419,8 @@ fun IvScreen(
                             defIv = def,
                             staIv = sta,
                             pokemonName = pkmName,
-                            language = language
+                            language = language,
+                            dex = selectedEntry?.dex ?: 0
                         )
                     }
                 }
@@ -438,7 +439,8 @@ private fun IvResultCard(
     defIv: Int,
     staIv: Int,
     pokemonName: String,
-    language: AppLanguage
+    language: AppLanguage,
+    dex: Int = 0
 ) {
     val perfectionColor = when {
         result.perfection >= 97.78 -> Color(0xFF4CAF50)
@@ -467,8 +469,8 @@ private fun IvResultCard(
         if (baseStats == null) null
         else IvCalculator.calculateAtLevel(baseStats.atk, baseStats.def, baseStats.hp, atkIv, defIv, staIv, targetLevel)
     }
-    val cost = remember(result.level, targetLevel, isShadow) {
-        IvCalculator.getPowerUpCost(result.level, targetLevel, isShadow)
+    val cost = remember(result.level, targetLevel, isShadow, dex) {
+        IvCalculator.getPowerUpCost(result.level, targetLevel, isShadow, dex)
     }
 
     Card(modifier = Modifier.fillMaxWidth()) {
